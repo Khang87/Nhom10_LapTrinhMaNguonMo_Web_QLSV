@@ -1,0 +1,78 @@
+.navbar-custom {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+}
+
+#main-content {
+    flex: 1 0 auto;
+}
+
+.sidebar-brand img {
+    flex: 0 0 auto;
+    object-fit: contain;
+}
+
+@media (max-width: 768px) {
+    .navbar-custom {
+        align-items: flex-start;
+    }
+
+    .navbar-left {
+        min-width: 0;
+        flex-wrap: wrap;
+    }
+
+    .navbar-actions {
+        margin-left: auto;
+    }
+
+    .btn-quick-action {
+        padding: 0.5rem 0.75rem;
+    }
+}
+
+.student-profile-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 5rem;
+    height: 5rem;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background-color: #f4f6f5;
+    color: var(--brand-forest-medium);
+    font-size: 2.5rem;
+}
+
+.student-stat-card .card-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.student-stat-value {
+    margin: 0.25rem 0;
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--brand-forest-medium);
+}
+
+.student-action-card {
+    color: var(--text-main);
+}
+
+.student-action-card .bi:first-child {
+    color: var(--brand-forest-medium);
+    font-size: 1.5rem;
+}
+
+.student-action-card:hover,
+.student-action-card:focus-visible {
+    color: var(--brand-forest-medium);
+    border-color: var(--brand-forest-medium);
+}
+
+.student-action-card:focus-visible {
+    outline: 3px solid var(--brand-forest-medium);
+    outline-offset: 2px;
+}

@@ -1,0 +1,26 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source "../**/*.blade.php";
+@source "../**/*.js";
+@source "../**/*.vue";
+
+@theme {
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+.login-page {
+    background: linear-gradient(rgb(0 0 0 / 50%), rgb(0 0 0 / 50%)), url('../images/HUIT.png') center / cover no-repeat;
+}
+
+.login-card {
+    max-width: 26rem;
+}
+
+.login-logo {
+    width: 5rem;
+    height: 5rem;
+    object-fit: contain;
+}
