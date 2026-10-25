@@ -1,5 +1,6 @@
 /.phpunit.cache
 /node_modules
+/services/password-mailer/node_modules
 /public/build
 /public/hot
 /public/storage
@@ -21,3 +22,5 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+/storage/app/*.sql
+/docs/*.bak
