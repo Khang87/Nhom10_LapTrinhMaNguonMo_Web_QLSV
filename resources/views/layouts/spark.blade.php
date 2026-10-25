@@ -104,7 +104,7 @@
         </div>
 
         <div class="sidebar-profile">
-            <img src="{{ asset('images/HUIT_logo.png') }}" alt="" class="sidebar-profile-img">
+            <img src="{{ e(auth()->user()->avatarUrl()) }}" alt="" class="sidebar-profile-img">
             <div class="sidebar-profile-info">
                 <div class="sidebar-profile-name">{{ auth()->user()->name }}</div>
                 <div class="sidebar-profile-email">{{ auth()->user()->email }}</div>
@@ -140,7 +140,7 @@
                 <div class="dropdown">
                     <button class="navbar-profile-btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
                         aria-expanded="false" id="spark-profile-dropdown">
-                        <img src="{{ asset('images/HUIT_logo.png') }}" alt="" class="navbar-profile-img">
+                        <img src="{{ e(auth()->user()->avatarUrl()) }}" alt="" class="navbar-profile-img">
                         <span class="navbar-profile-name d-none d-md-inline">{{ auth()->user()->name }}</span>
                         <i class="bi bi-chevron-down navbar-profile-caret" aria-hidden="true"></i>
                     </button>

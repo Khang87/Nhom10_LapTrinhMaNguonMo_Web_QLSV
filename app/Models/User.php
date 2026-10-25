@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable
 {
@@ -27,6 +28,7 @@ class User extends Authenticatable
         'password',
         'role',
         'class_id',
+        'avatar',
     ];
 
     /**
@@ -55,6 +57,13 @@ class User extends Authenticatable
     public function studentClass(): BelongsTo
     {
         return $this->belongsTo(StudentClass::class, 'class_id');
+    }
+
+    public function avatarUrl(): string
+    {
+        return $this->avatar
+            ? (Storage::disk('public')->url($this->avatar) ?: asset('images/HUIT_logo.png'))
+            : asset('images/HUIT_logo.png');
     }
 
     public function subjects(): BelongsToMany
