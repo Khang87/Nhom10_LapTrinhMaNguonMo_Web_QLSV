@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Attendance;
 use App\Models\Subject;
 use App\Models\User;
+use App\Support\Csv;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -35,6 +37,32 @@ class AttendanceController extends Controller
             'presentCount' => $records->where('status', 'present')->count(),
             'absentCount' => $records->where('status', 'absent')->count(),
         ]);
+    }
+
+    public function export(Request $request): Response
+    {
+        $date = $request->query('date', today()->toDateString());
+        validator(['date' => $date], ['date' => ['required', 'date']])->validate();
+
+        $rows = Attendance::with(['user', 'subject'])
+            ->whereDate('date', $date)
+            ->orderBy('subject_id')
+            ->orderBy('user_id')
+            ->get()
+            ->map(fn (Attendance $record) => [
+                $record->user->name,
+                $record->user->email,
+                $record->subject->code,
+                $record->subject->name,
+                Carbon::parse($record->date)->format('d/m/Y'),
+                $record->status === 'present' ? 'Có mặt' : 'Vắng',
+            ]);
+
+        return Csv::download(
+            'diem-danh-'.Carbon::parse($date)->toDateString().'.csv',
+            ['Sinh viên', 'Email', 'Mã môn', 'Môn học', 'Ngày', 'Trạng thái'],
+            $rows
+        );
     }
 
     public function store(Request $request): RedirectResponse

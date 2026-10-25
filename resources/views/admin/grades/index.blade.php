@@ -1,7 +1,12 @@
 @extends('layouts.spark')
 @section('title', 'Quản lý điểm')
 @section('content')
-    <h1 class="h3 mb-3">Quản lý điểm</h1>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <h1 class="h3 mb-0">Quản lý điểm</h1>
+        <a class="btn btn-outline-primary" href="{{ route('admin.grades.export') }}">
+            <i class="bi bi-download me-1" aria-hidden="true"></i>Tải CSV
+        </a>
+    </div>
     <form class="row g-3 align-items-end mb-4" method="POST" action="{{ route('admin.grades.store') }}">
         @csrf
         <div class="col-md-4">

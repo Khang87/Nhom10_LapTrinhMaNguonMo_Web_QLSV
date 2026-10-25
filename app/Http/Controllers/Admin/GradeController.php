@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Grade;
 use App\Models\Subject;
 use App\Models\User;
+use App\Support\Csv;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -23,6 +25,29 @@ class GradeController extends Controller
             'students' => User::where('role', 'student')->orderBy('name')->get(),
             'subjects' => Subject::orderBy('code')->get(),
         ]);
+    }
+
+    public function export(): Response
+    {
+        $rows = Grade::with(['user', 'subject'])
+            ->orderBy('user_id')
+            ->orderBy('subject_id')
+            ->get()
+            ->map(fn (Grade $grade) => [
+                $grade->user->name,
+                $grade->user->email,
+                $grade->subject->code,
+                $grade->subject->name,
+                $grade->subject->credits,
+                number_format((float) $grade->score, 1, ',', ''),
+                $grade->updated_at?->format('d/m/Y H:i'),
+            ]);
+
+        return Csv::download(
+            'diem-'.today()->toDateString().'.csv',
+            ['Sinh viên', 'Email', 'Mã môn', 'Môn học', 'Tín chỉ', 'Điểm', 'Cập nhật lúc'],
+            $rows
+        );
     }
 
     public function store(Request $request): RedirectResponse

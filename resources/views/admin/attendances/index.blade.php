@@ -1,7 +1,12 @@
 @extends('layouts.spark')
 @section('title', 'Điểm danh và báo cáo')
 @section('content')
-    <h1 class="h3 mb-3">Điểm danh và báo cáo</h1>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <h1 class="h3 mb-0">Điểm danh và báo cáo</h1>
+        <a class="btn btn-outline-primary" href="{{ route('admin.attendances.export', ['date' => $date]) }}">
+            <i class="bi bi-download me-1" aria-hidden="true"></i>Tải CSV
+        </a>
+    </div>
     <form class="row g-2 align-items-end mb-3" method="GET" action="{{ route('admin.attendances.index') }}">
         <div class="col-auto">
             <label class="form-label" for="date">Ngày điểm danh</label>
