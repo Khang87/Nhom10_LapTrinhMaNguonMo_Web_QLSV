@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\GradeController;
 use App\Http\Controllers\Admin\StudentController;
 use App\Http\Controllers\Admin\SubjectController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\StudentDashboardController;
 use App\Http\Controllers\StudentGradeController;
 use App\Http\Controllers\StudentSubjectController;
@@ -15,6 +16,19 @@ Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])
     ->middleware('throttle:10,15')
     ->name('login.store');
+Route::get('/forgot-password', [PasswordResetController::class, 'showLinkRequestForm'])
+    ->name('password.request');
+Route::post('/forgot-password', [PasswordResetController::class, 'sendResetOtp'])
+    ->middleware('throttle:5,1')
+    ->name('password.email');
+Route::post('/forgot-password/verify', [PasswordResetController::class, 'verifyOtp'])
+    ->middleware('throttle:10,1')
+    ->name('password.verify');
+Route::get('/reset-password', [PasswordResetController::class, 'showResetForm'])
+    ->name('password.reset');
+Route::post('/reset-password', [PasswordResetController::class, 'resetPassword'])
+    ->middleware('throttle:5,1')
+    ->name('password.update');
 
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
@@ -29,9 +43,11 @@ Route::middleware('auth')->group(function () {
         Route::resource('subjects', SubjectController::class)->except('show');
         Route::resource('students', StudentController::class)->except('show');
         Route::get('/grades', [GradeController::class, 'index'])->name('grades.index');
+        Route::get('/grades/export', [GradeController::class, 'export'])->name('grades.export');
         Route::post('/grades', [GradeController::class, 'store'])->name('grades.store');
         Route::delete('/grades/{grade}', [GradeController::class, 'destroy'])->name('grades.destroy');
         Route::get('/attendances', [AttendanceController::class, 'index'])->name('attendances.index');
+        Route::get('/attendances/export', [AttendanceController::class, 'export'])->name('attendances.export');
         Route::post('/attendances', [AttendanceController::class, 'store'])->name('attendances.store');
     });
 

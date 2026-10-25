@@ -7,7 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-light min-vh-100 d-flex flex-column">
-    @unless (request()->routeIs('login'))
+    @unless (request()->routeIs('login', 'password.request', 'password.reset'))
         <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
             <div class="container">
                 <a class="navbar-brand" href="{{ url('/') }}">Quản lý sinh viên</a>

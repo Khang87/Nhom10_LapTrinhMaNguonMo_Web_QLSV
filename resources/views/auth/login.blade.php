@@ -33,6 +33,9 @@
                     </div>
                     <button class="btn btn-primary w-100 mt-3" type="submit">Đăng nhập</button>
                 </form>
+                <p class="text-center mt-3 mb-0">
+                    <a href="{{ route('password.request') }}">Quên mật khẩu?</a>
+                </p>
                 <footer class="text-center text-secondary small mt-4">
                     © {{ date('Y') }} HUIT. All rights reserved.
                 </footer>

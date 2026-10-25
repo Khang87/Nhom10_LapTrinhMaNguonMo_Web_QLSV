@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'nodemailer' => [
+        'url' => env('NODEMAILER_URL', 'http://127.0.0.1:3001'),
+        'secret' => env('NODEMAILER_SHARED_SECRET'),
+        'timeout' => env('NODEMAILER_TIMEOUT', 5),
+    ],
+
 ];

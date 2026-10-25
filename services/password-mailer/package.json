@@ -1,0 +1,15 @@
+{
+  "name": "qlsv-password-mailer",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "nodemailer": "10.1.7"
+  }
+}
