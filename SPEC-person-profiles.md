@@ -74,7 +74,7 @@ StudentExport::toXlsx(Collection $students, string $path): void
 ```
 
 Quy tắc import:
-1. Đọc sheet đầu tiên, dòng 1 là header. Column map cố định theo mẫu tải xuống
+1. Đọc sheet đầu tiên, dòng 1 là hàng tiêu đề. Ánh xạ cột cố định theo mẫu tải xuống
    (Mã SV, Họ tên, Email, Ngày sinh, Giới tính, Quê quán, SĐT, Mã lớp, Tình trạng).
 2. Dòng thiếu `Email` hoặc `Họ tên` → skip kèm lý do, liệt kê trong báo cáo kết quả.
 3. Trùng `student_code` → **cập nhật** hồ sơ (không đụng `password`), trùng `email` mà

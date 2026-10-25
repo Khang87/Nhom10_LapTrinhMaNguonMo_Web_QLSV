@@ -5,21 +5,24 @@ Quy ước branch/commit: một commit cho mỗi task, message tiếng Việt th
 
 ## Wave 0 — Chuẩn bị
 
-- [ ] 0.1 Cài dependency Excel/PDF
+- [x] 0.1 Cài dependency Excel/PDF
   - Acceptance: `composer show` có `phpoffice/phpspreadsheet` và `barryvdh/laravel-dompdf`;
     `composer.lock` được commit.
   - Verify: `php -r "require 'vendor/autoload.php'; echo class_exists(\PhpOffice\PhpSpreadsheet\IOFactory::class) ? 'ok' : 'fail';"` in `ok`.
+  - Kết quả 2026-10-25: `xlsx-ok pdf-ok` (phpspreadsheet 5.10.0, laravel-dompdf 3.1.2),
+    `php artisan test` vẫn 35 passed / 226 assertions.
   - Files: `composer.json`, `composer.lock`
 
-- [ ] 0.2 Backup DB dev trước migration
+- [x] 0.2 Backup DB dev trước migration
   - Acceptance: `storage/app/backup-pre-v2.sql` tồn tại, không vào git.
-  - Verify: `mysqldump -u root quanly_sinh_vien > storage/app/backup-pre-v2.sql && wc -l` > 100 dòng.
-  - Files: `.gitignore`
+  - Kết quả 2026-10-25: 435 dòng dump, `git check-ignore` xác nhận bị bỏ qua qua
+    `storage/app/.gitignore`.
+  - Files: không (artifact cục bộ)
 
-- [ ] 0.3 Tạo `config/academic.php`
-  - Acceptance: chứa `pass_score=5.0`, `fail_floor=4.0`, `max_credits_per_term=14`,
-    `min_attendance_rate=80`, `weights=[10,20,70]`.
-  - Verify: `php artisan tinker --execute="echo config('academic.pass_score');"` in `5`.
+- [x] 0.3 Tạo `config/academic.php`
+  - Acceptance: `max_credits_per_term=14`, `min_attendance_rate=80`; trọng số và ngưỡng GPA
+    KHÔNG nằm ở đây mà thuộc `GradingScale` (một nguồn sự thật duy nhất cho thang điểm).
+  - Kết quả 2026-10-25: `artisan tinker` in `14 80`.
   - Files: `config/academic.php`
 
 ## Wave 1 — `identity-roles`

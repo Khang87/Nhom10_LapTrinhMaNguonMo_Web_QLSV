@@ -43,7 +43,8 @@ trọng số, để về sau đổi trọng số không phải backfill dữ li�
 ```php
 public const WEIGHTS = ['attendance' => 0.10, 'midterm' => 0.20, 'final' => 0.70];
 public const PASS_SCORE = 5.0;
-public const FAIL_ALL_BAND_MIN = 4.0;   // điểm liệt: thành phần cuối kỳ < 4.0 => F
+public const FAIL_FLOOR = 4.0;      // điểm liệt: cuối kỳ < 4.0 ⇒ F, dù CC/GK cao
+public const AT_RISK_GPA = 2.0;     // ngưỡng cảnh báo học vụ
 
 public static function subjectScore(?float $a, ?float $m, float $f): ?float;  // round 2
 public static function toLetterAndFour(float $subjectScore): array;           // ['A', 4.0]
