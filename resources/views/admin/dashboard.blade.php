@@ -34,6 +34,39 @@
             </a>
         </div>
         <div class="col">
+            <a class="card h-100 text-decoration-none" href="{{ route('admin.departments.index') }}">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <i class="bi bi-diagram-3 fs-2 text-success" aria-hidden="true"></i>
+                    <div>
+                        <h2 class="h5 card-title mb-1">Khoa</h2>
+                        <p class="card-text text-muted mb-0">Quản lý khoa và chuyên ngành trực thuộc.</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col">
+            <a class="card h-100 text-decoration-none" href="{{ route('admin.majors.index') }}">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <i class="bi bi-mortarboard fs-2 text-success" aria-hidden="true"></i>
+                    <div>
+                        <h2 class="h5 card-title mb-1">Chuyên ngành</h2>
+                        <p class="card-text text-muted mb-0">Chuyên ngành thuộc khoa và môn học của ngành.</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col">
+            <a class="card h-100 text-decoration-none" href="{{ route('admin.study-plans.index') }}">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <i class="bi bi-list-nested fs-2 text-success" aria-hidden="true"></i>
+                    <div>
+                        <h2 class="h5 card-title mb-1">Khung CTĐT</h2>
+                        <p class="card-text text-muted mb-0">Xếp môn theo học kỳ dự kiến cho từng chuyên ngành.</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col">
             <a class="card h-100 text-decoration-none" href="{{ route('admin.students.index') }}">
                 <div class="card-body d-flex align-items-center gap-3">
                     <i class="bi bi-people fs-2 text-success" aria-hidden="true"></i>

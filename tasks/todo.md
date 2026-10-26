@@ -72,33 +72,52 @@ Quy ước branch/commit: một commit cho mỗi task, message tiếng Việt th
 
 ## Wave 2 — `catalog`
 
-- [ ] 2.1 Migration `departments` + `majors`
+- [x] 2.1 Migration `departments` + `majors`
   - Acceptance: xoá khoa còn chuyên ngành bị chặn (`restrictOnDelete`).
   - Verify: `php artisan test --filter=CatalogTest`.
   - Files: `database/migrations/*_create_catalog_tables.php`, `app/Models/{Department,Major}.php`
+  - Done 2026-10-26: 3 migration chạy DONE trên MySQL; test `department with majors not deletable`
+    + `major with study plan not deletable` pass. Browser: `/admin/departments` hiện cột
+    "Chuyên ngành" = 2 (CNTT) / 0 (KHTN).
 
-- [ ] 2.2 Cột mới trên `subjects` (`major_id`, `description`, `total_sessions`)
+- [x] 2.2 Cột mới trên `subjects` (`major_id`, `description`, `total_sessions`)
   - Acceptance: form môn học chọn được chuyên ngành; dữ liệu 3 môn cũ không mất.
   - Verify: `php artisan test --filter=CatalogTest`.
   - Files: migration, `app/Http/Controllers/Admin/SubjectController.php`, `resources/views/admin/subjects/*`
+  - Done 2026-10-26: `major_id` nullable + `nullOnDelete` nên 3 môn cũ vẫn nguyên; seeder nâng lên
+    6 môn, `/admin/subjects` hiện "Chưa phân chuyên ngành" cho GTA101.
 
-- [ ] 2.3 `subject_prerequisites` + `subject_concurrents` + chặn chu trình
+- [x] 2.3 `subject_prerequisites` + `subject_concurrents` + chặn chu trình
   - Acceptance: `WEB101 → DB101 → WEB101` bị từ chối kèm thông báo đường dẫn; không tự tham
     chiếu chính nó.
   - Verify: `tests/Unit/PrerequisiteRulesTest.php` (3 case cycle) + feature test thêm/xoá.
   - Files: `app/Support/PrerequisiteRules.php`, `resources/views/admin/subjects/*`
+  - Done 2026-10-26 (lạc hướng so với plan): 3 case cycle + `blockingPrerequisites` đặt trong
+    `tests/Feature/CatalogTest.php` chạy qua HTTP thật thay vì unit test riêng, vì đó đúng hành vi
+    người dùng gặp. Browser: thêm tiên quyết DB101 cho WEB101 → banner
+    "Xếp tiên quyết sẽ tạo vòng lặp: WEB101 → DB101 → WEB101. …", dữ liệu không đổi;
+    song hành SEC201 ↔ NET101 đọc được ở cả hai chiều.
 
-- [ ] 2.4 `study_plans` — khung chương trình đào tạo theo chuyên ngành
+- [x] 2.4 `study_plans` — khung chương trình đào tạo theo chuyên ngành
   - Acceptance: một chuyên ngành liệt kê môn theo `plan_semester`, tổng tín chỉ đúng; unique
     `(major_id, subject_id)`.
   - Verify: `php artisan test --filter=CatalogTest`.
   - Files: `app/Models/StudyPlan.php`, `app/Http/Controllers/Admin/StudyPlanController.php`,
     `resources/views/admin/study-plans/*`
+  - Done 2026-10-26: `/admin/study-plans?major_id=1` = "Tổng tín chỉ: 16 · 5 môn", sắp theo học kỳ
+    1→4; thêm NET101 học kỳ 5 → "18 · 6 môn" rồi xóa lại về 16 ("Đã xóa môn khỏi khung
+    chương trình."). Test trùng môn báo lỗi `subject_id`; bulk PUT đổi học kỳ ADT101 chạy thật.
 
-- [ ] 2.5 Trang admin cho khoa / chuyên ngành / khung CTĐT
+- [x] 2.5 Trang admin cho khoa / chuyên ngành / khung CTĐT
   - Acceptance: đủ index/create/edit theo bộ nhãn dùng chung, không có nút "Hủy" trong form.
   - Verify: kiểm tay ba màn hình qua browser.
   - Files: `resources/views/admin/departments/*`, `resources/views/admin/majors/*`
+  - Done 2026-10-26: 5 route (`/admin/departments`, `/admin/majors`, `/admin/study-plans` + các
+    route create/edit) trả 200, không trang nào có chữ "Hủy" hay inline script; mọi form có
+    "Quay lại"; filter "Lọc theo khoa" trả "Chưa có chuyên ngành nào." khi chọn KHTN; console
+    sạch lỗi.
+  - Deviation: giữ nút "Tìm kiếm" trên filter bar (memory muốn thanh lọc không nút) để đồng bộ
+    với các màn hình đã có trong repo.
 
 ## Wave 3 — `person-profiles`
 

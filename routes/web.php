@@ -3,8 +3,11 @@
 use App\Http\Controllers\Admin\AccountController;
 use App\Http\Controllers\Admin\AttendanceController;
 use App\Http\Controllers\Admin\ClassController;
+use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Admin\GradeController;
+use App\Http\Controllers\Admin\MajorController;
 use App\Http\Controllers\Admin\StudentController;
+use App\Http\Controllers\Admin\StudyPlanController;
 use App\Http\Controllers\Admin\SubjectController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PasswordResetController;
@@ -43,6 +46,12 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', fn () => view('admin.dashboard'))->name('dashboard');
         Route::resource('accounts', AccountController::class)->except('show');
         Route::resource('classes', ClassController::class)->except('show');
+        Route::resource('departments', DepartmentController::class)->except('show');
+        Route::resource('majors', MajorController::class)->except('show');
+        Route::get('/study-plans', [StudyPlanController::class, 'index'])->name('study-plans.index');
+        Route::post('/study-plans', [StudyPlanController::class, 'store'])->name('study-plans.store');
+        Route::put('/study-plans', [StudyPlanController::class, 'sync'])->name('study-plans.sync');
+        Route::delete('/study-plans/{studyPlan}', [StudyPlanController::class, 'destroy'])->name('study-plans.destroy');
         Route::resource('subjects', SubjectController::class)->except('show');
         Route::resource('students', StudentController::class)->except('show');
         Route::get('/grades', [GradeController::class, 'index'])->name('grades.index');

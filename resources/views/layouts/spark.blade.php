@@ -53,6 +53,30 @@
                             </a>
                         </li>
                         <li class="sidebar-menu-item">
+                            <a class="sidebar-menu-link {{ request()->routeIs('admin.departments.*') ? 'active' : '' }}"
+                                href="{{ route('admin.departments.index') }}"
+                                @if (request()->routeIs('admin.departments.*')) aria-current="page" @endif>
+                                <i class="bi bi-diagram-3" aria-hidden="true"></i>
+                                <span>Khoa</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-menu-item">
+                            <a class="sidebar-menu-link {{ request()->routeIs('admin.majors.*') ? 'active' : '' }}"
+                                href="{{ route('admin.majors.index') }}"
+                                @if (request()->routeIs('admin.majors.*')) aria-current="page" @endif>
+                                <i class="bi bi-mortarboard" aria-hidden="true"></i>
+                                <span>Chuyên ngành</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-menu-item">
+                            <a class="sidebar-menu-link {{ request()->routeIs('admin.study-plans.*') ? 'active' : '' }}"
+                                href="{{ route('admin.study-plans.index') }}"
+                                @if (request()->routeIs('admin.study-plans.*')) aria-current="page" @endif>
+                                <i class="bi bi-list-nested" aria-hidden="true"></i>
+                                <span>Khung CTĐT</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-menu-item">
                             <a class="sidebar-menu-link {{ request()->routeIs('admin.students.*') ? 'active' : '' }}"
                                 href="{{ route('admin.students.index') }}"
                                 @if (request()->routeIs('admin.students.*')) aria-current="page" @endif>
