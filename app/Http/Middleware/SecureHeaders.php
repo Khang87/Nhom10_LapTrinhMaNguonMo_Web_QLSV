@@ -15,12 +15,13 @@ class SecureHeaders
         $response->headers->set('X-Frame-Options', 'DENY');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+        // blob: cần cho ảnh xem trước tạo từ URL.createObjectURL khi chọn file.
         $response->headers->set(
             'Content-Security-Policy',
             "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; "
                 ."object-src 'none'; script-src 'self' https://cdn.jsdelivr.net; "
                 ."style-src 'self' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net data:; "
-                ."img-src 'self' data:",
+                ."img-src 'self' data: blob:",
         );
 
         if ($request->isSecure()) {

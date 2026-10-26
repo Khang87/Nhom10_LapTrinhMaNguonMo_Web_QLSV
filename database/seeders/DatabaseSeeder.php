@@ -45,6 +45,21 @@ class DatabaseSeeder extends Seeder
             ],
         );
 
+        foreach ([
+            ['name' => 'Nguyễn Văn Đạt', 'email' => 'giangvien1@gmail.com'],
+            ['name' => 'Trần Thị Kim Oanh', 'email' => 'giangvien2@gmail.com'],
+        ] as $data) {
+            User::updateOrCreate(
+                ['email' => $data['email']],
+                [
+                    'name' => $data['name'],
+                    'password' => Hash::make('12345678'),
+                    'role' => 'teacher',
+                    'class_id' => null,
+                ],
+            );
+        }
+
         $studentNames = [
             ['name' => 'Nguyễn Minh Anh', 'email' => 'sinhvien1@gmail.com'],
             ['name' => 'Trần Hoàng Nam', 'email' => 'sinhvien2@gmail.com'],

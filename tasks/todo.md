@@ -27,32 +27,48 @@ Quy ước branch/commit: một commit cho mỗi task, message tiếng Việt th
 
 ## Wave 1 — `identity-roles`
 
-- [ ] 1.1 Migration mở rộng enum `users.role` thêm `teacher`
+- [x] 1.1 Migration mở rộng enum `users.role` thêm `teacher`
   - Acceptance: `SHOW COLUMNS FROM users LIKE 'role'` liệt kê `admin,teacher,student`; 7 dòng
     cũ giữ nguyên role.
-  - Verify: `php artisan migrate` + `tests/Feature/IdentityRolesTest.php::test_existing_roles_survive`.
+  - Verify: `php artisan migrate` + `php artisan test --filter=IdentityRolesTest`.
   - Files: `database/migrations/*_add_teacher_role_to_users_table.php`
+  - Done 2026-10-26: migration `2026_11_01_000001` chạy DONE, `SELECT role, COUNT(*)` trả về
+    `admin:1, student:6` trước khi seed và `admin:1, teacher:2, student:6` sau khi seed.
 
-- [ ] 1.2 Sửa redirect theo role bằng bảng ánh xạ
+- [x] 1.2 Sửa redirect theo role bằng bảng ánh xạ
   - Acceptance: login teacher → `/teacher`, không `RouteNotFoundException`.
   - Verify: `php artisan test --filter=IdentityRolesTest`.
   - Files: `app/Http/Controllers/AuthController.php`
+  - Done 2026-10-26: `User::dashboardRoute()` + `roleLabel()`; đăng nhập `giangvien1@gmail.com`
+    ngoài trình duyệt chuyển thẳng tới `/teacher/dashboard`.
 
-- [ ] 1.3 Nhóm route + middleware `checkRole:teacher`
+- [x] 1.3 Nhóm route + middleware `checkRole:teacher`
   - Acceptance: admin/student truy cập `/teacher/*` → 403; teacher truy cập `/admin/*` → 403.
   - Verify: `php artisan test --filter=IdentityRolesTest`.
   - Files: `routes/web.php`, `app/Http/Controllers/Teacher/DashboardController.php`
+  - Done 2026-10-26: 4 chiều 403 được test; `php artisan test` → 49 passed (272 assertions).
 
-- [ ] 1.4 CRUD tài khoản cho admin (ba role, validate theo role)
+- [x] 1.4 CRUD tài khoản cho admin (ba role, validate theo role)
   - Acceptance: tạo được giảng viên, sửa role, đổi mật khẩu tuỳ chọn; field không thuộc role bị
     null hoá server-side.
   - Verify: feature test tạo/sửa/xoá + kiểm tay `/admin/accounts`.
   - Files: `app/Http/Controllers/Admin/AccountController.php`, `resources/views/admin/accounts/*`
+  - Done 2026-10-26: kiểm tay tạo "ĐỗTest (teacher)" → "Đã thêm tài khoản.", lọc `?role=teacher`
+    bằng AJAX (URL đổi, không tải lại, "N tài khoản."), xoá lại về 9 dòng; chặn tự xóa/tự hạ cấp
+    chính mình và xóa tài khoản đã có dữ liệu.
 
-- [ ] 1.5 Nav + layout theo role
+- [x] 1.5 Nav + layout theo role
   - Acceptance: sidebar hiện mục riêng cho teacher (Lớp của tôi, Điểm danh, TKB).
   - Verify: kiểm tay + `spark layout is role specific` test cũ vẫn pass.
   - Files: `resources/views/layouts/spark.blade.php`
+  - Done 2026-10-26 (một phần): teacher chỉ còn "TỔNG QUAN → Trang chủ", không lộ link admin;
+    các mục Lớp của tôi/Điểm danh/TKB sẽ thêm ở Wave 6–8 khi route đó tồn tại.
+
+- [x] 1.6 (phát sinh) Bỏ inline script vì CSP chặn
+  - Lý do: `SecureHeaders` đặt `script-src 'self' https://cdn.jsdelivr.net`, nên `<script>` nội
+    tuyến không chạy — làm hỏng cả toggle "Lớp" lẫn xem trước ảnh đại diện (lỗi có sẵn từ trước).
+  - Đã chuyển sang `public/js/app.js`; thêm `blob:` vào `img-src` để `URL.createObjectURL` hiển thị
+    được. Test chặn hồi quy: `test_forms_keep_javascript_out_of_inline_script_tags`.
 
 ## Wave 2 — `catalog`
 

@@ -34,18 +34,3 @@
         </div>
     </div>
 </div>
-<script>
-    (() => {
-        const input = document.getElementById('avatar');
-        const preview = document.getElementById('avatar-preview');
-        const fallback = preview.getAttribute('src');
-        input.addEventListener('change', () => {
-            const file = input.files && input.files[0];
-            if (file) {
-                preview.src = URL.createObjectURL(file);
-            } else {
-                preview.src = fallback;
-            }
-        });
-    })();
-</script>

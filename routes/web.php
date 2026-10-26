@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AccountController;
 use App\Http\Controllers\Admin\AttendanceController;
 use App\Http\Controllers\Admin\ClassController;
 use App\Http\Controllers\Admin\GradeController;
@@ -10,6 +11,7 @@ use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\StudentDashboardController;
 use App\Http\Controllers\StudentGradeController;
 use App\Http\Controllers\StudentSubjectController;
+use App\Http\Controllers\Teacher\DashboardController as TeacherDashboardController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
@@ -34,11 +36,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
     Route::get('/', function () {
-        return redirect()->route(auth()->user()->role.'.dashboard');
+        return redirect()->route(auth()->user()->dashboardRoute());
     });
 
     Route::prefix('admin')->name('admin.')->middleware('checkRole:admin')->group(function () {
         Route::get('/dashboard', fn () => view('admin.dashboard'))->name('dashboard');
+        Route::resource('accounts', AccountController::class)->except('show');
         Route::resource('classes', ClassController::class)->except('show');
         Route::resource('subjects', SubjectController::class)->except('show');
         Route::resource('students', StudentController::class)->except('show');
@@ -49,6 +52,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/attendances', [AttendanceController::class, 'index'])->name('attendances.index');
         Route::get('/attendances/export', [AttendanceController::class, 'export'])->name('attendances.export');
         Route::post('/attendances', [AttendanceController::class, 'store'])->name('attendances.store');
+    });
+
+    Route::prefix('teacher')->name('teacher.')->middleware('checkRole:teacher')->group(function () {
+        Route::get('/dashboard', [TeacherDashboardController::class, 'index'])->name('dashboard');
     });
 
     Route::prefix('student')->name('student.')->middleware('checkRole:student')->group(function () {

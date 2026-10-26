@@ -66,5 +66,16 @@
                 </div>
             </a>
         </div>
+        <div class="col">
+            <a class="card h-100 text-decoration-none" href="{{ route('admin.accounts.index') }}">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <i class="bi bi-person-badge fs-2 text-success" aria-hidden="true"></i>
+                    <div>
+                        <h2 class="h5 card-title mb-1">Tài khoản</h2>
+                        <p class="card-text text-muted mb-0">Quản lý tài khoản quản trị, giảng viên, sinh viên.</p>
+                    </div>
+                </div>
+            </a>
+        </div>
     </div>
 @endsection

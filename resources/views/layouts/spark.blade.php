@@ -11,8 +11,8 @@
     <link rel="stylesheet" href="{{ asset('css/spark-layout.css') }}">
 </head>
 <body>
-    <aside class="sidebar-wrapper" id="sidebar" aria-label="Điều hướng {{ auth()->user()->role === 'admin' ? 'quản trị' : 'sinh viên' }}">
-        <a class="sidebar-brand" href="{{ route(auth()->user()->role.'.dashboard') }}">
+    <aside class="sidebar-wrapper" id="sidebar" aria-label="Điều hướng {{ auth()->user()->roleLabel() }}">
+        <a class="sidebar-brand" href="{{ route(auth()->user()->dashboardRoute()) }}">
             <img src="{{ asset('images/HUIT_logo.png') }}" alt="" width="32" height="32">
             <span>Quản lý sinh viên</span>
         </a>
@@ -22,9 +22,9 @@
                 <h2 class="sidebar-menu-title" id="spark-overview-title">Tổng quan</h2>
                 <ul class="sidebar-menu-list">
                     <li class="sidebar-menu-item">
-                        <a class="sidebar-menu-link {{ request()->routeIs(auth()->user()->role.'.dashboard') ? 'active' : '' }}"
-                            href="{{ route(auth()->user()->role.'.dashboard') }}"
-                            @if (request()->routeIs(auth()->user()->role.'.dashboard')) aria-current="page" @endif>
+                        <a class="sidebar-menu-link {{ request()->routeIs(auth()->user()->dashboardRoute()) ? 'active' : '' }}"
+                            href="{{ route(auth()->user()->dashboardRoute()) }}"
+                            @if (request()->routeIs(auth()->user()->dashboardRoute())) aria-current="page" @endif>
                             <i class="bi bi-grid-fill" aria-hidden="true"></i>
                             <span>Trang chủ</span>
                         </a>
@@ -76,9 +76,17 @@
                                 <span>Điểm danh</span>
                             </a>
                         </li>
+                        <li class="sidebar-menu-item">
+                            <a class="sidebar-menu-link {{ request()->routeIs('admin.accounts.*') ? 'active' : '' }}"
+                                href="{{ route('admin.accounts.index') }}"
+                                @if (request()->routeIs('admin.accounts.*')) aria-current="page" @endif>
+                                <i class="bi bi-person-badge" aria-hidden="true"></i>
+                                <span>Tài khoản</span>
+                            </a>
+                        </li>
                     </ul>
                 </section>
-            @else
+            @elseif (auth()->user()->role === 'student')
                 <section class="sidebar-menu-section" aria-labelledby="spark-learning-title">
                     <h2 class="sidebar-menu-title" id="spark-learning-title">Học tập</h2>
                     <ul class="sidebar-menu-list">
@@ -128,7 +136,7 @@
                         <i class="bi bi-person-plus" aria-hidden="true"></i>
                         <span>Thêm sinh viên</span>
                     </a>
-                @else
+                @elseif (auth()->user()->role === 'student')
                     <a class="btn-quick-action" href="{{ route('student.subjects.index') }}">
                         <i class="bi bi-journal-plus" aria-hidden="true"></i>
                         <span>Đăng ký học phần</span>

@@ -25,13 +25,36 @@ document.addEventListener('click', (event) => {
     button.setAttribute('aria-label', isVisible ? 'Hiện mật khẩu' : 'Ẩn mật khẩu');
 });
 
+// CSP 'script-src' chặn inline script nên mọi xử lý DOM đều đặt ở file này.
+
+const roleSelect = document.getElementById('role');
+const classField = document.getElementById('class-field');
+
+if (roleSelect && classField) {
+    const toggleClassField = () => classField.classList.toggle('d-none', roleSelect.value !== 'student');
+    roleSelect.addEventListener('change', toggleClassField);
+    toggleClassField();
+}
+
+const avatarInput = document.getElementById('avatar');
+const avatarPreview = document.getElementById('avatar-preview');
+
+if (avatarInput && avatarPreview) {
+    const fallback = avatarPreview.getAttribute('src');
+    avatarInput.addEventListener('change', () => {
+        const file = avatarInput.files && avatarInput.files[0];
+        avatarPreview.src = file ? URL.createObjectURL(file) : fallback;
+    });
+}
+
 // Tìm kiếm và phân trang bằng AJAX: giữ nguyên bảng, chỉ thay nội dung khi có kết quả mới.
 document.querySelectorAll('form[data-live-search]').forEach((form) => {
-    const input = form.querySelector('input[name=search]');
     const target = document.querySelector(form.dataset.target);
-    const pagination = document.getElementById('student-pagination');
+    const pagination = document.getElementById(form.dataset.pagination || 'student-pagination');
     const status = document.getElementById('live-search-status');
-    if (!input || !target) {
+    const unit = form.dataset.unit || 'sinh viên';
+    const fields = form.querySelectorAll('input[name], select[name]');
+    if (!target || fields.length === 0) {
         return;
     }
 
@@ -44,19 +67,28 @@ document.querySelectorAll('form[data-live-search]').forEach((form) => {
             pagination.innerHTML = payload.pagination;
         }
         if (status) {
-            status.textContent = `${payload.total} sinh viên.`;
+            status.textContent = `${payload.total} ${unit}.`;
         }
         window.history.replaceState({}, '', url);
     };
 
-    const search = () => {
+    const buildUrl = () => {
         const url = new URL(window.location.href);
-        if (input.value.trim() === '') {
-            url.searchParams.delete('search');
-        } else {
-            url.searchParams.set('search', input.value);
-        }
+        fields.forEach((field) => {
+            const value = typeof field.value === 'string' ? field.value.trim() : field.value;
+            if (value === '') {
+                url.searchParams.delete(field.name);
+            } else {
+                url.searchParams.set(field.name, value);
+            }
+        });
         url.searchParams.delete('page');
+
+        return url;
+    };
+
+    const search = () => {
+        const url = buildUrl();
 
         if (controller) {
             controller.abort();
@@ -74,9 +106,13 @@ document.querySelectorAll('form[data-live-search]').forEach((form) => {
             });
     };
 
-    input.addEventListener('input', () => {
+    const scheduleSearch = () => {
         clearTimeout(debounce);
         debounce = setTimeout(search, 350);
+    };
+
+    fields.forEach((field) => {
+        field.addEventListener(field.tagName === 'INPUT' ? 'input' : 'change', scheduleSearch);
     });
     form.addEventListener('submit', (event) => {
         event.preventDefault();

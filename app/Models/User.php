@@ -17,6 +17,20 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
+    public const ROLES = ['admin', 'teacher', 'student'];
+
+    public const ROLE_LABELS = [
+        'admin' => 'Quản trị viên',
+        'teacher' => 'Giảng viên',
+        'student' => 'Sinh viên',
+    ];
+
+    private const DASHBOARD_ROUTES = [
+        'admin' => 'admin.dashboard',
+        'teacher' => 'teacher.dashboard',
+        'student' => 'student.dashboard',
+    ];
+
     /**
      * The attributes that are mass assignable.
      *
@@ -64,6 +78,16 @@ class User extends Authenticatable
         return $this->avatar
             ? (Storage::disk('public')->url($this->avatar) ?: asset('images/HUIT_logo.png'))
             : asset('images/HUIT_logo.png');
+    }
+
+    public function dashboardRoute(): string
+    {
+        return self::DASHBOARD_ROUTES[$this->role];
+    }
+
+    public function roleLabel(): string
+    {
+        return self::ROLE_LABELS[$this->role] ?? $this->role;
     }
 
     public function subjects(): BelongsToMany

@@ -12,7 +12,7 @@ class AuthController extends Controller
     public function showLoginForm(): View|RedirectResponse
     {
         if (Auth::check()) {
-            return redirect()->route(Auth::user()->role.'.dashboard');
+            return redirect()->route(Auth::user()->dashboardRoute());
         }
 
         return view('auth.login');
@@ -33,7 +33,7 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->route(Auth::user()->role.'.dashboard');
+        return redirect()->route(Auth::user()->dashboardRoute());
     }
 
     public function logout(Request $request): RedirectResponse
