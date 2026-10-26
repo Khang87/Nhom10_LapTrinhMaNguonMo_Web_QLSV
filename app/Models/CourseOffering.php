@@ -46,6 +46,11 @@ class CourseOffering extends Model
         return $this->hasMany(Enrollment::class);
     }
 
+    public function grades(): HasMany
+    {
+        return $this->hasMany(Grade::class, 'course_offering_id');
+    }
+
     /**
      * Nhãn dùng chung cho select và bảng: môn nào, nhóm nào.
      */

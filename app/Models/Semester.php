@@ -43,6 +43,12 @@ class Semester extends Model
             // Kỳ đầu tiên của hệ thống mặc nhiên là kỳ đang chạy, tránh trạng thái "không kỳ nào".
             $semester->is_active = $semester->is_active || ! static::where('is_active', true)->exists();
         });
+
+        static::updating(function (Semester $semester) {
+            if ($semester->isDirty(['academic_year', 'term'])) {
+                $semester->slug = self::buildSlug($semester->academic_year, (int) $semester->term);
+            }
+        });
     }
 
     public static function buildSlug(string $academicYear, int $term): string

@@ -3,9 +3,11 @@
 use App\Http\Controllers\Admin\AccountController;
 use App\Http\Controllers\Admin\AttendanceController;
 use App\Http\Controllers\Admin\ClassController;
+use App\Http\Controllers\Admin\CourseOfferingController;
 use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Admin\GradeController;
 use App\Http\Controllers\Admin\MajorController;
+use App\Http\Controllers\Admin\SemesterController;
 use App\Http\Controllers\Admin\StudentController;
 use App\Http\Controllers\Admin\StudyPlanController;
 use App\Http\Controllers\Admin\SubjectController;
@@ -15,6 +17,7 @@ use App\Http\Controllers\StudentDashboardController;
 use App\Http\Controllers\StudentGradeController;
 use App\Http\Controllers\StudentOfferingController;
 use App\Http\Controllers\Teacher\DashboardController as TeacherDashboardController;
+use App\Http\Controllers\Teacher\OfferingController as TeacherOfferingController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
@@ -46,6 +49,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', fn () => view('admin.dashboard'))->name('dashboard');
         Route::resource('accounts', AccountController::class)->except('show');
         Route::resource('classes', ClassController::class)->except('show');
+        Route::resource('semesters', SemesterController::class)->except('show');
+        Route::post('/semesters/{semester}/activate', [SemesterController::class, 'activate'])->name('semesters.activate');
+        Route::resource('course-offerings', CourseOfferingController::class)->except('show');
         Route::resource('departments', DepartmentController::class)->except('show');
         Route::resource('majors', MajorController::class)->except('show');
         Route::get('/study-plans', [StudyPlanController::class, 'index'])->name('study-plans.index');
@@ -69,6 +75,7 @@ Route::middleware('auth')->group(function () {
 
     Route::prefix('teacher')->name('teacher.')->middleware('checkRole:teacher')->group(function () {
         Route::get('/dashboard', [TeacherDashboardController::class, 'index'])->name('dashboard');
+        Route::get('/my-offerings', [TeacherOfferingController::class, 'index'])->name('offerings.index');
     });
 
     Route::prefix('student')->name('student.')->middleware('checkRole:student')->group(function () {

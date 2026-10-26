@@ -280,4 +280,325 @@ class CourseOfferingTest extends TestCase
         $this->assertStringContainsString('2024', $page);
         $this->assertStringNotContainsString('Phòng', $page, 'Cột Phòng đã bỏ khỏi lớp hành chính.');
     }
+
+    public function test_admin_creates_a_semester_with_a_generated_slug_and_a_gate(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)->post('/admin/semesters', [
+            'academic_year' => '2025-2026',
+            'term' => 2,
+            'starts_at' => '2026-01-01',
+            'ends_at' => '2026-05-31',
+            'registration_starts_at' => '2025-12-15T08:00',
+            'registration_ends_at' => '2026-01-10T17:00',
+        ])->assertRedirect('/admin/semesters')->assertSessionHas('success');
+
+        $semester = Semester::sole();
+        $this->assertSame('HK2-2025-2026', $semester->slug);
+        $this->assertTrue($semester->is_active, 'Học kỳ đầu tiên của hệ thống mặc nhiên đang chạy.');
+        $this->assertSame('2025-12-15 08:00', $semester->registration_starts_at->format('Y-m-d H:i'));
+        $this->assertSame('2026-01-10 17:00', $semester->registration_ends_at->format('Y-m-d H:i'));
+    }
+
+    public function test_one_academic_year_cannot_hold_the_same_term_twice(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $payload = [
+            'academic_year' => '2025-2026',
+            'term' => 1,
+            'starts_at' => '2025-09-01',
+            'ends_at' => '2026-01-31',
+        ];
+
+        $this->actingAs($admin)->post('/admin/semesters', $payload)->assertSessionHasNoErrors();
+        $this->actingAs($admin)->post('/admin/semesters', $payload)
+            ->assertSessionHasErrors('term');
+
+        $this->assertStringContainsString('đã tồn tại', (string) session('errors')->first('term'));
+        $this->assertSame(1, Semester::count());
+    }
+
+    public function test_the_registration_gate_needs_both_ends_in_the_right_order(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)->post('/admin/semesters', [
+            'academic_year' => '2025-2026',
+            'term' => 1,
+            'starts_at' => '2025-09-01',
+            'ends_at' => '2026-01-31',
+            'registration_starts_at' => '2025-08-15T08:00',
+        ])->assertSessionHasErrors('registration_ends_at');
+
+        $this->actingAs($admin)->post('/admin/semesters', [
+            'academic_year' => '2025-2026',
+            'term' => 1,
+            'starts_at' => '2025-09-01',
+            'ends_at' => '2026-01-31',
+            'registration_starts_at' => '2025-08-20T08:00',
+            'registration_ends_at' => '2025-08-19T08:00',
+        ])->assertSessionHasErrors('registration_ends_at');
+
+        $this->assertSame(0, Semester::count());
+    }
+
+    public function test_editing_the_year_and_term_rebuilds_the_slug(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $semester = $this->semester('2025-2026', 1);
+
+        $this->actingAs($admin)->put('/admin/semesters/'.$semester->id, [
+            'academic_year' => '2026-2027',
+            'term' => 3,
+            'starts_at' => '2027-06-01',
+            'ends_at' => '2027-08-31',
+        ])->assertRedirect('/admin/semesters')->assertSessionHas('success');
+
+        $this->assertSame('HK3-2026-2027', $semester->fresh()->slug, 'Mã kỳ phải theo đúng năm học và kỳ mới.');
+    }
+
+    public function test_the_active_semester_is_not_deletable(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $current = $this->semester();
+
+        $this->actingAs($admin)->delete('/admin/semesters/'.$current->id)
+            ->assertRedirect('/admin/semesters')
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseHas('semesters', ['id' => $current->id]);
+        $this->assertStringContainsString('học kỳ hiện hành', (string) session('error'));
+    }
+
+    public function test_admin_moves_the_active_semester_from_the_list(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $first = $this->semester('2025-2026', 1);
+        $second = $this->semester('2025-2026', 2);
+
+        $this->actingAs($admin)->post('/admin/semesters/'.$second->id.'/activate')
+            ->assertRedirect('/admin/semesters')
+            ->assertSessionHas('success');
+
+        $this->assertSame($second->id, Semester::current()->id);
+        $this->assertSame(1, Semester::where('is_active', true)->count());
+    }
+
+    public function test_a_semester_still_used_by_an_offering_cannot_be_deleted(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $semester = $this->semester('2025-2026', 1);
+        $this->offering($this->subject('WEB101'), $semester);
+        Semester::activate($this->semester('2025-2026', 2)->id);
+
+        $this->actingAs($admin)->delete('/admin/semesters/'.$semester->id)
+            ->assertRedirect('/admin/semesters')
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseHas('semesters', ['id' => $semester->id]);
+        $this->assertStringContainsString('chưa xóa được', (string) session('error'));
+    }
+
+    public function test_admin_opens_two_groups_of_one_subject_for_the_same_semester(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $teacherA = User::factory()->create(['role' => 'teacher', 'name' => 'Nguyễn Văn Đạt', 'teacher_code' => 'GV01']);
+        $teacherB = User::factory()->create(['role' => 'teacher', 'name' => 'Trần Thị Kim Oanh', 'teacher_code' => 'GV02']);
+        $subject = $this->subject('WEB101');
+        $semester = $this->semester();
+
+        foreach ([['TN01', $teacherA, 'A101', 30], ['TN02', $teacherB, 'A102', 0]] as [$group, $teacher, $room, $max]) {
+            $this->actingAs($admin)->post('/admin/course-offerings', [
+                'subject_id' => $subject->id,
+                'semester_id' => $semester->id,
+                'group_code' => $group,
+                'teacher_id' => $teacher->id,
+                'room' => $room,
+                'max_students' => $max,
+                'is_open' => '1',
+            ])->assertRedirect('/admin/course-offerings')->assertSessionHas('success');
+        }
+
+        $offerings = CourseOffering::with('teacher')->get()->keyBy('group_code');
+        $this->assertSame($teacherA->id, $offerings['TN01']->teacher_id);
+        $this->assertSame($teacherB->id, $offerings['TN02']->teacher_id);
+        $this->assertSame('A101', $offerings['TN01']->room);
+        $this->assertSame(0, $offerings['TN02']->max_students);
+    }
+
+    public function test_a_duplicate_group_is_rejected_with_a_message_not_a_sql_error(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $subject = $this->subject('WEB101');
+        $semester = $this->semester();
+        $this->offering($subject, $semester, 'TN01');
+
+        $this->actingAs($admin)->post('/admin/course-offerings', [
+            'subject_id' => $subject->id,
+            'semester_id' => $semester->id,
+            'group_code' => 'TN01',
+            'max_students' => 30,
+        ])->assertSessionHasErrors('group_code');
+
+        $this->assertSame(1, CourseOffering::count());
+        $this->assertStringContainsString(
+            'đã được mở trong học kỳ này',
+            (string) session('errors')->first('group_code'),
+        );
+    }
+
+    public function test_only_a_teacher_can_be_put_in_charge_of_an_offering(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $subject = $this->subject('WEB101');
+        $semester = $this->semester();
+        $student = User::factory()->create(['role' => 'student', 'name' => 'Sinh viên A', 'student_code' => '20240099']);
+        $teacher = User::factory()->create(['role' => 'teacher', 'name' => 'Nguyễn Văn Đạt', 'teacher_code' => 'GV01']);
+
+        $page = $this->actingAs($admin)->get('/admin/course-offerings/create')->getContent();
+        $this->assertStringContainsString('Nguyễn Văn Đạt (GV01)', $page);
+        $this->assertStringNotContainsString('Sinh viên A', $page, 'Danh sách giảng viên phụ trách không lẫn sinh viên.');
+
+        $this->actingAs($admin)->post('/admin/course-offerings', [
+            'subject_id' => $subject->id,
+            'semester_id' => $semester->id,
+            'group_code' => 'TN01',
+            'teacher_id' => $student->id,
+            'max_students' => 0,
+        ])->assertSessionHasErrors('teacher_id');
+
+        $this->assertSame(0, CourseOffering::count());
+        $this->assertStringContainsString('không phải giảng viên', (string) session('errors')->first('teacher_id'));
+    }
+
+    public function test_the_offering_list_shows_registered_over_capacity_and_the_open_state(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $semester = $this->semester();
+        $capped = $this->offering($this->subject('WEB101'), $semester, 'TN01', 2);
+        $this->enroll(User::factory()->create(['role' => 'student']), $capped);
+        $this->offering($this->subject('DB101'), $semester, 'TN01', 0);
+        $this->offering($this->subject('NET101'), $semester, 'TN01', 25, ['is_open' => false]);
+
+        $page = $this->actingAs($admin)->get('/admin/course-offerings')->getContent();
+
+        $this->assertStringContainsString('1/2', $page);
+        $this->assertStringContainsString('Không giới hạn', $page, 'Sĩ số 0 phải đọc được là không giới hạn.');
+        $this->assertStringContainsString('Đóng', $page);
+        $this->assertStringContainsString('Mở', $page);
+    }
+
+    public function test_an_offering_that_still_holds_students_or_grades_cannot_be_deleted(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $semester = $this->semester();
+
+        $withStudents = $this->offering($this->subject('WEB101'), $semester, 'TN01');
+        $this->enroll(User::factory()->create(['role' => 'student']), $withStudents);
+
+        $withGrades = $this->offering($this->subject('DB101'), $semester, 'TN01');
+        $student = User::factory()->create(['role' => 'student']);
+        Grade::create([
+            'user_id' => $student->id,
+            'course_offering_id' => $withGrades->id,
+            'final_score' => 8,
+        ]);
+
+        foreach ([$withStudents, $withGrades] as $offering) {
+            $this->actingAs($admin)->delete('/admin/course-offerings/'.$offering->id)
+                ->assertRedirect('/admin/course-offerings')
+                ->assertSessionHas('error');
+            $this->assertStringContainsString('Đóng lớp', (string) session('error'));
+        }
+
+        $this->assertSame(2, CourseOffering::count());
+    }
+
+    public function test_an_offering_with_no_students_and_no_grades_is_deletable(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $offering = $this->offering($this->subject('WEB101'), $this->semester(), 'TN01');
+
+        $this->actingAs($admin)->delete('/admin/course-offerings/'.$offering->id)
+            ->assertRedirect('/admin/course-offerings')
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseMissing('course_offerings', ['id' => $offering->id]);
+    }
+
+    public function test_an_offering_left_with_only_dropped_students_and_no_grades_is_deletable(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $offering = $this->offering($this->subject('WEB101'), $this->semester(), 'TN01');
+        $student = User::factory()->create(['role' => 'student']);
+        $this->enroll($student, $offering)->update(['status' => 'DROPPED', 'dropped_at' => now()]);
+
+        $this->actingAs($admin)->delete('/admin/course-offerings/'.$offering->id)
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseMissing('course_offerings', ['id' => $offering->id]);
+        $this->assertSame(0, Enrollment::count(), 'Xóa lớp học phần kéo theo đăng ký đã hủy.');
+    }
+
+    public function test_a_teacher_lists_only_the_offerings_assigned_to_them(): void
+    {
+        $teacher = User::factory()->create(['role' => 'teacher', 'name' => 'Nguyễn Văn Đạt', 'teacher_code' => 'GV01']);
+        $other = User::factory()->create(['role' => 'teacher', 'name' => 'Trần Thị Kim Oanh', 'teacher_code' => 'GV02']);
+        $semester = $this->semester();
+
+        $mine = $this->offering($this->subject('WEB101'), $semester, 'TN01', 30, ['teacher_id' => $teacher->id]);
+        $theirs = $this->offering($this->subject('DB101'), $semester, 'TN02', 20, ['teacher_id' => $other->id]);
+        $unassigned = $this->offering($this->subject('NET101'), $semester, 'TN01');
+        $this->enroll(User::factory()->create(['role' => 'student']), $mine);
+
+        $page = $this->actingAs($teacher)->get('/teacher/my-offerings')
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('WEB101', $page);
+        $this->assertStringContainsString('1/30', $page);
+        $this->assertStringNotContainsString('DB101', $page, 'Lớp của giảng viên khác không được xuất hiện.');
+        $this->assertStringNotContainsString('NET101', $page, 'Lớp chưa phân công cũng không thuộc về giảng viên.');
+        $this->assertNotSame($theirs->id, $mine->id);
+        $this->assertNotSame($unassigned->id, $mine->id);
+    }
+
+    public function test_a_teacher_cannot_reach_the_offering_admin_screens(): void
+    {
+        $teacher = User::factory()->create(['role' => 'teacher']);
+
+        $this->actingAs($teacher)->get('/admin/course-offerings')->assertForbidden();
+        $this->actingAs($teacher)->post('/admin/course-offerings', [
+            'subject_id' => $this->subject('WEB101')->id,
+            'semester_id' => $this->semester()->id,
+            'group_code' => 'TN01',
+        ])->assertForbidden();
+
+        $this->assertSame(0, CourseOffering::where('group_code', 'TN01')->count());
+    }
+
+    public function test_the_admin_offering_form_is_the_place_where_a_group_is_edited(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $teacher = User::factory()->create(['role' => 'teacher', 'name' => 'Nguyễn Văn Đạt', 'teacher_code' => 'GV01']);
+        $offering = $this->offering($this->subject('WEB101'), $this->semester(), 'TN01', 20);
+
+        $this->actingAs($admin)->put('/admin/course-offerings/'.$offering->id, [
+            'subject_id' => $offering->subject_id,
+            'semester_id' => $offering->semester_id,
+            'group_code' => 'TN02',
+            'teacher_id' => $teacher->id,
+            'room' => 'B201',
+            'max_students' => 25,
+            'is_open' => '0',
+        ])->assertRedirect('/admin/course-offerings')->assertSessionHas('success');
+
+        $offering->refresh();
+        $this->assertSame('TN02', $offering->group_code);
+        $this->assertSame($teacher->id, $offering->teacher_id);
+        $this->assertSame('B201', $offering->room);
+        $this->assertSame(25, $offering->max_students);
+        $this->assertFalse($offering->is_open, 'Bỏ chọn "Mở đăng ký" phải đóng lớp.');
+    }
 }

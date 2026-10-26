@@ -136,6 +136,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Lớp học phần do giảng viên này phụ trách — giảng viên chỉ được nhìn thấy danh sách này.
+     */
+    public function assignedOfferings(): HasMany
+    {
+        return $this->hasMany(CourseOffering::class, 'teacher_id');
+    }
+
+    /**
      * Những môn sinh viên đang học theo lớp hành chính mới (enrollment ACTIVE).
      *
      * @return Collection<Subject>

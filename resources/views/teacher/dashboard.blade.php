@@ -26,7 +26,30 @@
         </div>
     </div>
 
-    <div class="alert alert-secondary mt-4" role="status">
-        Chưa có lớp học phần nào được phân công cho bạn.
-    </div>
+    @if ($offerings->isEmpty())
+        <div class="alert alert-secondary mt-4" role="status">
+            Chưa có lớp học phần nào được phân công cho bạn.
+        </div>
+    @else
+        <div class="card mt-4">
+            <div class="card-body">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                    <h2 class="h5 card-title mb-0">Lớp học phần của tôi ({{ $offerings->count() }})</h2>
+                    <a class="btn btn-sm btn-outline-primary" href="{{ route('teacher.offerings.index') }}">
+                        Xem chi tiết
+                    </a>
+                </div>
+                <ul class="list-unstyled mb-0">
+                    @foreach ($offerings as $offering)
+                        <li class="border-bottom py-2">
+                            {{ $offering->label() }} · {{ $offering->active_count }} sinh viên
+                            @unless ($offering->is_open)
+                                · <span class="badge text-bg-secondary">Đóng</span>
+                            @endunless
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+        </div>
+    @endif
 @endsection

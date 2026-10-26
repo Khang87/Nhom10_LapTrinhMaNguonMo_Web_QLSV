@@ -45,6 +45,22 @@
                             </a>
                         </li>
                         <li class="sidebar-menu-item">
+                            <a class="sidebar-menu-link {{ request()->routeIs('admin.course-offerings.*') ? 'active' : '' }}"
+                                href="{{ route('admin.course-offerings.index') }}"
+                                @if (request()->routeIs('admin.course-offerings.*')) aria-current="page" @endif>
+                                <i class="bi bi-easel3" aria-hidden="true"></i>
+                                <span>Lớp học phần</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-menu-item">
+                            <a class="sidebar-menu-link {{ request()->routeIs('admin.semesters.*') ? 'active' : '' }}"
+                                href="{{ route('admin.semesters.index') }}"
+                                @if (request()->routeIs('admin.semesters.*')) aria-current="page" @endif>
+                                <i class="bi bi-calendar3" aria-hidden="true"></i>
+                                <span>Học kỳ</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-menu-item">
                             <a class="sidebar-menu-link {{ request()->routeIs('admin.subjects.*') ? 'active' : '' }}"
                                 href="{{ route('admin.subjects.index') }}"
                                 @if (request()->routeIs('admin.subjects.*')) aria-current="page" @endif>
@@ -110,6 +126,20 @@
                         </li>
                     </ul>
                 </section>
+            @elseif (auth()->user()->role === 'teacher')
+                <section class="sidebar-menu-section" aria-labelledby="spark-teaching-title">
+                    <h2 class="sidebar-menu-title" id="spark-teaching-title">Giảng dạy</h2>
+                    <ul class="sidebar-menu-list">
+                        <li class="sidebar-menu-item">
+                            <a class="sidebar-menu-link {{ request()->routeIs('teacher.offerings.*') ? 'active' : '' }}"
+                                href="{{ route('teacher.offerings.index') }}"
+                                @if (request()->routeIs('teacher.offerings.*')) aria-current="page" @endif>
+                                <i class="bi bi-mortarboard" aria-hidden="true"></i>
+                                <span>Lớp của tôi</span>
+                            </a>
+                        </li>
+                    </ul>
+                </section>
             @elseif (auth()->user()->role === 'student')
                 <section class="sidebar-menu-section" aria-labelledby="spark-learning-title">
                     <h2 class="sidebar-menu-title" id="spark-learning-title">Học tập</h2>
@@ -159,6 +189,11 @@
                     <a class="btn-quick-action" href="{{ route('admin.students.create') }}">
                         <i class="bi bi-person-plus" aria-hidden="true"></i>
                         <span>Thêm sinh viên</span>
+                    </a>
+                @elseif (auth()->user()->role === 'teacher')
+                    <a class="btn-quick-action" href="{{ route('teacher.offerings.index') }}">
+                        <i class="bi bi-mortarboard" aria-hidden="true"></i>
+                        <span>Lớp của tôi</span>
                     </a>
                 @elseif (auth()->user()->role === 'student')
                     <a class="btn-quick-action" href="{{ route('student.offerings.index') }}">

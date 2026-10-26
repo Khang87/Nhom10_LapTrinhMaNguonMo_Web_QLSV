@@ -393,15 +393,27 @@ class PersonProfileTest extends TestCase
     private function assertNames(array $expected, string $path): void
     {
         $content = $this->actingAs(User::where('role', 'admin')->sole())->get($path)->getContent();
+        $rows = $this->rowsOnly($content);
         $keep = array_map(fn (User $student) => $student->email, $expected);
 
         foreach (User::where('role', 'student')->pluck('email') as $email) {
             if (in_array($email, $keep, true)) {
-                $this->assertStringContainsString($email, $content, "Lọc {$path} làm mất {$email}.");
+                $this->assertStringContainsString($email, $rows, "Lọc {$path} làm mất {$email}.");
             } else {
-                $this->assertStringNotContainsString($email, $content, "Lọc {$path} vẫn trả về {$email}.");
+                $this->assertStringNotContainsString($email, $rows, "Lọc {$path} vẫn trả về {$email}.");
             }
         }
+    }
+
+    /**
+     * Chỉ soi bảng kết quả: email của admin hiện trên thanh bên và có thể chứa chuỗi con giống email kiểm thử.
+     */
+    private function rowsOnly(string $content): string
+    {
+        $start = strpos($content, '<tbody');
+        $end = strpos($content, '</tbody>');
+
+        return $start === false || $end === false ? $content : substr($content, $start, $end - $start);
     }
 
     private function department(string $code): Department

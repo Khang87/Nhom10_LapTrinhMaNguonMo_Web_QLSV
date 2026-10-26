@@ -245,17 +245,48 @@ Quy ước branch/commit: một commit cho mỗi task, message tiếng Việt th
   - Deviation: MySQL không cho drop `grades_user_id_subject_id_unique` vì FK `user_id` đang dùng
     nó → migration tạo `grades_user_id_index` trước rồi mới drop index cũ.
 
-- [ ] 4.5 CRUD lớp học phần + phân công giảng viên
+- [x] 4.5 CRUD lớp học phần + phân công giảng viên
   - Acceptance: một môn mở 2 nhóm cùng kỳ; trùng nhóm bị chặn bằng thông báo; chọn role sai bị
     từ chối; sĩ số `0` = không giới hạn.
   - Verify: `php artisan test --filter=CourseOfferingTest`.
   - Files: `app/Http/Controllers/Admin/CourseOfferingController.php`,
     `app/Support/OfferingAssignment.php`, `resources/views/admin/course-offerings/*`
+  - Done 2026-10-26: `/admin/semesters` (index/create/edit + POST activate) và
+    `/admin/course-offerings` (resource, bỏ `show`). Browser: tạo HK2-2026-2027 có cổng
+    05/01/2027 08:00 → 20/01/2027 17:00 ("Đã thêm học kỳ."), tạo lại cùng (năm, kỳ) báo
+    "Học kỳ này của năm học đã tồn tại.", nhập một mốc cổng báo "Cổng đăng ký cần cả mốc đóng…",
+    mở thêm SEC201 nhóm TN02 → trùng TN02 bị chặn "Nhóm TN02 của môn SEC201 đã được mở trong học
+    kỳ này.", sửa WEB101 TN02 thành A105/Đóng rồi khôi phục A103/Mở, xóa lớp có 5 sinh viên +
+    5 cột điểm bị từ chối "…chưa xóa được vì đang có 5 sinh viên học phần và 5 cột điểm. Hãy
+    Đóng lớp…", xóa SEC201 TN02 trống thì thành công. Bảng lớp hiện `5/30`, `5 / Không giới hạn`,
+    badge `Mở`/`Đóng` và progress bar theo tỷ lệ sĩ số (đỏ khi đầy — chưa dựng lớp đầy ngoài
+    trình duyệt).
+  - Evidence test: `CourseOfferingTest` thêm 17 test (HTTP thật) — toàn bộ
+    **113 passed (638 assertions)**, chạy hai lần liên tiếp không rung lắc.
+  - Deviation: `term` chỉ nhận 1–3 (theo schema trong SPEC); cổng đăng ký bắt buộc đủ hai mốc và
+    đóng sau mở (SPEC không nêu, thêm vì một mốc lẻ khiến cổng mở vô hạn); xóa học kỳ đang hiện
+    hành cũng bị chặn để không rơi vào trạng thái "không kỳ nào"; `max_students` giới hạn
+    0–65535 đúng kiểu `unsignedSmallInteger`; `Semester::updating` dựng lại `slug` khi đổi năm
+    học/kỳ để mã kỳ không lệch dữ liệu.
+  - Deviation (dữ liệu mẫu): `DatabaseSeeder` đổi mã nhóm `01/02` → `TN01/TN02` cho khớp ví dụ
+    trong SPEC và dữ liệu di cư; DB dev dựng lại bằng `migrate:fresh --seed`
+    (dump trước đó: `storage/app/backup-before-wave4-crud.sql`, 36.547 byte, không vào git).
+  - Deviation (test): `assertNames()` trong `PersonProfileTest` chỉ soi `<tbody>` của bảng kết quả
+    vì email random của admin hiển thị trên thanh bên, có thể chứa chuỗi con trùng email kiểm thử
+    — đây là nguyên nhân bài "filters narrow the list…" rung lắc ở các lần chạy trước.
 
-- [ ] 4.6 Trang `/teacher/my-offerings`
+- [x] 4.6 Trang `/teacher/my-offerings`
   - Acceptance: giảng viên chỉ thấy offering `teacher_id` của mình; admin thấy tất cả.
   - Verify: feature test phân quyền.
   - Files: `app/Http/Controllers/Teacher/OfferingController.php`, `resources/views/teacher/*`
+  - Done 2026-10-26: `User::assignedOfferings()` + `Teacher\OfferingController::index` lọc theo
+    `teacher_id` của người đăng nhập. Browser với `giangvien1@gmail.com`:
+    `/teacher/my-offerings` hiện đúng 2 lớp (WEB101 TN01 A101 5/30, DB101 TN01 A102 5/30), không
+    thấy WEB101 TN02/NET101/SEC201 của giảng viên khác và lớp chưa phân công;
+    `/admin/course-offerings` trả 403. Dashboard giảng viên thay cảnh báo tĩnh bằng khối
+    "Lớp học phần của tôi (2)" có link "Xem chi tiết"; sidebar thêm mục "GIẢNG DẠY → Lớp của tôi"
+    (nối tiếp 1.5). Test: `a teacher lists only the offerings assigned to them`,
+    `a teacher cannot reach the offering admin screens`.
 
 ## Wave 5 — `enrollment`
 

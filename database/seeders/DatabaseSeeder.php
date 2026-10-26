@@ -128,15 +128,15 @@ class DatabaseSeeder extends Seeder
         );
 
         $offerings = collect([
-            ['subject' => 'WEB101', 'group' => '01', 'teacher' => 'giangvien1@gmail.com',
+            ['subject' => 'WEB101', 'group' => 'TN01', 'teacher' => 'giangvien1@gmail.com',
                 'room' => 'A101', 'max_students' => 30],
-            ['subject' => 'DB101', 'group' => '01', 'teacher' => 'giangvien1@gmail.com',
+            ['subject' => 'DB101', 'group' => 'TN01', 'teacher' => 'giangvien1@gmail.com',
                 'room' => 'A102', 'max_students' => 30],
-            ['subject' => 'NET101', 'group' => '01', 'teacher' => 'giangvien2@gmail.com',
+            ['subject' => 'NET101', 'group' => 'TN01', 'teacher' => 'giangvien2@gmail.com',
                 'room' => 'B201', 'max_students' => 0],
-            ['subject' => 'WEB101', 'group' => '02', 'teacher' => 'giangvien2@gmail.com',
+            ['subject' => 'WEB101', 'group' => 'TN02', 'teacher' => 'giangvien2@gmail.com',
                 'room' => 'A103', 'max_students' => 25],
-            ['subject' => 'SEC201', 'group' => '01', 'teacher' => 'giangvien2@gmail.com',
+            ['subject' => 'SEC201', 'group' => 'TN01', 'teacher' => 'giangvien2@gmail.com',
                 'room' => 'B202', 'max_students' => 20, 'is_open' => false],
         ])->mapWithKeys(fn (array $data) => [
             $data['subject'].'-'.$data['group'] => CourseOffering::updateOrCreate(
@@ -154,7 +154,7 @@ class DatabaseSeeder extends Seeder
             ),
         ]);
 
-        $enrolledOfferings = $offerings->only(['WEB101-01', 'DB101-01', 'NET101-01']);
+        $enrolledOfferings = $offerings->only(['WEB101-TN01', 'DB101-TN01', 'NET101-TN01']);
 
         User::updateOrCreate(
             ['email' => 'admin@gmail.com'],
