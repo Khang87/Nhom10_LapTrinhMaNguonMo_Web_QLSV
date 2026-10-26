@@ -53,7 +53,11 @@ Route::middleware('auth')->group(function () {
         Route::put('/study-plans', [StudyPlanController::class, 'sync'])->name('study-plans.sync');
         Route::delete('/study-plans/{studyPlan}', [StudyPlanController::class, 'destroy'])->name('study-plans.destroy');
         Route::resource('subjects', SubjectController::class)->except('show');
-        Route::resource('students', StudentController::class)->except('show');
+        Route::get('/students/export', [StudentController::class, 'export'])->name('students.export');
+        Route::get('/students/import', [StudentController::class, 'importForm'])->name('students.import');
+        Route::get('/students/import/template', [StudentController::class, 'template'])->name('students.import.template');
+        Route::post('/students/import', [StudentController::class, 'import'])->name('students.import.store');
+        Route::resource('students', StudentController::class);
         Route::get('/grades', [GradeController::class, 'index'])->name('grades.index');
         Route::get('/grades/export', [GradeController::class, 'export'])->name('grades.export');
         Route::post('/grades', [GradeController::class, 'store'])->name('grades.store');

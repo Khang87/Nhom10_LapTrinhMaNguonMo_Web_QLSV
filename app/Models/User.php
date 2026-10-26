@@ -3,7 +3,9 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Support\PersonLabels;
 use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -43,6 +45,13 @@ class User extends Authenticatable
         'role',
         'class_id',
         'avatar',
+        'student_code',
+        'teacher_code',
+        'dob',
+        'gender',
+        'hometown',
+        'phone',
+        'academic_status',
     ];
 
     /**
@@ -65,7 +74,30 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'dob' => 'date',
         ];
+    }
+
+    protected function genderLabel(): Attribute
+    {
+        return Attribute::get(fn () => PersonLabels::gender($this->gender));
+    }
+
+    protected function academicStatusLabel(): Attribute
+    {
+        return Attribute::get(fn () => PersonLabels::status($this->academic_status));
+    }
+
+    /**
+     * Mã định dạng dùng chung cho bảng và phiếu in: mã SV với sinh viên, mã GV với giảng viên.
+     */
+    protected function personCode(): Attribute
+    {
+        return Attribute::get(fn () => match ($this->role) {
+            'student' => $this->student_code,
+            'teacher' => $this->teacher_code,
+            default => null,
+        });
     }
 
     public function studentClass(): BelongsTo

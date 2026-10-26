@@ -121,34 +121,70 @@ Quy ước branch/commit: một commit cho mỗi task, message tiếng Việt th
 
 ## Wave 3 — `person-profiles`
 
-- [ ] 3.1 Cột hồ sơ trên `users` + `academic_status`
+- [x] 3.1 Cột hồ sơ trên `users` + `academic_status`
   - Acceptance: `student_code`, `teacher_code`, `dob`, `gender`, `hometown`, `phone`,
     `academic_status`; `class_id` đổi sang `nullOnDelete`.
   - Verify: `php artisan test --filter=PersonProfileTest` (kèm case xoá lớp không xoá sinh viên).
   - Files: `database/migrations/*_add_profile_fields_to_users_table.php`, `app/Support/PersonLabels.php`
+  - Done 2026-10-26: `2026_11_03_000001` + `2026_11_03_000002` chạy DONE trên MySQL. Hai case
+    "deleting a class …" pass, trong đó case gọi thẳng `$class->delete()` chứng minh
+    `nullOnDelete` (sinh viên còn, `class_id` = null). Bộ nhãn tiếng Việt gom về `PersonLabels`
+    (`Nữ (FEMALE)`, `Đang học (STUDYING)`), mật khẩu khởi điểm import = `12345678`.
+  - Deviation: kéo migration phân loại `classes` (`intake_year`, `department_id`, `major_id`) từ
+    4.2 sang Wave 3 vì bộ lọc 3.3 cần; `room`, `adviser_id`, `semester_id` vẫn ở 4.2.
 
-- [ ] 3.2 Form + trang chi tiết sinh viên
+- [x] 3.2 Form + trang chi tiết sinh viên
   - Acceptance: lưu và hiển thị đủ field; trang `/admin/students/{id}` có khối học phần, điểm,
     chuyên cần (placeholder cho tới wave 5–7).
   - Verify: `php artisan test --filter=PersonProfileTest`.
   - Files: `app/Http/Controllers/Admin/StudentController.php`, `resources/views/admin/students/*`
+  - Done 2026-10-26: form edit có đủ 11 field (`student_code`, `dob`, `gender`, `hometown`,
+    `phone`, `academic_status`, lớp, avatar), nút "Cập nhật" + "Quay lại", mật khẩu để trống giữ
+    nguyên hash (test `updates profile without touching password`). Hồ sơ
+    `/admin/students/6` hiển thị `30/11/2006`, `Nữ (FEMALE)`, `Cảnh báo học vụ (AT_RISK)`, khối
+    "Lớp học phần đã đăng ký" (3 môn), "Kết quả học tập" (7.0–8.0), "Tỷ lệ chuyên cần"
+    (4/6 buổi = 66.7%). Sinh viên chưa xếp lớp (`20240006`) hiện "Chưa xếp lớp",
+    "Chưa đăng ký môn học nào", "Chưa có điểm", "Chưa có dữ liệu điểm danh" — không lỗi.
 
-- [ ] 3.3 Bộ lọc khóa / khoa / chuyên ngành / tình trạng học tập
+- [x] 3.3 Bộ lọc khóa / khoa / chuyên ngành / tình trạng học tập
   - Acceptance: select lọc không có nút; mỗi tổ hợp trả đúng tập dòng; giá trị chỉ hiện khi có
     dữ liệu thật.
   - Verify: feature test theo fixture 6 sinh viên.
   - Files: `resources/views/admin/students/index.blade.php`
+  - Done 2026-10-26: `test_filters_narrow_the_list_by_intake_department_major_and_status` (52
+    assertion) pass; ma trận lọc kiểm qua browser trên DB dev — `academic_status=AT_RISK` → 1
+    (20240005), `intake_year=2024` → 6, `department_id=CNTT` → 6, `major_id=KTPM` → 4,
+    `class_id=none` → 1, `major_id=KTPM&academic_status=AT_RISK` → 1. Select "Khoa" chỉ liệt kê
+    CNTT (chưa có lớp nào thuộc KHTN).
+  - Deviation: thêm bộ lọc thứ năm "Lớp" kèm giá trị "Chưa xếp lớp" (ngoài 4 bộ lọc trong spec)
+    và giữ nút "Tìm kiếm" cho đồng bộ với các màn hình khác.
 
-- [ ] 3.4 `StudentExport` ra `.xlsx`
+- [x] 3.4 `StudentExport` ra `.xlsx`
   - Acceptance: mở bằng Excel đúng dấu, ngày `dd/mm/yyyy`, SĐT giữ số 0 đầu.
   - Verify: test assert file sinh ra đọc lại được bằng PhpSpreadsheet + kiểm tay.
   - Files: `app/Support/StudentExport.php`
+  - Done 2026-10-26: `/admin/students/export` trả
+    `application/vnd…spreadsheetml.sheet`, `danh-sach-sinh-vien-2026-10-26.xlsx` (7.187 byte);
+    test đọc lại bằng `IOFactory::load`: header đúng 9 cột, `0912345678` giữ số 0 (ghi
+    `DataType::TYPE_STRING`), `09/05/2006`, `Nam`, `Đang học`, ô lớp trống cho sinh viên chưa xếp.
+    Export đi theo bộ lọc đang chọn (`export follows the active filters`). Sửa lỗi off-by-one
+    trong `decorate()` từng sinh thêm một dòng rỗng ở cuối file.
 
-- [ ] 3.5 `StudentImport` từ `.xlsx` (create/update/skip kèm lý do)
+- [x] 3.5 `StudentImport` từ `.xlsx` (create/update/skip kèm lý do)
   - Acceptance: 100 dòng → 100 user; chạy lại → 0 created / 100 updated; trùng email khác mã SV
     bị skip, không nổ 500; mã lớp lạ bị skip.
   - Verify: `tests/Fixtures/students_import.xlsx` + feature test; kiểm tay upload.
   - Files: `app/Support/StudentImport.php`, `resources/views/admin/students/import.blade.php`
+  - Done 2026-10-26: fixture 100 dòng → `assertDatabaseCount('users', 101)`, nạp lại lần hai →
+    "Nhập 100 dòng: thêm mới 0, cập nhật 100, bỏ qua 0.". Upload thật qua UI bằng file 6 dòng
+    (1 hợp lệ + 5 lỗi): "Nhập 5 dòng: thêm mới 1, cập nhật 0, bỏ qua 4." kèm từng lý do
+    ("Thiếu họ tên hoặc email.", "Lớp CTK99X không tồn tại.",
+    "Email sinhvien1@gmail.com đã thuộc mã sinh viên khác (20240001).",
+    "Ngày sinh \"31/02/2006\" không hợp lệ."); nạp lại chính file → "thêm mới 0, cập nhật 1".
+    Tài khoản import xong đăng nhập được bằng `12345678` (`Hash::check` = true). File sai đuôi
+    và 501 dòng bị chặn ngay ở validate, không có 500.
+  - Deviation: fixture `.xlsx` dựng trong bộ nhớ bằng `xlsx()`/`hundredRows()` thay vì commit
+    `tests/Fixtures/students_import.xlsx`; script probe upload tạm đặt ở `storage/app/` và đã xoá.
 
 ## Wave 4 — `course-offerings` + di cư dữ liệu *(điểm không thể quay lại)*
 

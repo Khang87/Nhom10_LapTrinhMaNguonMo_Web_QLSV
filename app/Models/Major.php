@@ -24,4 +24,9 @@ class Major extends Model
     {
         return $this->hasMany(StudyPlan::class);
     }
+
+    public function classes(): HasMany
+    {
+        return $this->hasMany(StudentClass::class, 'major_id');
+    }
 }
