@@ -12,9 +12,14 @@ class Subject extends Model
 {
     protected $fillable = ['code', 'name', 'credits', 'major_id', 'description', 'total_sessions'];
 
-    public function students(): BelongsToMany
+    public function offerings(): HasMany
     {
-        return $this->belongsToMany(User::class, 'student_subject')->withTimestamps();
+        return $this->hasMany(CourseOffering::class);
+    }
+
+    public function label(): string
+    {
+        return "{$this->code} - {$this->name}";
     }
 
     public function attendances(): HasMany

@@ -13,7 +13,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\StudentDashboardController;
 use App\Http\Controllers\StudentGradeController;
-use App\Http\Controllers\StudentSubjectController;
+use App\Http\Controllers\StudentOfferingController;
 use App\Http\Controllers\Teacher\DashboardController as TeacherDashboardController;
 use Illuminate\Support\Facades\Route;
 
@@ -73,9 +73,9 @@ Route::middleware('auth')->group(function () {
 
     Route::prefix('student')->name('student.')->middleware('checkRole:student')->group(function () {
         Route::get('/dashboard', [StudentDashboardController::class, 'index'])->name('dashboard');
-        Route::get('/subjects', [StudentSubjectController::class, 'index'])->name('subjects.index');
-        Route::post('/subjects/{subject}', [StudentSubjectController::class, 'register'])->name('subjects.register');
-        Route::delete('/subjects/{subject}', [StudentSubjectController::class, 'unregister'])->name('subjects.unregister');
+        Route::get('/course-offerings', [StudentOfferingController::class, 'index'])->name('offerings.index');
+        Route::post('/course-offerings/{offering}', [StudentOfferingController::class, 'register'])->name('offerings.register');
+        Route::delete('/course-offerings/{offering}', [StudentOfferingController::class, 'unregister'])->name('offerings.unregister');
         Route::get('/grades', [StudentGradeController::class, 'index'])->name('grades.index');
     });
 });

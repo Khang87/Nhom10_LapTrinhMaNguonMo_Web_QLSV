@@ -68,7 +68,14 @@ class StudentController extends Controller
     public function show(User $student): View
     {
         abort_unless($student->role === 'student', 404);
-        $student->load(['studentClass.department', 'studentClass.major', 'subjects', 'grades.subject', 'attendances']);
+        $student->load([
+            'studentClass.department',
+            'studentClass.major',
+            'offerings.subject',
+            'offerings.semester',
+            'grades.offering.subject',
+            'attendances',
+        ]);
 
         return view('admin.students.show', [
             'student' => $student,

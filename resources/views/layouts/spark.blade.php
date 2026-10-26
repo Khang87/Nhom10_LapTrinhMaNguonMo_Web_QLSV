@@ -115,9 +115,9 @@
                     <h2 class="sidebar-menu-title" id="spark-learning-title">Học tập</h2>
                     <ul class="sidebar-menu-list">
                         <li class="sidebar-menu-item">
-                            <a class="sidebar-menu-link {{ request()->routeIs('student.subjects.*') ? 'active' : '' }}"
-                                href="{{ route('student.subjects.index') }}"
-                                @if (request()->routeIs('student.subjects.*')) aria-current="page" @endif>
+                            <a class="sidebar-menu-link {{ request()->routeIs('student.offerings.*') ? 'active' : '' }}"
+                                href="{{ route('student.offerings.index') }}"
+                                @if (request()->routeIs('student.offerings.*')) aria-current="page" @endif>
                                 <i class="bi bi-journal-plus" aria-hidden="true"></i>
                                 <span>Đăng ký học phần</span>
                             </a>
@@ -161,7 +161,7 @@
                         <span>Thêm sinh viên</span>
                     </a>
                 @elseif (auth()->user()->role === 'student')
-                    <a class="btn-quick-action" href="{{ route('student.subjects.index') }}">
+                    <a class="btn-quick-action" href="{{ route('student.offerings.index') }}">
                         <i class="bi bi-journal-plus" aria-hidden="true"></i>
                         <span>Đăng ký học phần</span>
                     </a>

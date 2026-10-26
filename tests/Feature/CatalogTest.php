@@ -10,11 +10,12 @@ use App\Models\Subject;
 use App\Models\User;
 use App\Support\PrerequisiteRules;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Feature\Concerns\OfferingFixtures;
 use Tests\TestCase;
 
 class CatalogTest extends TestCase
 {
-    use RefreshDatabase;
+    use OfferingFixtures, RefreshDatabase;
 
     public function test_admin_builds_department_major_and_subject_chain(): void
     {
@@ -193,7 +194,12 @@ class CatalogTest extends TestCase
         $web->prerequisites()->attach([$db->id, $math->id]);
 
         $student = User::factory()->create(['role' => 'student']);
-        Grade::create(['user_id' => $student->id, 'subject_id' => $math->id, 'score' => 3.5]);
+        $offering = $this->offering($math, $this->semester(), 'TN01');
+        Grade::create([
+            'user_id' => $student->id,
+            'course_offering_id' => $offering->id,
+            'final_score' => 3.5,
+        ]);
 
         $blocking = PrerequisiteRules::blockingPrerequisites($student, $web, collect([$db]));
 

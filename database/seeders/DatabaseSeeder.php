@@ -3,9 +3,12 @@
 namespace Database\Seeders;
 
 use App\Models\Attendance;
+use App\Models\CourseOffering;
 use App\Models\Department;
+use App\Models\Enrollment;
 use App\Models\Grade;
 use App\Models\Major;
+use App\Models\Semester;
 use App\Models\StudentClass;
 use App\Models\StudyPlan;
 use App\Models\Subject;
@@ -21,10 +24,12 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $classRows = [
-            ['class_code' => 'CTK44A', 'class_name' => 'Công nghệ thông tin 44A', 'room' => 'A101',
-                'intake_year' => 2024, 'department' => 'CNTT', 'major' => 'KTPM'],
-            ['class_code' => 'CTK44B', 'class_name' => 'Công nghệ thông tin 44B', 'room' => 'A102',
-                'intake_year' => 2024, 'department' => 'CNTT', 'major' => 'HTTT'],
+            ['class_code' => 'CTK44A', 'class_name' => 'Công nghệ thông tin 44A',
+                'intake_year' => 2024, 'department' => 'CNTT', 'major' => 'KTPM',
+                'adviser' => 'giangvien1@gmail.com'],
+            ['class_code' => 'CTK44B', 'class_name' => 'Công nghệ thông tin 44B',
+                'intake_year' => 2024, 'department' => 'CNTT', 'major' => 'HTTT',
+                'adviser' => 'giangvien2@gmail.com'],
         ];
         $departments = collect([
             ['code' => 'CNTT', 'name' => 'Khoa Công nghệ thông tin'],
@@ -43,15 +48,27 @@ class DatabaseSeeder extends Seeder
             ),
         ]);
 
+        $teachers = collect([
+            ['name' => 'Nguyễn Văn Đạt', 'email' => 'giangvien1@gmail.com', 'teacher_code' => 'GV01',
+                'dob' => '1985-04-12', 'gender' => 'MALE', 'hometown' => 'Hà Nội', 'phone' => '0912345678'],
+            ['name' => 'Trần Thị Kim Oanh', 'email' => 'giangvien2@gmail.com', 'teacher_code' => 'GV02',
+                'dob' => '1990-09-23', 'gender' => 'FEMALE', 'hometown' => 'Nghệ An', 'phone' => '0987654321'],
+        ])->mapWithKeys(fn (array $data) => [
+            $data['email'] => User::updateOrCreate(
+                ['email' => $data['email']],
+                $data + ['password' => Hash::make('12345678'), 'role' => 'teacher', 'class_id' => null],
+            ),
+        ]);
+
         $classes = collect($classRows)->mapWithKeys(fn (array $data) => [
             $data['class_code'] => StudentClass::updateOrCreate(
                 ['class_code' => $data['class_code']],
                 [
                     'class_name' => $data['class_name'],
-                    'room' => $data['room'],
                     'intake_year' => $data['intake_year'],
                     'department_id' => $departments[$data['department']]->id,
                     'major_id' => $majors[$data['major']]->id,
+                    'adviser_id' => $teachers[$data['adviser']]->id,
                 ],
             ),
         ]);
@@ -97,7 +114,47 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        $enrolledSubjects = $subjects->only(['WEB101', 'DB101', 'NET101']);
+        // Năm học theo quy tắc cùng kỳ với dữ liệu cũ: tháng >= 8 thì năm bắt đầu là năm hiện tại.
+        $startYear = now()->month >= 8 ? (int) now()->format('Y') : (int) now()->format('Y') - 1;
+
+        $semester = Semester::updateOrCreate(
+            ['academic_year' => $startYear.'-'.($startYear + 1), 'term' => 1],
+            [
+                'starts_at' => $startYear.'-09-01',
+                'ends_at' => ($startYear + 1).'-01-31',
+                'registration_starts_at' => now()->subDays(14),
+                'registration_ends_at' => now()->addDays(14),
+            ],
+        );
+
+        $offerings = collect([
+            ['subject' => 'WEB101', 'group' => '01', 'teacher' => 'giangvien1@gmail.com',
+                'room' => 'A101', 'max_students' => 30],
+            ['subject' => 'DB101', 'group' => '01', 'teacher' => 'giangvien1@gmail.com',
+                'room' => 'A102', 'max_students' => 30],
+            ['subject' => 'NET101', 'group' => '01', 'teacher' => 'giangvien2@gmail.com',
+                'room' => 'B201', 'max_students' => 0],
+            ['subject' => 'WEB101', 'group' => '02', 'teacher' => 'giangvien2@gmail.com',
+                'room' => 'A103', 'max_students' => 25],
+            ['subject' => 'SEC201', 'group' => '01', 'teacher' => 'giangvien2@gmail.com',
+                'room' => 'B202', 'max_students' => 20, 'is_open' => false],
+        ])->mapWithKeys(fn (array $data) => [
+            $data['subject'].'-'.$data['group'] => CourseOffering::updateOrCreate(
+                [
+                    'subject_id' => $subjects[$data['subject']]->id,
+                    'semester_id' => $semester->id,
+                    'group_code' => $data['group'],
+                ],
+                [
+                    'teacher_id' => $teachers[$data['teacher']]->id,
+                    'room' => $data['room'],
+                    'max_students' => $data['max_students'],
+                    'is_open' => $data['is_open'] ?? true,
+                ],
+            ),
+        ]);
+
+        $enrolledOfferings = $offerings->only(['WEB101-01', 'DB101-01', 'NET101-01']);
 
         User::updateOrCreate(
             ['email' => 'admin@gmail.com'],
@@ -108,22 +165,6 @@ class DatabaseSeeder extends Seeder
                 'class_id' => null,
             ],
         );
-
-        foreach ([
-            ['name' => 'Nguyễn Văn Đạt', 'email' => 'giangvien1@gmail.com', 'teacher_code' => 'GV01',
-                'dob' => '1985-04-12', 'gender' => 'MALE', 'hometown' => 'Hà Nội', 'phone' => '0912345678'],
-            ['name' => 'Trần Thị Kim Oanh', 'email' => 'giangvien2@gmail.com', 'teacher_code' => 'GV02',
-                'dob' => '1990-09-23', 'gender' => 'FEMALE', 'hometown' => 'Nghệ An', 'phone' => '0987654321'],
-        ] as $data) {
-            User::updateOrCreate(
-                ['email' => $data['email']],
-                $data + [
-                    'password' => Hash::make('12345678'),
-                    'role' => 'teacher',
-                    'class_id' => null,
-                ],
-            );
-        }
 
         $studentNames = [
             ['name' => 'Nguyễn Minh Anh', 'email' => 'sinhvien1@gmail.com', 'student_code' => '20240001',
@@ -157,20 +198,26 @@ class DatabaseSeeder extends Seeder
             if ($unassigned) {
                 continue;
             }
-            $student->subjects()->syncWithoutDetaching($enrolledSubjects->pluck('id'));
+            $studentOfferings = $enrolledOfferings->values();
 
-            foreach ($enrolledSubjects->values() as $subjectIndex => $subject) {
-                Grade::updateOrCreate(
-                    ['user_id' => $student->id, 'subject_id' => $subject->id],
-                    ['score' => 7 + (($index + $subjectIndex) % 4) * 0.5],
+            foreach ($studentOfferings as $offeringIndex => $offering) {
+                Enrollment::updateOrCreate(
+                    ['course_offering_id' => $offering->id, 'user_id' => $student->id],
+                    ['status' => 'ACTIVE', 'dropped_at' => null],
                 );
+
+                Grade::updateOrCreate(
+                    ['user_id' => $student->id, 'course_offering_id' => $offering->id],
+                    ['final_score' => 7 + (($index + $offeringIndex) % 4) * 0.5],
+                );
+
                 Attendance::updateOrCreate(
                     [
                         'user_id' => $student->id,
-                        'subject_id' => $subject->id,
+                        'subject_id' => $offering->subject_id,
                         'date' => $attendanceDate,
                     ],
-                    ['status' => ($index + $subjectIndex) % 4 === 0 ? 'absent' : 'present'],
+                    ['status' => ($index + $offeringIndex) % 4 === 0 ? 'absent' : 'present'],
                 );
             }
         }

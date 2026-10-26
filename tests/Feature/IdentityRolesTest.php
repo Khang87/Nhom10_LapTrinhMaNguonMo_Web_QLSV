@@ -4,14 +4,14 @@ namespace Tests\Feature;
 
 use App\Models\Grade;
 use App\Models\StudentClass;
-use App\Models\Subject;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Feature\Concerns\OfferingFixtures;
 use Tests\TestCase;
 
 class IdentityRolesTest extends TestCase
 {
-    use RefreshDatabase;
+    use OfferingFixtures, RefreshDatabase;
 
     public function test_teacher_signs_in_and_lands_on_the_teacher_dashboard(): void
     {
@@ -58,7 +58,6 @@ class IdentityRolesTest extends TestCase
         $class = StudentClass::create([
             'class_code' => 'CTK44C',
             'class_name' => 'Công nghệ thông tin 44C',
-            'room' => 'A103',
         ]);
 
         $this->actingAs(User::factory()->create(['role' => 'admin']))->post('/admin/accounts', [
@@ -79,7 +78,6 @@ class IdentityRolesTest extends TestCase
         $class = StudentClass::create([
             'class_code' => 'CTK44D',
             'class_name' => 'Công nghệ thông tin 44D',
-            'room' => 'A104',
         ]);
 
         $this->actingAs(User::factory()->create(['role' => 'admin']))->post('/admin/accounts', [
@@ -169,8 +167,12 @@ class IdentityRolesTest extends TestCase
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $student = User::factory()->create(['role' => 'student']);
-        $subject = Subject::create(['code' => 'WEB101', 'name' => 'Lập trình Web', 'credits' => 3]);
-        Grade::create(['user_id' => $student->id, 'subject_id' => $subject->id, 'score' => 8.5]);
+        $offering = $this->offering($this->subject('WEB101'), $this->semester(), 'TN01');
+        Grade::create([
+            'user_id' => $student->id,
+            'course_offering_id' => $offering->id,
+            'final_score' => 8.5,
+        ]);
 
         $this->actingAs($admin)->delete("/admin/accounts/{$student->id}")
             ->assertRedirect()

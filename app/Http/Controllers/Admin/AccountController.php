@@ -91,7 +91,7 @@ class AccountController extends Controller
             return back()->with('error', 'Bạn không thể xóa tài khoản đang đăng nhập.');
         }
 
-        $records = $account->grades()->count() + $account->attendances()->count() + $account->subjects()->count();
+        $records = $account->grades()->count() + $account->attendances()->count() + $account->enrollments()->count();
         if ($records > 0) {
             return back()->with(
                 'error',

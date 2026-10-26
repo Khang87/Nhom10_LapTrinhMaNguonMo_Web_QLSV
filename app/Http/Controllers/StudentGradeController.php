@@ -11,7 +11,7 @@ class StudentGradeController extends Controller
     {
         $grades = Auth::user()
             ->grades()
-            ->with('subject')
+            ->with('offering.subject')
             ->orderByDesc('updated_at')
             ->paginate(10);
 

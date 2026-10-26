@@ -27,7 +27,10 @@
                     <th scope="col">STT</th>
                     <th scope="col">Mã lớp</th>
                     <th scope="col">Tên lớp</th>
-                    <th scope="col">Phòng</th>
+                    <th scope="col">Khóa</th>
+                    <th scope="col">Khoa</th>
+                    <th scope="col">GVCN</th>
+                    <th scope="col">Sĩ số</th>
                     <th scope="col">Thao tác</th>
                 </tr>
             </thead>
@@ -37,7 +40,10 @@
                         <td>{{ $classes->firstItem() + $loop->index }}</td>
                         <td>{{ $class->class_code }}</td>
                         <td>{{ $class->class_name }}</td>
-                        <td>{{ $class->room ?: '—' }}</td>
+                        <td>{{ $class->intake_year ?: '—' }}</td>
+                        <td>{{ $class->department?->name ?? 'Chưa phân loại' }}</td>
+                        <td>{{ $class->adviser_label }}</td>
+                        <td>{{ $class->students_count }}</td>
                         <td class="text-nowrap">
                             <a class="btn btn-sm btn-outline-primary"
                                 href="{{ route('admin.classes.edit', $class) }}">Sửa</a>
@@ -51,7 +57,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="5" class="text-center">Chưa có lớp học phù hợp.</td></tr>
+                    <tr><td colspan="8" class="text-center">Chưa có lớp học phù hợp.</td></tr>
                 @endforelse
             </tbody>
         </table>

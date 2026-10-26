@@ -66,15 +66,19 @@
                 <div class="card-header">Lớp học phần đã đăng ký</div>
                 <div class="card-body p-0">
                     <table class="table table-bordered mb-0 align-middle">
-                        <thead class="table-light"><tr><th>Môn học</th><th>Tín chỉ</th></tr></thead>
+                        <thead class="table-light"><tr><th>Môn học</th><th>Nhóm</th><th>Học kỳ</th><th>Tín chỉ</th></tr></thead>
                         <tbody>
-                            @forelse ($student->subjects->sortBy('code') as $subject)
+                            @forelse ($student->offerings
+                                ->filter(fn ($offering) => $offering->pivot->status === 'ACTIVE')
+                                ->sortBy(fn ($offering) => [$offering->subject?->code, $offering->group_code]) as $offering)
                                 <tr>
-                                    <td>{{ $subject->code }} - {{ $subject->name }}</td>
-                                    <td>{{ $subject->credits }}</td>
+                                    <td>{{ $offering->subject?->label() }}</td>
+                                    <td>{{ $offering->group_code }}</td>
+                                    <td>{{ $offering->semester?->slug ?? '—' }}</td>
+                                    <td>{{ $offering->subject?->credits }}</td>
                                 </tr>
                             @empty
-                                <tr><td colspan="2" class="text-center">Chưa đăng ký môn học nào.</td></tr>
+                                <tr><td colspan="4" class="text-center">Chưa đăng ký học phần nào.</td></tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -86,15 +90,16 @@
                 <div class="card-header">Kết quả học tập</div>
                 <div class="card-body p-0">
                     <table class="table table-bordered mb-0 align-middle">
-                        <thead class="table-light"><tr><th>Môn học</th><th>Điểm</th></tr></thead>
+                        <thead class="table-light"><tr><th>Môn học</th><th>Nhóm</th><th>Điểm</th></tr></thead>
                         <tbody>
                             @forelse ($student->grades->sortBy(fn ($grade) => $grade->subject->code) as $grade)
                                 <tr>
                                     <td>{{ $grade->subject->code }} - {{ $grade->subject->name }}</td>
-                                    <td>{{ number_format((float) $grade->score, 1) }}</td>
+                                    <td>{{ $grade->offering?->group_code }}</td>
+                                    <td>{{ number_format((float) $grade->final_score, 1) }}</td>
                                 </tr>
                             @empty
-                                <tr><td colspan="2" class="text-center">Chưa có điểm.</td></tr>
+                                <tr><td colspan="3" class="text-center">Chưa có điểm.</td></tr>
                             @endforelse
                         </tbody>
                     </table>

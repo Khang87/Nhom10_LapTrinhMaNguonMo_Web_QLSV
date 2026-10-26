@@ -188,29 +188,62 @@ Quy ước branch/commit: một commit cho mỗi task, message tiếng Việt th
 
 ## Wave 4 — `course-offerings` + di cư dữ liệu *(điểm không thể quay lại)*
 
-- [ ] 4.1 Migration `semesters` + `course_offerings` + `enrollments` (additive)
+- [x] 4.1 Migration `semesters` + `course_offerings` + `enrollments` (additive)
   - Acceptance: unique `(subject_id, semester_id, group_code)`; đúng một kỳ `is_active` do
     service buộc.
-  - Verify: `php artisan migrate` trên DB dev, `php artisan test --filter=CourseOfferingTest`.
-  - Files: `database/migrations/*_create_course_offerings.php`, `app/Models/{Semester,CourseOffering,Enrollment}.php`
+  - Evidence: `2026_11_04_000001` (409.56ms) tạo 3 bảng; `Semester::activate()` bọc
+    `DB::transaction` và test `activating a semester keeps exactly one active` khẳng định còn
+    đúng 1 kỳ active; `buildSlug` → `HK2-2025-2026`, `label` → `Học kỳ 2 năm học 2025-2026`;
+    `offering_unique` chặn trùng nhóm (bắt `UniqueConstraintViolationException`); `seatsLeft()`
+    chỉ đếm enrollment `ACTIVE`, `max_students=0` → `PHP_INT_MAX`; cổng cần cả cửa sổ kỳ lẫn
+    `is_open` (dùng `travelTo`).
+  - Deviation: `Semester::active()` va tên với `scopeActive()` nên helper tĩnh đổi thành
+    `Semester::current()`.
 
-- [ ] 4.2 Cột mới trên `classes` (bỏ `room`, thêm `intake_year`, `department_id`, `major_id`,
+- [x] 4.2 Cột mới trên `classes` (bỏ `room`, thêm `intake_year`, `department_id`, `major_id`,
   `adviser_id`, `semester_id`)
   - Acceptance: form lớp hành chính chọn GVCN chỉ toàn teacher; `room` biến mất khỏi UI.
-  - Verify: `php artisan test --filter=CourseOfferingTest`; 2 lớp cũ còn nguyên.
-  - Files: migration, `app/Http/Controllers/Admin/ClassController.php`, `resources/views/admin/classes/*`
+  - Evidence: `2026_11_04_000002` thêm `adviser_id`/`semester_id` (nullOnDelete) và drop
+    `classes.room`; `Schema::hasColumn('classes','room') === false`; danh sách lớp hiển thị
+    Khóa/Khoa/GVCN/Sĩ số và test asserts `assertStringNotContainsString('Phòng')`; GVCN lưu dạng
+    `Nguyễn Văn Đạt (GV01)`; chọn advisor là student bị `assertSessionHasErrors('adviser_id')`;
+    chuyên ngành không thuộc khoa bị chặn `major_id`.
+  - Deviation: `intake_year/department_id/major_id` vốn đã có từ Wave 2 (migration
+    `2026_11_03_000002`) nên 4.2 chỉ bổ sung GVCN + bỏ `room`.
 
-- [ ] 4.3 Migration di cư `student_subject`/`grades` → `enrollments`/`grades` mới
+- [x] 4.3 Migration di cư `student_subject`/`grades` → `enrollments`/`grades` mới
   - Acceptance: sau di cư `Enrollment::count()===15`, `Grade::count()===15` với
     `final_score===score` cũ; chạy hai lần không tạo bản sao.
-  - Verify: `php artisan test --filter=LegacyDataMigrationTest` (RefreshDatabase + fixture 15
-    dòng) + tinker đếm trên DB dev.
-  - Files: `database/migrations/*_migrate_legacy_relations.php`
+  - Evidence: DB dev sau `migrate` — 6 offering nhóm TN01, 15 enrollment ACTIVE, 15 grade đã
+    gắn `course_offering_id` và `final_score === score`; chạy lại `up()` không tăng số bản ghi
+    (dùng `insertOrIgnore` + `whereNull('course_offering_id')`). Dump trước khi chạy:
+    `storage/app/backup-before-wave4.sql` (35.583 byte).
+  - Deviation: `up()` chỉ tạo học kỳ + offering khi thực sự có dữ liệu cũ (`hasLegacyData()`);
+    DB mới tinh không bị "bịa" một học kỳ ảo — học kỳ đầu giờ do seeder/admin tạo. Vì thế
+    `LegacyDataMigrationTest` (đã commit? chưa) bị xoá ở 4.4: sau khi drop cột `subject_id/score`
+    thì không còn dựng được dữ liệu đầu vào kiểu cũ.
 
-- [ ] 4.4 Migration drop `student_subject` + cột cũ `grades.score`
+- [x] 4.4 Migration drop `student_subject` + cột cũ `grades.score`
   - Acceptance: `SHOW TABLES` không còn `student_subject`; toàn bộ test pass.
-  - Verify: `php artisan migrate:fresh --seed` vẫn chạy sạch.
-  - Files: `database/migrations/*_drop_legacy_relations.php`
+  - Verify: `php artisan migrate:fresh --seed` chạy sạch (15 migration, migrate 213.19ms cho
+    `000004`); `Schema::hasTable('student_subject') === false`, `grades` chỉ còn
+    `course_offering_id` (NOT NULL) + `final_score` (NOT NULL) và unique
+    `grade_offering_unique (course_offering_id, user_id)`; toàn suite **96 passed (544 assertions)**.
+  - Refactor đi kèm (Step D): `Grade` bỏ `subject_id/score` + accessor `subject` qua
+    `offering.subject`; `User` bỏ pivot `subjects()`, thay bằng `offerings()/enrollments()/enrolledSubjects()`;
+    `Admin/GradeController`, `StudentGradeController`, `StudentDashboardController`,
+    `Admin/StudentController::show`, `Admin/AccountController`, `Admin/AttendanceController`,
+    `PrerequisiteRules::blockingPrerequisites` đều đọc theo offering; `StudentSubjectController`
+    + `views/student/subjects` bị xoá, thay bằng `StudentOfferingController` với route
+    `student.offerings.index|register|unregister` (`/student/course-offerings`); seeder dựng
+    1 học kỳ có cửa sổ đăng ký + 5 lớp học phần (2 nhóm WEB101, 1 nhóm đóng) và ghi
+    enrollment/grade qua offering. Điểm danh vẫn theo `subject_id` tới Wave 7.
+  - Đã xác minh trên trình duyệt: `/admin/grades` (cột Nhóm + Học kỳ, 15 dòng),
+    `/admin/attendances` (15 dòng sinh viên × môn đang học), `/student/course-offerings`
+    (hủy NET101 → còn 6 TC → đăng ký lại → còn 15 enrollment, 0 DROPPED, không tạo bản trùng),
+    `/student/grades`, `/student/dashboard`, `/admin/students/4` (3 thẻ hồ sơ).
+  - Deviation: MySQL không cho drop `grades_user_id_subject_id_unique` vì FK `user_id` đang dùng
+    nó → migration tạo `grades_user_id_index` trước rồi mới drop index cũ.
 
 - [ ] 4.5 CRUD lớp học phần + phân công giảng viên
   - Acceptance: một môn mở 2 nhóm cùng kỳ; trùng nhóm bị chặn bằng thông báo; chọn role sai bị

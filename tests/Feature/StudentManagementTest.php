@@ -3,14 +3,14 @@
 namespace Tests\Feature;
 
 use App\Models\StudentClass;
-use App\Models\Subject;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Feature\Concerns\OfferingFixtures;
 use Tests\TestCase;
 
 class StudentManagementTest extends TestCase
 {
-    use RefreshDatabase;
+    use OfferingFixtures, RefreshDatabase;
 
     public function test_users_are_redirected_to_the_dashboard_for_their_role(): void
     {
@@ -74,7 +74,6 @@ class StudentManagementTest extends TestCase
         $this->actingAs($admin)->post('/admin/classes', [
             'class_code' => 'CTK44A',
             'class_name' => 'Công nghệ thông tin 44A',
-            'room' => 'A101',
         ])->assertRedirect('/admin/classes');
 
         $this->actingAs($admin)->get('/admin/classes?search=44A')
@@ -89,91 +88,119 @@ class StudentManagementTest extends TestCase
         $this->actingAs($admin)->post('/admin/classes', [
             'class_code' => 'CTK44A',
             'class_name' => str_repeat('A', 101),
-            'room' => 'A101',
         ])->assertSessionHasErrors('class_name');
     }
 
-    public function test_student_can_register_for_a_subject_only_once_and_unregister(): void
+    public function test_student_can_register_for_an_offering_only_once_and_unregister(): void
     {
         $student = User::factory()->create(['role' => 'student']);
-        $subject = Subject::create([
-            'code' => 'WEB101',
-            'name' => 'Lập trình Web',
-            'credits' => 3,
-        ]);
+        $offering = $this->singleOffering('WEB101');
 
-        $this->actingAs($student)->post("/student/subjects/{$subject->id}")
-            ->assertRedirect('/student/subjects');
-        $this->post("/student/subjects/{$subject->id}")
-            ->assertRedirect('/student/subjects');
+        $this->actingAs($student)->post("/student/course-offerings/{$offering->id}")
+            ->assertRedirect('/student/course-offerings');
+        $this->post("/student/course-offerings/{$offering->id}")
+            ->assertRedirect('/student/course-offerings')
+            ->assertSessionHas('error');
 
-        $this->assertDatabaseCount('student_subject', 1);
-        $this->get('/student/subjects')
+        $this->assertDatabaseCount('enrollments', 1);
+        $this->get('/student/course-offerings')
             ->assertOk()
-            ->assertSee('Lập trình Web');
+            ->assertSee('Môn WEB101')
+            ->assertSee('Học phần đã đăng ký');
 
-        $this->delete("/student/subjects/{$subject->id}")
-            ->assertRedirect('/student/subjects');
+        $this->delete("/student/course-offerings/{$offering->id}")
+            ->assertRedirect('/student/course-offerings')
+            ->assertSessionHas('success');
 
-        $this->assertDatabaseCount('student_subject', 0);
+        $this->assertDatabaseHas('enrollments', [
+            'course_offering_id' => $offering->id,
+            'user_id' => $student->id,
+            'status' => 'DROPPED',
+        ]);
+        $this->assertSame(0, $student->offerings()->wherePivot('status', 'ACTIVE')->count());
+    }
+
+    public function test_student_cannot_register_into_a_full_offering(): void
+    {
+        $offering = $this->offering($this->subject('DB101'), $this->semester(), 'TN01', 1);
+        $this->enroll(User::factory()->create(['role' => 'student']), $offering);
+
+        $student = User::factory()->create(['role' => 'student']);
+
+        $this->actingAs($student)->post("/student/course-offerings/{$offering->id}")
+            ->assertRedirect('/student/course-offerings')
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseCount('enrollments', 1);
+    }
+
+    public function test_registered_offering_is_not_offered_again(): void
+    {
+        $offering = $this->singleOffering('NET101');
+        $student = User::factory()->create(['role' => 'student']);
+        $this->enroll($student, $offering);
+
+        $this->actingAs($student)->get('/student/course-offerings')
+            ->assertOk()
+            ->assertSee('Học phần đã đăng ký')
+            ->assertSee('Hiện không còn học phần để đăng ký.');
     }
 
     public function test_student_can_view_their_own_grade(): void
     {
         $student = User::factory()->create(['role' => 'student']);
-        $subject = Subject::create([
-            'code' => 'DB101',
-            'name' => 'Cơ sở dữ liệu',
-            'credits' => 3,
-        ]);
+        $offering = $this->offering($this->subject('DB101'), $this->semester(), 'TN02');
+        $this->enroll($student, $offering);
 
-        $student->subjects()->attach($subject);
         $student->grades()->create([
-            'subject_id' => $subject->id,
-            'score' => 8.5,
+            'course_offering_id' => $offering->id,
+            'final_score' => 8.5,
         ]);
 
         $this->actingAs($student)->get('/student/grades')
             ->assertOk()
-            ->assertSee('Cơ sở dữ liệu')
+            ->assertSee('Môn DB101')
+            ->assertSee('TN02')
             ->assertSee('8.5');
     }
 
-    public function test_admin_can_record_a_grade_only_for_a_registered_subject(): void
+    public function test_admin_can_record_a_grade_only_for_a_registered_offering(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $student = User::factory()->create(['role' => 'student']);
-        $subject = Subject::create([
-            'code' => 'MATH101',
-            'name' => 'Toán rời rạc',
-            'credits' => 3,
-        ]);
-        $student->subjects()->attach($subject);
+        $offering = $this->singleOffering('MATH101');
 
         $this->actingAs($admin)->post('/admin/grades', [
             'user_id' => $student->id,
-            'subject_id' => $subject->id,
-            'score' => 8.25,
+            'course_offering_id' => $offering->id,
+            'final_score' => 8.25,
+        ])->assertSessionHasErrors('course_offering_id');
+
+        $this->assertDatabaseCount('grades', 0);
+
+        $this->enroll($student, $offering);
+
+        $this->actingAs($admin)->post('/admin/grades', [
+            'user_id' => $student->id,
+            'course_offering_id' => $offering->id,
+            'final_score' => 8.25,
         ])->assertRedirect('/admin/grades');
 
         $this->assertDatabaseHas('grades', [
             'user_id' => $student->id,
-            'subject_id' => $subject->id,
-            'score' => 8.25,
+            'course_offering_id' => $offering->id,
+            'final_score' => 8.25,
         ]);
-        $this->get('/admin/grades')->assertOk()->assertSee('Toán rời rạc');
+        $this->get('/admin/grades')->assertOk()->assertSee('Môn MATH101');
     }
 
     public function test_admin_can_record_attendance_for_a_student(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $student = User::factory()->create(['role' => 'student']);
-        $subject = Subject::create([
-            'code' => 'NET101',
-            'name' => 'Mạng máy tính',
-            'credits' => 3,
-        ]);
-        $student->subjects()->attach($subject);
+        $subject = $this->subject('NET101');
+        $offering = $this->offering($subject, $this->semester(), 'TN01');
+        $this->enroll($student, $offering);
 
         $this->actingAs($admin)->post('/admin/attendances', [
             'date' => '2026-10-20',
@@ -218,7 +245,6 @@ class StudentManagementTest extends TestCase
         $class = StudentClass::create([
             'class_code' => 'CTK44B',
             'class_name' => 'Công nghệ thông tin 44B',
-            'room' => 'A102',
         ]);
         $student = User::factory()->create([
             'role' => 'student',
@@ -253,7 +279,7 @@ class StudentManagementTest extends TestCase
             ->assertOk()
             ->assertSee('Chưa xếp lớp')
             ->assertSee('Chưa có điểm được cập nhật.');
-        $this->actingAs($student)->get('/student/subjects')
+        $this->actingAs($student)->get('/student/course-offerings')
             ->assertOk()
             ->assertSee('id="sidebar"', false)
             ->assertSee('Đăng ký học phần')
@@ -280,21 +306,16 @@ class StudentManagementTest extends TestCase
         $class = StudentClass::create([
             'class_code' => 'CTK45A',
             'class_name' => 'Công nghệ thông tin 45A',
-            'room' => 'B201',
         ]);
         $student->update(['class_id' => $class->id]);
-        $subject = Subject::create([
-            'code' => 'WEB101',
-            'name' => 'Lập trình Web',
-            'credits' => 3,
-        ]);
-        $student->subjects()->attach($subject);
+        $offering = $this->offering($this->subject('WEB101'), $this->semester(), 'TN01');
+        $this->enroll($student, $offering);
         $student->grades()->create([
-            'subject_id' => $subject->id,
-            'score' => 8.5,
+            'course_offering_id' => $offering->id,
+            'final_score' => 8.5,
         ]);
         $student->attendances()->create([
-            'subject_id' => $subject->id,
+            'subject_id' => $offering->subject_id,
             'date' => '2026-10-20',
             'status' => 'present',
         ]);
@@ -302,13 +323,13 @@ class StudentManagementTest extends TestCase
         $this->actingAs($student)->get('/student/dashboard')
             ->assertOk()
             ->assertSee('id="sidebar"', false)
-            ->assertSee(route('student.subjects.index'))
+            ->assertSee(route('student.offerings.index'))
             ->assertSee(route('student.grades.index'))
             ->assertSee('Công nghệ thông tin 45A')
-            ->assertSee('Môn đã đăng ký')
+            ->assertSee('Học phần đã đăng ký')
             ->assertSee('Điểm đã công bố')
             ->assertSee('Có mặt')
-            ->assertSee('Lập trình Web')
+            ->assertSee('Môn WEB101')
             ->assertSee('8.50')
             ->assertDontSee('id="mainNavbar"', false)
             ->assertDontSee('Tra cứu công nợ')
@@ -319,13 +340,8 @@ class StudentManagementTest extends TestCase
         $class = StudentClass::create([
             'class_code' => 'TEST01',
             'class_name' => 'Lớp kiểm thử',
-            'room' => 'A101',
         ]);
-        $subject = Subject::create([
-            'code' => 'TEST101',
-            'name' => 'Môn kiểm thử',
-            'credits' => 3,
-        ]);
+        $subject = $this->subject('TEST101');
         $managedStudent = User::factory()->create([
             'role' => 'student',
             'class_id' => $class->id,

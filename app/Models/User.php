@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable
@@ -122,9 +123,36 @@ class User extends Authenticatable
         return self::ROLE_LABELS[$this->role] ?? $this->role;
     }
 
-    public function subjects(): BelongsToMany
+    public function offerings(): BelongsToMany
     {
-        return $this->belongsToMany(Subject::class, 'student_subject')->withTimestamps();
+        return $this->belongsToMany(CourseOffering::class, 'enrollments')
+            ->withPivot(['id', 'status', 'dropped_at'])
+            ->withTimestamps();
+    }
+
+    public function enrollments(): HasMany
+    {
+        return $this->hasMany(Enrollment::class);
+    }
+
+    /**
+     * Những môn sinh viên đang học theo lớp hành chính mới (enrollment ACTIVE).
+     *
+     * @return Collection<Subject>
+     */
+    public function enrolledSubjects(): Collection
+    {
+        $offerings = $this->relationLoaded('offerings')
+            ? $this->getRelation('offerings')
+            : $this->offerings()->wherePivot('status', 'ACTIVE')->get();
+
+        return $offerings
+            ->filter(fn (CourseOffering $offering) => $offering->pivot->status === 'ACTIVE')
+            ->pluck('subject')
+            ->filter()
+            ->unique('id')
+            ->sortBy('code')
+            ->values();
     }
 
     public function attendances(): HasMany

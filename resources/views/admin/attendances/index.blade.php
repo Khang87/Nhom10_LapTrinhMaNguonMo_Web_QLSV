@@ -29,7 +29,9 @@
                 <thead class="table-light"><tr><th>Sinh viên</th><th>Môn đã đăng ký</th><th>Trạng thái</th></tr></thead>
                 <tbody>
                     @forelse ($students as $student)
-                        @forelse ($student->subjects as $subject)
+                        @php $enrolledSubjects = $student->enrolledSubjects(); @endphp
+                        @continue ($enrolledSubjects->isEmpty())
+                        @foreach ($enrolledSubjects as $subject)
                             @php
                                 $record = $records->first(fn ($item) => $item->user_id === $student->id && $item->subject_id === $subject->id);
                             @endphp
@@ -48,13 +50,11 @@
                                     </select>
                                 </td>
                             </tr>
-                        @empty
-                            @continue
-                        @endforelse
+                        @endforeach
                     @empty
                         <tr><td colspan="3" class="text-center">Chưa có sinh viên.</td></tr>
                     @endforelse
-                    @if ($students->isNotEmpty() && $students->every(fn ($student) => $student->subjects->isEmpty()))
+                    @if ($students->isNotEmpty() && $students->every(fn ($student) => $student->enrolledSubjects()->isEmpty()))
                         <tr><td colspan="3" class="text-center">Chưa có sinh viên đăng ký môn học.</td></tr>
                     @endif
                 </tbody>

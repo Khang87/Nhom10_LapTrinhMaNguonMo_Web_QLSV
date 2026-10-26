@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
+use App\Models\Enrollment;
 use App\Models\Subject;
 use App\Models\User;
 use App\Support\Csv;
@@ -29,9 +30,11 @@ class AttendanceController extends Controller
             ->orderBy('user_id')
             ->get();
 
+        $students = User::where('role', 'student')->with('offerings.subject')->orderBy('name')->get();
+
         return view('admin.attendances.index', [
             'date' => $date,
-            'students' => User::where('role', 'student')->with('subjects')->orderBy('name')->get(),
+            'students' => $students,
             'subjects' => Subject::orderBy('code')->get(),
             'records' => $records,
             'presentCount' => $records->where('status', 'present')->count(),
@@ -86,7 +89,12 @@ class AttendanceController extends Controller
 
                     $subject = Subject::findOrFail($subjectId);
 
-                    if (! $student->subjects()->whereKey($subject->id)->exists()) {
+                    $enrolled = Enrollment::where('user_id', $student->id)
+                        ->where('status', 'ACTIVE')
+                        ->whereHas('offering', fn ($query) => $query->where('subject_id', $subject->id))
+                        ->exists();
+
+                    if (! $enrolled) {
                         throw ValidationException::withMessages([
                             'attendances' => "Sinh viên {$student->name} chưa đăng ký {$subject->name}.",
                         ]);

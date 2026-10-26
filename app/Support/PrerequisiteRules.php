@@ -48,7 +48,11 @@ class PrerequisiteRules
         float $requiredScore = 5.0,
     ): array {
         $passedIds = $passed->pluck('id');
-        $scores = $student->grades()->get()->keyBy('subject_id');
+        $scores = DB::table('grades')
+            ->join('course_offerings', 'course_offerings.id', '=', 'grades.course_offering_id')
+            ->where('grades.user_id', $student->id)
+            ->get(['course_offerings.subject_id', 'grades.final_score'])
+            ->keyBy('subject_id');
 
         return $subject->prerequisites
             ->reject(fn (Subject $prerequisite) => $passedIds->contains($prerequisite->id))
@@ -59,7 +63,7 @@ class PrerequisiteRules
                     'code' => $prerequisite->code,
                     'name' => $prerequisite->name,
                     'required_score' => $requiredScore,
-                    'actual_score' => $grade === null ? null : (float) $grade->score,
+                    'actual_score' => $grade === null ? null : (float) $grade->final_score,
                 ];
             })
             ->values()

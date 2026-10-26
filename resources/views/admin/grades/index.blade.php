@@ -20,35 +20,47 @@
                 @endforeach
             </select>
         </div>
-        <div class="col-md-4">
-            <label class="form-label" for="subject_id">Môn học</label>
-            <select class="form-select" id="subject_id" name="subject_id" required>
-                <option value="">Chọn môn học đã đăng ký</option>
-                @foreach ($subjects as $subject)
-                    <option value="{{ $subject->id }}" @selected(old('subject_id') == $subject->id)>
-                        {{ $subject->code }} - {{ $subject->name }}
+        <div class="col-md-5">
+            <label class="form-label" for="course_offering_id">Lớp học phần</label>
+            <select class="form-select" id="course_offering_id" name="course_offering_id" required>
+                <option value="">Chọn lớp học phần đã đăng ký</option>
+                @foreach ($offerings as $offering)
+                    <option value="{{ $offering->id }}" @selected(old('course_offering_id') == $offering->id)>
+                        {{ $offering->label() }}
                     </option>
                 @endforeach
             </select>
         </div>
         <div class="col-md-2">
-            <label class="form-label" for="score">Điểm (0-10)</label>
-            <input class="form-control" id="score" name="score" type="number" min="0" max="10"
-                step="0.01" value="{{ old('score') }}" required>
+            <label class="form-label" for="final_score">Điểm (0-10)</label>
+            <input class="form-control" id="final_score" name="final_score" type="number" min="0" max="10"
+                step="0.01" value="{{ old('final_score') }}" required>
         </div>
-        <div class="col-md-2"><button class="btn btn-primary" type="submit">Lưu điểm</button></div>
+        <div class="col-md-1"><button class="btn btn-primary" type="submit">Lưu điểm</button></div>
     </form>
 
     <div class="table-responsive">
         <table class="table table-bordered table-hover bg-white align-middle">
-            <thead class="table-light"><tr><th>Sinh viên</th><th>Mã môn</th><th>Tên môn</th><th>Điểm</th><th>Thao tác</th></tr></thead>
+            <thead class="table-light">
+                <tr>
+                    <th scope="col">Sinh viên</th>
+                    <th scope="col">Mã môn</th>
+                    <th scope="col">Tên môn</th>
+                    <th scope="col">Nhóm</th>
+                    <th scope="col">Học kỳ</th>
+                    <th scope="col">Điểm</th>
+                    <th scope="col">Thao tác</th>
+                </tr>
+            </thead>
             <tbody>
                 @forelse ($grades as $grade)
                     <tr>
                         <td>{{ $grade->user->name }}</td>
-                        <td>{{ $grade->subject->code }}</td>
-                        <td>{{ $grade->subject->name }}</td>
-                        <td>{{ $grade->score }}</td>
+                        <td>{{ $grade->subject?->code }}</td>
+                        <td>{{ $grade->subject?->name }}</td>
+                        <td>{{ $grade->offering->group_code }}</td>
+                        <td>{{ $grade->offering->semester?->label ?? '—' }}</td>
+                        <td>{{ $grade->final_score }}</td>
                         <td>
                             <form method="POST" action="{{ route('admin.grades.destroy', $grade) }}"
                                 data-confirm="Bạn có chắc muốn xóa điểm này?">
@@ -58,7 +70,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="5" class="text-center">Chưa có điểm.</td></tr>
+                    <tr><td colspan="7" class="text-center">Chưa có điểm.</td></tr>
                 @endforelse
             </tbody>
         </table>

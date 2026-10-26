@@ -30,8 +30,10 @@
                             <dd class="col-sm-8">{{ $student->studentClass?->class_code ?? 'Chưa xếp lớp' }}</dd>
                             <dt class="col-sm-4">Tên lớp</dt>
                             <dd class="col-sm-8">{{ $student->studentClass?->class_name ?? 'Chưa xếp lớp' }}</dd>
-                            <dt class="col-sm-4">Phòng học</dt>
-                            <dd class="col-sm-8 mb-0">{{ $student->studentClass?->room ?: 'Chưa cập nhật' }}</dd>
+                            <dt class="col-sm-4">Khóa</dt>
+                            <dd class="col-sm-8">{{ $student->studentClass?->intake_year ?: 'Chưa cập nhật' }}</dd>
+                            <dt class="col-sm-4">GVCN</dt>
+                            <dd class="col-sm-8 mb-0">{{ $student->studentClass?->adviser?->name ?? 'Chưa phân công' }}</dd>
                         </dl>
                     </div>
                 </div>
@@ -43,9 +45,9 @@
                 <div class="col">
                     <div class="card student-stat-card h-100">
                         <div class="card-body">
-                            <p class="stat-label">Môn đã đăng ký</p>
-                            <p class="student-stat-value">{{ $student->subjects_count }}</p>
-                            <a href="{{ route('student.subjects.index') }}">Xem học phần</a>
+                            <p class="stat-label">Học phần đã đăng ký</p>
+                            <p class="student-stat-value">{{ $enrolledCount }}</p>
+                            <a href="{{ route('student.offerings.index') }}">Xem học phần</a>
                         </div>
                     </div>
                 </div>
@@ -84,7 +86,7 @@
         <h2 class="visually-hidden" id="student-shortcuts-title">Truy cập nhanh</h2>
         <div class="row row-cols-1 row-cols-sm-2 g-3">
             <div class="col">
-                <a class="card student-action-card h-100" href="{{ route('student.subjects.index') }}">
+                <a class="card student-action-card h-100" href="{{ route('student.offerings.index') }}">
                     <div class="card-body d-flex align-items-center gap-3">
                         <i class="bi bi-journal-plus" aria-hidden="true"></i>
                         <span>Đăng ký học phần</span>
@@ -115,21 +117,23 @@
                     <tr>
                         <th scope="col">Mã môn</th>
                         <th scope="col">Tên môn học</th>
+                        <th scope="col">Nhóm</th>
                         <th scope="col">Điểm</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse ($recentGrades as $grade)
                         <tr>
-                            <td>{{ $grade->subject->code }}</td>
-                            <td>{{ $grade->subject->name }}</td>
-                            <td>{{ number_format((float) $grade->score, 2) }}</td>
+                            <td>{{ $grade->subject?->code }}</td>
+                            <td>{{ $grade->subject?->name }}</td>
+                            <td>{{ $grade->offering->group_code }}</td>
+                            <td>{{ number_format((float) $grade->final_score, 2) }}</td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="3" class="text-center py-4">
+                            <td colspan="4" class="text-center py-4">
                                 Chưa có điểm được cập nhật.
-                                <a href="{{ route('student.subjects.index') }}">Xem học phần</a>
+                                <a href="{{ route('student.offerings.index') }}">Xem học phần</a>
                             </td>
                         </tr>
                     @endforelse
