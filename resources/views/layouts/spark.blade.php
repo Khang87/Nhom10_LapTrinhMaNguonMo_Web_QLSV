@@ -53,6 +53,14 @@
                             </a>
                         </li>
                         <li class="sidebar-menu-item">
+                            <a class="sidebar-menu-link {{ request()->routeIs('admin.enrollments.*') ? 'active' : '' }}"
+                                href="{{ route('admin.enrollments.index') }}"
+                                @if (request()->routeIs('admin.enrollments.*')) aria-current="page" @endif>
+                                <i class="bi bi-journal-text" aria-hidden="true"></i>
+                                <span>Đăng ký học phần</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-menu-item">
                             <a class="sidebar-menu-link {{ request()->routeIs('admin.semesters.*') ? 'active' : '' }}"
                                 href="{{ route('admin.semesters.index') }}"
                                 @if (request()->routeIs('admin.semesters.*')) aria-current="page" @endif>
@@ -145,9 +153,9 @@
                     <h2 class="sidebar-menu-title" id="spark-learning-title">Học tập</h2>
                     <ul class="sidebar-menu-list">
                         <li class="sidebar-menu-item">
-                            <a class="sidebar-menu-link {{ request()->routeIs('student.offerings.*') ? 'active' : '' }}"
-                                href="{{ route('student.offerings.index') }}"
-                                @if (request()->routeIs('student.offerings.*')) aria-current="page" @endif>
+                            <a class="sidebar-menu-link {{ request()->routeIs('student.course-offerings.*') ? 'active' : '' }}"
+                                href="{{ route('student.course-offerings.index') }}"
+                                @if (request()->routeIs('student.course-offerings.*')) aria-current="page" @endif>
                                 <i class="bi bi-journal-plus" aria-hidden="true"></i>
                                 <span>Đăng ký học phần</span>
                             </a>
@@ -196,7 +204,7 @@
                         <span>Lớp của tôi</span>
                     </a>
                 @elseif (auth()->user()->role === 'student')
-                    <a class="btn-quick-action" href="{{ route('student.offerings.index') }}">
+                    <a class="btn-quick-action" href="{{ route('student.course-offerings.index') }}">
                         <i class="bi bi-journal-plus" aria-hidden="true"></i>
                         <span>Đăng ký học phần</span>
                     </a>

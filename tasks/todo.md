@@ -290,39 +290,110 @@ Quy ước branch/commit: một commit cho mỗi task, message tiếng Việt th
 
 ## Wave 5 — `enrollment`
 
-- [ ] 5.1 `EnrollmentPolicy` thuần (6 nhánh) + unit test trước
+- [x] 5.1 `EnrollmentPolicy` thuần (6 nhánh) + unit test trước
   - Acceptance: mỗi nhánh trả đúng mã lý do; policy không query DB.
   - Verify: `php artisan test --filter=EnrollmentPolicyTest` (red → green).
   - Files: `app/Support/EnrollmentPolicy.php`, `tests/Unit/EnrollmentPolicyTest.php`
+  - Done 2026-10-26: `EnrollmentPolicy::check()` trả `['ok'=>bool,'reasons'=>[{code,message}]]`
+    cho 6 nhánh (GATE_CLOSED, MAX_CREDITS, PREREQUISITE_MISSING, CONCURRENT_MISSING, CLASS_FULL,
+    ALREADY_REGISTERED) + `checkDrop()` (GATE_CLOSED, DATA_EXISTS) và `reasonText()` ghép bằng " · ".
+    Ngữ cảnh ở `EnrollmentContext` (`for`, `collect` nhiều lớp chỉ vài truy vấn, `passedSubjects`,
+    `accumulatedCredits`, `forDrop`); mọi truy vấn dồn hết ra ngoài policy.
+  - Evidence: 14 unit test, 30 assertions, green. `test_the_policy_never_touches_the_database`
+    bật `enableQueryLog()` rồi assert log rỗng sau cả 6 nhánh; fixture dựng bằng `forceFill` +
+    `setRelation` nên không cần DB.
 
-- [ ] 5.2 Cổng đăng ký theo học kỳ
+- [x] 5.2 Cổng đăng ký theo học kỳ
   - Acceptance: ngoài `[registration_starts_at, registration_ends_at]` mọi POST → 422 "Cổng đăng
     ký đã đóng"; `offering.is_open=false` cũng chặn.
   - Verify: feature test dùng `$this->travelTo()`.
   - Files: `app/Models/Semester.php`, `routes/web.php`
+  - Done 2026-10-26: cổng do `CourseOffering::isRegistrationOpen()` quyết (kỳ mở cổng AND
+    `offering.is_open`); từ chối phóng `HttpException(422)` và trang `errors/422.blade.php` in đúng
+    thông điệp nghiệp vụ, nên cả POST lẫn UI cùng một lý do.
+  - Evidence: `test_a_post_before_the_gate_opens_is_refused_with_422`,
+    `test_a_post_after_the_gate_closes_is_refused_with_422` (travelTo +3 ngày),
+    `test_a_closed_offering_is_refused_even_inside_the_gate` — cả ba assert 422, thấy
+    "Cổng đăng ký đã đóng" và `Enrollment::count() === 0`. Browser: trang sinh viên hiển "Cổng đăng
+    ký đang mở tới 09/11/2026 11:41", offering `is_open=0` hiện lý do "Cổng đăng ký đã đóng".
+  - Deviation: giúp đỡ `gate()` đưa sang trait `OfferingFixtures` dùng chung cho mọi feature test;
+    helper cũ dùng `[mặc định] + $extra` nên `array_merge()` để `$extra` thắng (union cũ silently
+    giữ mốc mặc định, làm test "trước cổng" xanh giả).
 
-- [ ] 5.3 Đăng ký có `lockForUpdate` + bắt error 1062
+- [x] 5.3 Đăng ký có `lockForUpdate` + bắt error 1062
   - Acceptance: nhóm còn 1 chỗ, hai request song song ⇒ đúng 1 thành công; chỗ cuối không bị
     vượt sĩ số.
   - Verify: feature test gọi hai request liên tiếp + assert `seatsLeft()`.
   - Files: `app/Http/Controllers/Student/CourseOfferingController.php`
+  - Done 2026-10-26: ghi tập trung trong `EnrollmentRegistrar::enroll()` — `DB::transaction` bọc
+    `CourseOffering::whereKey()->lockForUpdate()->firstOrFail()` rồi chạy policy trong lock, bắt
+    `UniqueConstraintViolationException` (1062) đổi thành 422 "Bạn đã đăng ký lớp này". Controller
+    chỉ còn một dòng gọi registrar; admin đăng ký hộ đi qua cùng đường này với `gateRequired: false`.
+  - Evidence: `test_the_third_student_is_told_the_class_is_full` (2/2 chỗ, người thứ 3 → 422,
+    `seatsLeft()===0`, đúng 2 enrollment) và `test_a_second_request_never_creates_two_active_enrollments`
+    (POST lặp → 422, 1 enrollment).
+  - Deviation: `seatsLeft()` trả `PHP_INT_MAX` khi `max_students=0` nên nhánh sĩ số không chặn lớp
+    không giới hạn — nghiệp vụ đã chốt ở Wave 4, giữ nguyên.
 
-- [ ] 5.4 Trang đăng ký học phần cho sinh viên
+- [x] 5.4 Trang đăng ký học phần cho sinh viên
   - Acceptance: offering không đủ điều kiện vẫn hiện, nút "Đăng ký" disabled kèm lý do in dưới
     dòng; khối "Đăng ký của tôi" hiện tổng tín chỉ đang học / đã tích luỹ.
   - Verify: kiểm tay + feature test render.
   - Files: `resources/views/student/course-offerings/index.blade.php`
+  - Done 2026-10-26: `Student\CourseOfferingController::index()` gom ngữ cảnh cả danh sách bằng
+    `EnrollmentContext::collect()` (không N+1) và `withCount(['enrollments as active_count'])`;
+    lớp đã ACTIVE của chính mình bị loại khỏi "Học phần đang mở", lớp không đủ điều kiện vẫn hiện
+    với `<button ... disabled>` + lý do `text-danger` in dưới tên môn. Tiêu đề in kỳ hiện hành và
+    trạng thái cổng (đang mở tới … / đang đóng / chưa mở cổng).
+  - Evidence: `test_the_registration_page_keeps_blocked_classes_visible_with_their_reason` (đếm
+    đúng 2 nút disabled, thấy "Lớp đã đủ sĩ số" và "Cổng đăng ký đã đóng"),
+    `test_the_registration_page_summarises_current_and_accumulated_credits` ("Tín chỉ đang học: 6 TC",
+    "Tín chỉ đã tích luỹ: 5 TC"). Browser `/student/course-offerings`: "Đăng ký của tôi" 3 dòng có
+    nút Hủy đăng ký, "Học phần đang mở" 4 form đăng ký + 1 nút disabled, 2 cột "Còn lại"/"Phòng"
+    hiện đủ, console không lỗi.
+  - Deviation: heading "Học phần đã đăng ký" (bản Wave 4) đổi thành "Đăng ký của tôi" theo đúng
+    wording spec; route cũ `student.offerings.*` và controller `StudentOfferingController` bị xoá
+    hoàn toàn, không giữ alias — sidebar/dashboard/layout đã trỏ `student.course-offerings.*`.
+    Hai test cũ trong `StudentManagementTest` (đăng ký một lần + hủy, lớp đã đăng ký không hiện lại)
+    viết lại theo route `/enroll` + 422 và wording màn mới;
+    `test_student_cannot_register_into_a_full_offering` xoá vì `EnrollmentTest` đã phủ nghiệm hơn
+    (đếm `seatsLeft()` và số enrollment, không chỉ nhìn flash).
 
-- [ ] 5.5 Hủy đăng ký theo quy tắc dữ liệu
+- [x] 5.5 Hủy đăng ký theo quy tắc dữ liệu
   - Acceptance: hủy trong cổng và chưa có điểm danh/điểm ⇒ `DROPPED`, `seatsLeft()`+1; đã có
     dữ liệu ⇒ từ chối; điểm cũ không bị xoá.
   - Verify: feature test cả hai nhánh.
   - Files: `app/Http/Controllers/Student/EnrollmentController.php`
+  - Done 2026-10-26: `drop()` chặn truy cập enrollment của người khác (403), bắt `checkDrop()` qua
+    `EnrollmentContext::forDrop()` (cổng + `grades`/`attendances`), chỉ đổi `status` sang `DROPPED`
+    kèm `dropped_at` — không xoá dòng nào, nên điểm và điểm danh còn nguyên.
+  - Evidence: `test_a_student_drops_a_class_and_the_seat_is_returned_immediately` (0 → 1 chỗ),
+    `test_a_drop_is_refused_once_the_class_has_data_and_the_data_survives` (flash "Đã có dữ liệu điểm
+    danh/điểm, liên hệ giảng viên", 1 grade + 1 attendance vẫn còn), `test_a_drop_is_refused_after_the
+    _gate_closes`, `test_a_student_cannot_touch_another_students_enrollment`. Browser: sinh viên 1 hủy
+    lớp vừa đăng ký bị từ chối đúng vì có 1 dòng điểm danh môn WEB101.
+  - Deviation: nhánh "đã đăng ký lớp này" chỉ tính trạng thái ACTIVE (spec ghi ACTIVE-or-DROPPED) để
+    sinh viên học lại được lớp vừa lỡ tay hủy khi cổng còn mở — có test riêng
+    `test_a_student_can_register_again_after_dropping_inside_the_gate`. Hủy ngoài cổng reuse nguyên
+    văn câu "Cổng đăng ký đã đóng" thay vì bịa wording mới.
 
-- [ ] 5.6 Admin đăng ký / hủy hộ (ghi `enrolled_by`)
+- [x] 5.6 Admin đăng ký / hủy hộ (ghi `enrolled_by`)
   - Acceptance: bỏ qua bước kiểm tra cổng, vẫn kiểm sĩ số + tiên quyết; có vết ai đăng ký.
   - Verify: feature test.
   - Files: `app/Http/Controllers/Admin/EnrollmentController.php`
+  - Done 2026-10-26: migration `2026_11_05_000001_add_enrolled_by_to_enrollments_table`
+    (`foreignId nullable ->constrained('users')->nullOnDelete()`); `Enrollment::registeredByLabel()`
+    hiển "Sinh viên tự đăng ký" / "{Tên} đăng ký hộ" / "Chưa ghi nhận" cho dữ liệu cũ. Màn
+    `/admin/enrollments` lọc theo học kỳ + sinh viên, form "Đăng ký hộ", nút "Hủy đăng ký" (override),
+    "Tải CSV" 9 cột; sidebar Spark thêm mục "Đăng ký học phần" (`bi-journal-text`).
+  - Evidence: migration chạy DB dev (394.85ms DONE). `test_an_admin_registers_on_behalf_across_a_closed_gate_and_leaves_a_trace`
+    (cổng đã đóng vẫn ghi được, `enrolled_by` = id admin), `test_registering_on_behalf_still_respects_capacity_and_prerequisites`
+    (422 "Lớp đã đủ sĩ số", 422 "Chưa học môn tiên quyết: DB101"), `test_an_admin_can_drop_on_behalf_and_the_data_is_kept`,
+    `test_the_admin_enrollment_list_is_reachable_and_scopes_by_semester`, `test_a_student_cannot_reach_the_admin_enrollment_screen`.
+    Browser: 200 + 10 dòng, export trả `Content-Type: text/csv`, tên file `dang-ky-hoc-phan-2026-10-26.csv`.
+  - Deviation: hủy hộ là override duy nhất được phép bỏ qua cả từ chối "đã có dữ liệu" (điểm/điểm danh
+    vẫn giữ); đăng ký hộ chỉ bỏ cổng, 5 quy tắc còn lại vẫn chạy. CSV (không phải .xlsx) cho danh sách
+    này vì Wave 8 mới dựng exporter Excel/PDF dùng chung.
 
 ## Wave 6 — `grading`
 

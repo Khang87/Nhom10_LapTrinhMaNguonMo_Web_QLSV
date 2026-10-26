@@ -64,10 +64,13 @@ class CourseOffering extends Model
 
     /**
      * Số sinh viên đang học: không lưu thành cột để tránh lệch với bảng đăng ký.
+     * Danh sách lớp đã withCount('active_count') thì dùng sẵn cột đó, khỏi truy vấn từng dòng.
      */
     public function enrolledCount(): int
     {
-        return $this->enrollments()->where('status', 'ACTIVE')->count();
+        return $this->hasAttribute('active_count')
+            ? (int) $this->active_count
+            : $this->enrollments()->where('status', 'ACTIVE')->count();
     }
 
     public function seatsLeft(): int

@@ -39,6 +39,7 @@ class PrerequisiteRules
      * Hợp đồng cho màn hình đăng ký học phần: môn tiên quyết chưa đạt sẽ chặn đăng ký.
      *
      * @param  Collection<Subject>  $passed  những môn sinh viên đã đạt
+     * @param  Collection<int, object>|null  $scores  điểm theo môn, truyền vào khi dựng danh sách để không truy vấn lại
      * @return array<int, array{code: string, name: string, required_score: float, actual_score: float|null}>
      */
     public static function blockingPrerequisites(
@@ -46,13 +47,10 @@ class PrerequisiteRules
         Subject $subject,
         Collection $passed,
         float $requiredScore = 5.0,
+        ?Collection $scores = null,
     ): array {
         $passedIds = $passed->pluck('id');
-        $scores = DB::table('grades')
-            ->join('course_offerings', 'course_offerings.id', '=', 'grades.course_offering_id')
-            ->where('grades.user_id', $student->id)
-            ->get(['course_offerings.subject_id', 'grades.final_score'])
-            ->keyBy('subject_id');
+        $scores ??= self::scoreMap($student);
 
         return $subject->prerequisites
             ->reject(fn (Subject $prerequisite) => $passedIds->contains($prerequisite->id))
@@ -68,6 +66,21 @@ class PrerequisiteRules
             })
             ->values()
             ->all();
+    }
+
+    /**
+     * Điểm tổng kết đã có của sinh viên, khóa theo id môn. Một truy vấn dùng chung cho
+     * cả danh sách lẫn chi tiết vì nó không phụ thuộc từng lớp học phần.
+     *
+     * @return Collection<int, object>
+     */
+    public static function scoreMap(User $student): Collection
+    {
+        return DB::table('grades')
+            ->join('course_offerings', 'course_offerings.id', '=', 'grades.course_offering_id')
+            ->where('grades.user_id', $student->id)
+            ->get(['course_offerings.subject_id', 'grades.final_score'])
+            ->keyBy('subject_id');
     }
 
     /**

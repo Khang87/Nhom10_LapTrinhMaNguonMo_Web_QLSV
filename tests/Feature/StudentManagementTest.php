@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Enrollment;
 use App\Models\StudentClass;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -94,21 +95,22 @@ class StudentManagementTest extends TestCase
     public function test_student_can_register_for_an_offering_only_once_and_unregister(): void
     {
         $student = User::factory()->create(['role' => 'student']);
-        $offering = $this->singleOffering('WEB101');
+        $offering = $this->offering($this->subject('WEB101'), $this->gate());
 
-        $this->actingAs($student)->post("/student/course-offerings/{$offering->id}")
+        $this->actingAs($student)->post(route('student.course-offerings.enroll', $offering))
             ->assertRedirect('/student/course-offerings');
-        $this->post("/student/course-offerings/{$offering->id}")
-            ->assertRedirect('/student/course-offerings')
-            ->assertSessionHas('error');
+        $this->post(route('student.course-offerings.enroll', $offering))
+            ->assertStatus(422);
 
         $this->assertDatabaseCount('enrollments', 1);
         $this->get('/student/course-offerings')
             ->assertOk()
             ->assertSee('Môn WEB101')
-            ->assertSee('Học phần đã đăng ký');
+            ->assertSee('Đăng ký của tôi');
 
-        $this->delete("/student/course-offerings/{$offering->id}")
+        $enrollment = Enrollment::sole();
+
+        $this->delete(route('student.enrollments.drop', $enrollment))
             ->assertRedirect('/student/course-offerings')
             ->assertSessionHas('success');
 
@@ -120,30 +122,16 @@ class StudentManagementTest extends TestCase
         $this->assertSame(0, $student->offerings()->wherePivot('status', 'ACTIVE')->count());
     }
 
-    public function test_student_cannot_register_into_a_full_offering(): void
-    {
-        $offering = $this->offering($this->subject('DB101'), $this->semester(), 'TN01', 1);
-        $this->enroll(User::factory()->create(['role' => 'student']), $offering);
-
-        $student = User::factory()->create(['role' => 'student']);
-
-        $this->actingAs($student)->post("/student/course-offerings/{$offering->id}")
-            ->assertRedirect('/student/course-offerings')
-            ->assertSessionHas('error');
-
-        $this->assertDatabaseCount('enrollments', 1);
-    }
-
     public function test_registered_offering_is_not_offered_again(): void
     {
-        $offering = $this->singleOffering('NET101');
+        $offering = $this->offering($this->subject('NET101'), $this->gate());
         $student = User::factory()->create(['role' => 'student']);
         $this->enroll($student, $offering);
 
         $this->actingAs($student)->get('/student/course-offerings')
             ->assertOk()
-            ->assertSee('Học phần đã đăng ký')
-            ->assertSee('Hiện không còn học phần để đăng ký.');
+            ->assertSee('Đăng ký của tôi')
+            ->assertSee('Học kỳ hiện hành chưa có lớp học phần nào.');
     }
 
     public function test_student_can_view_their_own_grade(): void
@@ -323,7 +311,7 @@ class StudentManagementTest extends TestCase
         $this->actingAs($student)->get('/student/dashboard')
             ->assertOk()
             ->assertSee('id="sidebar"', false)
-            ->assertSee(route('student.offerings.index'))
+            ->assertSee(route('student.course-offerings.index'))
             ->assertSee(route('student.grades.index'))
             ->assertSee('Công nghệ thông tin 45A')
             ->assertSee('Học phần đã đăng ký')

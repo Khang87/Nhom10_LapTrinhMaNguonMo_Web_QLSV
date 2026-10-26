@@ -47,7 +47,7 @@
                         <div class="card-body">
                             <p class="stat-label">Học phần đã đăng ký</p>
                             <p class="student-stat-value">{{ $enrolledCount }}</p>
-                            <a href="{{ route('student.offerings.index') }}">Xem học phần</a>
+                            <a href="{{ route('student.course-offerings.index') }}">Xem học phần</a>
                         </div>
                     </div>
                 </div>
@@ -86,7 +86,7 @@
         <h2 class="visually-hidden" id="student-shortcuts-title">Truy cập nhanh</h2>
         <div class="row row-cols-1 row-cols-sm-2 g-3">
             <div class="col">
-                <a class="card student-action-card h-100" href="{{ route('student.offerings.index') }}">
+                <a class="card student-action-card h-100" href="{{ route('student.course-offerings.index') }}">
                     <div class="card-body d-flex align-items-center gap-3">
                         <i class="bi bi-journal-plus" aria-hidden="true"></i>
                         <span>Đăng ký học phần</span>
@@ -133,7 +133,7 @@
                         <tr>
                             <td colspan="4" class="text-center py-4">
                                 Chưa có điểm được cập nhật.
-                                <a href="{{ route('student.offerings.index') }}">Xem học phần</a>
+                                <a href="{{ route('student.course-offerings.index') }}">Xem học phần</a>
                             </td>
                         </tr>
                     @endforelse

@@ -28,6 +28,19 @@ trait OfferingFixtures
         ]);
     }
 
+    /**
+     * Học kỳ có cổng đăng ký đang mở, mặc định từ hôm qua tới ngày mai.
+     *
+     * @param  array<string, mixed>  $extra
+     */
+    protected function gate(array $extra = []): Semester
+    {
+        return $this->semester('2025-2026', 1, array_merge([
+            'registration_starts_at' => now()->subDay(),
+            'registration_ends_at' => now()->addDay(),
+        ], $extra));
+    }
+
     protected function offering(Subject $subject, Semester $semester, string $group = 'TN01', int $max = 0, array $extra = []): CourseOffering
     {
         return CourseOffering::create($extra + [

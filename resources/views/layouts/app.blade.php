@@ -26,7 +26,7 @@
                                 <li class="nav-item"><a class="nav-link" href="{{ route('admin.grades.index') }}">Điểm</a></li>
                                 <li class="nav-item"><a class="nav-link" href="{{ route('admin.attendances.index') }}">Điểm danh</a></li>
                             @else
-                                <li class="nav-item"><a class="nav-link" href="{{ route('student.offerings.index') }}">Đăng ký học phần</a></li>
+                                <li class="nav-item"><a class="nav-link" href="{{ route('student.course-offerings.index') }}">Đăng ký học phần</a></li>
                                 <li class="nav-item"><a class="nav-link" href="{{ route('student.grades.index') }}">Kết quả học tập</a></li>
                             @endif
                         </ul>

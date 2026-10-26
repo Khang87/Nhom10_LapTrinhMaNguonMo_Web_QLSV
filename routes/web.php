@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\AttendanceController;
 use App\Http\Controllers\Admin\ClassController;
 use App\Http\Controllers\Admin\CourseOfferingController;
 use App\Http\Controllers\Admin\DepartmentController;
+use App\Http\Controllers\Admin\EnrollmentController as AdminEnrollmentController;
 use App\Http\Controllers\Admin\GradeController;
 use App\Http\Controllers\Admin\MajorController;
 use App\Http\Controllers\Admin\SemesterController;
@@ -13,9 +14,10 @@ use App\Http\Controllers\Admin\StudyPlanController;
 use App\Http\Controllers\Admin\SubjectController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PasswordResetController;
+use App\Http\Controllers\Student\CourseOfferingController as StudentCourseOfferingController;
+use App\Http\Controllers\Student\EnrollmentController as StudentEnrollmentController;
 use App\Http\Controllers\StudentDashboardController;
 use App\Http\Controllers\StudentGradeController;
-use App\Http\Controllers\StudentOfferingController;
 use App\Http\Controllers\Teacher\DashboardController as TeacherDashboardController;
 use App\Http\Controllers\Teacher\OfferingController as TeacherOfferingController;
 use Illuminate\Support\Facades\Route;
@@ -71,6 +73,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/attendances', [AttendanceController::class, 'index'])->name('attendances.index');
         Route::get('/attendances/export', [AttendanceController::class, 'export'])->name('attendances.export');
         Route::post('/attendances', [AttendanceController::class, 'store'])->name('attendances.store');
+        Route::get('/enrollments', [AdminEnrollmentController::class, 'index'])->name('enrollments.index');
+        Route::get('/enrollments/export', [AdminEnrollmentController::class, 'export'])->name('enrollments.export');
+        Route::post('/enrollments', [AdminEnrollmentController::class, 'store'])->name('enrollments.store');
+        Route::delete('/enrollments/{enrollment}', [AdminEnrollmentController::class, 'drop'])->name('enrollments.drop');
     });
 
     Route::prefix('teacher')->name('teacher.')->middleware('checkRole:teacher')->group(function () {
@@ -80,9 +86,9 @@ Route::middleware('auth')->group(function () {
 
     Route::prefix('student')->name('student.')->middleware('checkRole:student')->group(function () {
         Route::get('/dashboard', [StudentDashboardController::class, 'index'])->name('dashboard');
-        Route::get('/course-offerings', [StudentOfferingController::class, 'index'])->name('offerings.index');
-        Route::post('/course-offerings/{offering}', [StudentOfferingController::class, 'register'])->name('offerings.register');
-        Route::delete('/course-offerings/{offering}', [StudentOfferingController::class, 'unregister'])->name('offerings.unregister');
+        Route::get('/course-offerings', [StudentCourseOfferingController::class, 'index'])->name('course-offerings.index');
+        Route::post('/course-offerings/{offering}/enroll', [StudentCourseOfferingController::class, 'enroll'])->name('course-offerings.enroll');
+        Route::delete('/enrollments/{enrollment}', [StudentEnrollmentController::class, 'drop'])->name('enrollments.drop');
         Route::get('/grades', [StudentGradeController::class, 'index'])->name('grades.index');
     });
 });
