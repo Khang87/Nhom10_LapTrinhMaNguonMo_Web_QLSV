@@ -14,6 +14,7 @@ use App\Models\Semester;
 use App\Models\StudentClass;
 use App\Models\StudyPlan;
 use App\Models\Subject;
+use App\Models\TuitionInvoice;
 use App\Models\User;
 use App\Support\AttendanceRate;
 use App\Support\EnrollmentContext;
@@ -33,9 +34,9 @@ class DemoDataTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const CURRENT_OFFERINGS = 14;
+    private const CURRENT_OFFERINGS = 17;
 
-    private const PAST_OFFERINGS = 5;
+    private const PAST_OFFERINGS = 7;
 
     protected function setUp(): void
     {
@@ -45,27 +46,79 @@ class DemoDataTest extends TestCase
 
     public function test_the_catalog_is_thick_enough_to_fill_every_reference_screen(): void
     {
-        $this->assertSame(3, Department::count());
-        $this->assertSame(4, Major::count());
-        $this->assertSame(16, Subject::count());
-        $this->assertSame(5, StudentClass::count());
-        $this->assertSame(33, StudyPlan::count());
+        $this->assertSame(8, Department::count());
+        $this->assertSame(5, Major::count());
+        $this->assertSame(26, Subject::count());
+        $this->assertSame(6, StudentClass::count());
+        $this->assertSame(82, StudyPlan::count());
         $this->assertSame(1, User::where('role', 'admin')->count());
         $this->assertSame(25, User::where('role', 'teacher')->count());
-        $this->assertSame(24, User::where('role', 'student')->count());
+        $this->assertSame(28, User::where('role', 'student')->count());
     }
 
-    public function test_there_are_two_semesters_and_exactly_one_of_them_is_running(): void
+    public function test_khoa_va_chuyen_nganh_hien_du_thong_tin_lien_he(): void
     {
-        $this->assertSame(2, Semester::count());
+        $cntt = Department::where('code', 'CNTT')->sole();
+        $this->assertSame('028.38161673', $cntt->phone);
+        $this->assertSame('cntt@huit.edu.vn', $cntt->email);
+        $this->assertStringContainsString('Tòa nhà B', $cntt->office);
+        $this->assertNotEmpty($cntt->description);
+        $this->assertSame(8, Department::whereNotNull('phone')->count());
+
+        $this->assertSame(5, Major::whereNotNull('description')->count());
+        $this->assertTrue(Major::where('code', 'CNPM')->sole()->department_id === $cntt->id);
+    }
+
+    public function test_giang_vien_co_hoc_vi_va_thuoc_mot_khoa(): void
+    {
+        $this->assertSame(25, User::where('role', 'teacher')->whereNotNull('degree')->count());
+        $this->assertSame(25, User::where('role', 'teacher')->whereNotNull('department_id')->count());
+
+        $teacher = User::where('email', 'annv@huit.edu.vn')->sole();
+        $this->assertSame('GV001', $teacher->teacher_code);
+        $this->assertSame('Thạc sĩ Khoa học Máy tính', $teacher->degree);
+        $this->assertSame('CNTT', $teacher->department->code);
+    }
+
+    public function test_sinh_vien_co_ly_lich_trich_ngang_day_du(): void
+    {
+        $hung = $this->studentByCode('20240005');
+        $this->assertSame('095205003219', $hung->id_card_number);
+        $this->assertSame('Cà Mau', $hung->id_card_issued_place);
+        $this->assertSame('Kinh', $hung->ethnicity);
+        $this->assertSame('Việt Nam', $hung->nationality);
+        $this->assertSame('KV2', $hung->admission_region);
+        $this->assertSame('Chính quy', $hung->training_type);
+        $this->assertSame('Đại học', $hung->education_level);
+        $this->assertStringContainsString('Lê Trọng Tấn', $hung->contact_address);
+
+        // Ba hồ sơ để trống có chủ đích: bộ lọc "chưa cập nhật" còn dữ liệu để hiển thị.
+        $this->assertNull($this->studentByCode('20240027')->dob);
+        $this->assertNull($this->studentByCode('20240027')->id_card_number);
+        $this->assertSame(1, User::where('role', 'student')->whereNull('class_id')->count());
+    }
+
+    public function test_the_academic_calendar_spans_two_years_with_one_running_semester(): void
+    {
+        $this->assertSame(6, Semester::count());
         $this->assertSame(1, Semester::where('is_active', true)->count());
 
         $current = Semester::current();
         $this->assertTrue($current->isRegistrationOpen(), 'Kỳ hiện hành phải đang mở cổng để màn hình đăng ký còn dùng được.');
-        $past = Semester::whereKeyNot($current->id)->sole();
-        $this->assertFalse($past->isRegistrationOpen(), 'Kỳ trước đã đóng cổng, chỉ còn là lịch sử.');
         $this->assertSame(self::CURRENT_OFFERINGS, CourseOffering::where('semester_id', $current->id)->count());
-        $this->assertSame(self::PAST_OFFERINGS, CourseOffering::where('semester_id', $past->id)->count());
+        $this->assertSame(1, CourseOffering::where('semester_id', $current->id)->whereNull('teacher_id')->count(),
+            'Còn đúng một lớp chưa phân công giảng viên để màn hình học vụ gợi ý.');
+
+        $withHistory = Semester::whereKeyNot($current->id)->has('offerings')->get();
+        $this->assertCount(1, $withHistory, 'Chỉ một kỳ đã đóng có lớp để dựng lịch sử học tập.');
+        $this->assertFalse($withHistory->first()->isRegistrationOpen(), 'Kỳ trước đã đóng cổng, chỉ còn là lịch sử.');
+        $this->assertSame(self::PAST_OFFERINGS, CourseOffering::where('semester_id', $withHistory->first()->id)->count());
+
+        $this->assertSame(
+            ['Học kỳ 1', 'Học kỳ 2', 'Học kỳ hè', 'Học kỳ 1', 'Học kỳ 2', 'Học kỳ hè'],
+            Semester::orderBy('academic_year')->orderBy('term')->get()
+                ->map(fn (Semester $semester) => $semester->term_label)->all()
+        );
     }
 
     public function test_every_offering_has_one_slot_and_no_two_classes_share_a_timeslot(): void
@@ -98,23 +151,23 @@ class DemoDataTest extends TestCase
 
     public function test_the_exception_classes_have_no_active_enrollment(): void
     {
-        $this->assertSame(0, $this->activeCountIn('CLO201', 'TN02'), 'Lớp chưa mở cổng thì không ai được đứng tên.');
-        $this->assertSame(0, $this->activeCountIn('DB101', 'TN02'), 'Lớp đã đủ sĩ số thì không ai được đứng tên.');
-        $this->assertSame(0, $this->activeCountIn('AI101', 'TN01'), 'AI101 cần ADT101 mà chưa ai đạt môn đó.');
-        $this->assertGreaterThan(0, $this->activeCountIn('SEC201', 'TN01'), 'Môn song hành phải có người học cùng môn kia trong kỳ.');
+        $this->assertSame(0, $this->activeCountIn('GRAD101', 'TN01'), 'Lớp chưa mở cổng thì không ai được đứng tên.');
+        $this->assertSame(0, $this->activeCountIn('WEB101', 'TN02'), 'Lớp đã đủ sĩ số thì không ai được đứng tên.');
+        $this->assertSame(0, $this->activeCountIn('KHMT102', 'TN01'), 'KHMT102 cần KHMT101 mà môn đó đang học cùng kỳ, chưa ai đạt.');
+        $this->assertGreaterThan(0, $this->activeCountIn('WEB101', 'TN01'), 'Môn song hành phải có người học cùng môn kia trong kỳ.');
 
         $failed = User::where('student_code', '20240007')->sole();
-        $this->assertSame(['ADT101', 'MOB201'], $failed->offerings()
+        $this->assertSame(['MKT101', 'NOSQL101'], $failed->offerings()
             ->wherePivot('status', 'ACTIVE')
             ->where('course_offerings.semester_id', Semester::current()->id)
             ->with('subject')->get()
             ->map(fn (CourseOffering $offering) => $offering->subject->code)
-            ->sort()->values()->all(), 'Em trượt OOP101 chỉ được xếp vào môn không cần tiên quyết.');
+            ->sort()->values()->all(), 'Em trượt DS101 chỉ được xếp vào môn không cần tiên quyết và không song hành với WEB101.');
     }
 
     public function test_students_out_of_study_have_dropped_enrollments_and_no_records(): void
     {
-        foreach (['20240010', '20240023'] as $code) {
+        foreach (['20240010', '20240024'] as $code) {
             $student = User::where('student_code', $code)->sole();
             $statuses = $student->enrollments()
                 ->whereHas('offering', fn ($q) => $q->where('semester_id', Semester::current()->id))
@@ -125,7 +178,7 @@ class DemoDataTest extends TestCase
             $this->assertSame(0, Attendance::whereIn('enrollment_id', $student->enrollments()->pluck('id'))->count());
         }
 
-        $graduated = User::where('student_code', '20240024')->sole();
+        $graduated = User::where('student_code', '20240025')->sole();
         $this->assertSame(0, Enrollment::where('user_id', $graduated->id)->count());
         $this->assertNull($graduated->class_id);
     }
@@ -185,6 +238,39 @@ class DemoDataTest extends TestCase
      * thế mang hai dòng lecture_slots. Seeder phải điểm danh theo đúng lịch mình dựng, không hỏng
      * vì dòng thừa và không được coi dòng thừa là lịch của mình.
      */
+    /**
+     * Học phí chỉ có thông báo khi nhà trường cấu hình đơn giá một tín chỉ. Chưa cấu hình thì
+     * seeder không được tự bịa ra dòng nào, vì màn hình học phí phải báo "chưa phát hành".
+     */
+    public function test_there_is_no_tuition_notice_until_the_school_sets_a_credit_price(): void
+    {
+        $this->assertSame(0, TuitionInvoice::count());
+    }
+
+    public function test_tuition_notices_are_issued_and_partly_collected_once_credit_price_is_set(): void
+    {
+        config(['academic.tuition_per_credit' => 550000]);
+        (new DatabaseSeeder)->run();
+
+        $current = Semester::current();
+        $invoices = TuitionInvoice::with('student')->where('semester_id', $current->id)->get();
+
+        $this->assertGreaterThan(0, $invoices->count(), 'Kỳ hiện hành phải có thông báo học phí cho người đang học.');
+        $this->assertSame(9 * 550000, $invoices->first(fn ($i) => $i->student->student_code === '20240001')->amount);
+        $this->assertSame('QLSV20240001-HK1', $invoices->first(fn ($i) => $i->student->student_code === '20240001')->content);
+
+        $this->assertGreaterThan(0, $invoices->whereNotNull('paid_at')->count(), 'Phải có người đã nộp để màn hình còn trạng thái thu.');
+        $this->assertGreaterThan(0, $invoices->whereNull('paid_at')->count(), 'Và phải còn người chưa nộp.');
+
+        // Kỳ đã đóng: toàn bộ học phí tất toán, không còn thông báo mở.
+        $past = Semester::whereKeyNot($current->id)->has('offerings')->sole();
+        $this->assertSame(0, TuitionInvoice::where('semester_id', $past->id)->whereNull('paid_at')->count());
+
+        $before = $this->snapshot();
+        (new DatabaseSeeder)->run();
+        $this->assertSame($before, $this->snapshot(), 'Seeder học phí cũng phải idempotent.');
+    }
+
     public function test_a_class_that_already_has_an_extra_schedule_still_seeds(): void
     {
         $offering = CourseOffering::where('semester_id', Semester::current()->id)
@@ -231,7 +317,7 @@ class DemoDataTest extends TestCase
 
     public function test_the_teacher_and_student_screens_render_with_demo_data(): void
     {
-        $teacher = User::where('email', 'giangvien1@gmail.com')->sole();
+        $teacher = User::where('email', 'annv@huit.edu.vn')->sole();
         $this->actingAs($teacher)->get(route('teacher.dashboard'))->assertOk();
         $this->actingAs($teacher)->get(route('teacher.timetable'))->assertOk();
         $this->actingAs($teacher)->get(route('teacher.offerings.index'))->assertOk();
@@ -283,6 +369,7 @@ class DemoDataTest extends TestCase
             'attendance' => Attendance::count(),
             'grades' => Grade::count(),
             'plans' => StudyPlan::count(),
+            'invoices' => TuitionInvoice::count(),
         ];
     }
 }

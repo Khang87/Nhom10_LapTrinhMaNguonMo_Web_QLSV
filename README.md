@@ -10,7 +10,7 @@
 - Student xem các môn học, đăng ký/hủy đăng ký và xem điểm.
 - Admin phát hành học phí theo tín chỉ cho từng học kỳ; sinh viên xem số phải nộp kèm mã QR VietQR và nội dung chuyển khoản. Cần đặt `ACADEMIC_TUITION_PER_CREDIT`, `TUITION_BANK_CODE`, `TUITION_BANK_ACCOUNT` trong `.env`; để trống nghĩa là chưa thu học phí.
 - Tìm kiếm, phân trang danh sách lớp, môn học và sinh viên.
-- Dữ liệu demo: một tài khoản admin, 25 giảng viên, 24 sinh viên trên 5 lớp hành chính, 3 khoa - 4 chuyên ngành - 16 môn kèm khung chương trình và hai học kỳ đã có lớp học phần, lịch lên lớp, điểm danh, điểm thành phần.
+- Dữ liệu demo: một tài khoản admin, 25 giảng viên kèm học vị và khoa quản lý, 28 sinh viên có lý lịch trích ngang (dân tộc, tôn giáo, CCCD, khu vực và diện ưu tiên tuyển sinh) trên 6 lớp hành chính, 8 khoa - 5 chuyên ngành - 26 môn kèm khung chương trình 8 kỳ và quan hệ tiên quyết - song hành, lịch đào tạo 6 học kỳ của hai năm học (một kỳ đã đóng có điểm, một kỳ đang mở cổng) với lớp học phần, lịch lên lớp, điểm danh, điểm thành phần. Danh mục chép từ hệ thống đào tạo đang chạy cùng trường, xuất tĩnh ra `database\seeders\data\catalog.php` và `students.php` nên `db:seed` không phụ thuộc dữ liệu bên ngoài.
 
 ## Chạy nhanh trên Windows
 
@@ -34,6 +34,16 @@ php artisan serve
 Mở `http://127.0.0.1:8000`.
 
 Nếu đã có file `.env`, không cần chép đè. Cấu hình mặc định dùng MySQL tại `127.0.0.1:3306`, database `quanly_sinh_vien`, người dùng `root` với mật khẩu trống (mặc định của Laragon); đổi `DB_USERNAME`/`DB_PASSWORD` nếu máy bạn khác. Admin dùng bản Bootstrap và Bootstrap Icons đi kèm tại `public/vendor/spark-admin`; các trang đăng nhập và Student tải Bootstrap 5 từ CDN nên cần kết nối Internet để hiển thị CSS và menu thu gọn.
+
+### Nạp lại dữ liệu demo
+
+Seeder dùng `updateOrCreate` theo mã nên chạy lại không tạo bản sao. Riêng lần đổi cấu trúc danh mục (khoa, chuyên ngành, môn, lớp) thì dữ liệu demo cũ vẫn còn trong các bảng; muốn sạch hoàn toàn:
+
+```powershell
+php artisan migrate:fresh --seed
+```
+
+Lệnh này xóa toàn bộ bảng, chỉ dành cho môi trường trình diễn local.
 
 ### Chuyển dữ liệu từ SQLite cũ sang MySQL
 
@@ -82,8 +92,10 @@ Có thể chạy test riêng cho dịch vụ email bằng `npm test` tại `serv
 | Vai trò | Email | Mật khẩu |
 |---|---|---|
 | Admin | `admin@gmail.com` | `12345678` |
-| Giảng viên | `giangvien1@gmail.com` đến `giangvien25@gmail.com` | `12345678` |
-| Student | `sinhvien1@gmail.com` đến `sinhvien24@gmail.com` | `12345678` |
+| Giảng viên | email công tác của từng người trong danh mục, ví dụ `annv@huit.edu.vn`, `tuanpm@huit.edu.vn`, `loanpk@huit.edu.vn` (đầy đủ tại `database\seeders\data\catalog.php`) | `12345678` |
+| Student | `sinhvien1@gmail.com` đến `sinhvien28@gmail.com`, kèm mã số sinh viên `20240001` đến `20240028` | `12345678` |
+
+Muốn xem màn hình học phí có số tiền thật thì đặt `ACADEMIC_TUITION_PER_CREDIT=550000` vào `.env` rồi chạy lại `php artisan db:seed`; để mức 0 nghĩa là nhà trường chưa áp học phí và seeder không phát hành thông báo nào.
 
 Các mật khẩu chỉ dành cho môi trường trình diễn local. Hãy đổi chúng nếu triển khai ra môi trường dùng thật.
 

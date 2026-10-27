@@ -14,21 +14,27 @@ use App\Models\Semester;
 use App\Models\StudentClass;
 use App\Models\StudyPlan;
 use App\Models\Subject;
+use App\Models\TuitionInvoice;
 use App\Models\User;
+use App\Support\Tuition;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
+use RuntimeException;
 
 /**
- * Dữ liệu demo phủ mọi màn hình của hệ thống: một tài khoản quản trị, 3 khoa, 4 chuyên ngành,
- * 16 môn kèm khung chương trình và quan hệ tiên quyết - song hành, 25 giảng viên, 5 lớp hành
- * chính, 24 sinh viên, hai học kỳ (một đã đóng, một đang mở cổng đăng ký) với lớp học phần,
- * lịch lên lớp, đăng ký, điểm thành phần và điểm danh theo buổi.
+ * Dữ liệu demo phủ mọi màn hình của hệ thống, dựng từ danh mục thật của hệ thống đào tạo cùng
+ * trường (xem database/seeders/data/catalog.php): 8 khoa kèm liên hệ, 5 chuyên ngành, 26 môn với
+ * tín chỉ 2..10, khung chương trình 8 kỳ, 25 giảng viên kèm học vị, 6 lớp hành chính và 28 sinh
+ * viên có hồ sơ lý lịch đầy đủ (dân tộc, tôn giáo, giấy tờ tùy thân, khu vực tuyển sinh).
+ *
+ * Lịch đào tạo trải trên 6 học kỳ của hai năm học: một kỳ đã đóng kèm điểm tổng kết, một kỳ đang
+ * mở cổng với lớp học phần, lịch lên lớp, đăng ký, điểm thành phần và điểm danh theo buổi.
  *
  * Mọi dòng dùng updateOrCreate theo mã duy nhất nên chạy lại nhiều lần không tạo bản sao.
- * Trình tự tạo dữ liệu có chủ đích: danh mục -> người -> học kỳ -> lớp -> lịch -> đăng ký
- * -> điểm/điểm danh, vì mỗi bước đọc mã của bước trước.
+ * Trình tự tạo dữ liệu có chủ đích: danh mục -> người -> khung -> học kỳ -> lớp -> lịch -> đăng ký
+ * -> điểm/điểm danh -> học phí, vì mỗi bước đọc mã của bước trước.
  */
 class DatabaseSeeder extends Seeder
 {
@@ -42,36 +48,44 @@ class DatabaseSeeder extends Seeder
     /** Mật khẩu chung của mọi tài khoản demo. */
     public const PASSWORD = '12345678';
 
-    /** Khung chương trình: [mã môn, học kỳ đào tạo, loại]. */
-    private const STUDY_PLANS = [
-        'KTPM' => [
-            ['OOP101', 1, 'REQUIRED'], ['GTA101', 1, 'REQUIRED'], ['WEB101', 2, 'REQUIRED'],
-            ['DB101', 2, 'REQUIRED'], ['PROB101', 2, 'REQUIRED'], ['ADT101', 3, 'REQUIRED'],
-            ['SE201', 3, 'REQUIRED'], ['MOB201', 4, 'REQUIRED'], ['CLO201', 4, 'ELECTIVE'],
-            ['SEC201', 5, 'ELECTIVE'],
-        ],
-        'HTTT' => [
-            ['GTA101', 1, 'REQUIRED'], ['OOP101', 1, 'REQUIRED'], ['NET101', 2, 'REQUIRED'],
-            ['DB101', 2, 'REQUIRED'], ['PROB101', 3, 'REQUIRED'], ['SEC201', 3, 'REQUIRED'],
-            ['BIG201', 4, 'REQUIRED'], ['CLO201', 4, 'REQUIRED'], ['AI101', 5, 'ELECTIVE'],
-        ],
-        'KHMT' => [
-            ['GEB101', 1, 'REQUIRED'], ['OOP101', 1, 'REQUIRED'], ['ADT101', 2, 'REQUIRED'],
-            ['OS101', 2, 'REQUIRED'], ['DB101', 3, 'REQUIRED'], ['AI101', 3, 'REQUIRED'],
-            ['NET101', 4, 'ELECTIVE'], ['SE201', 4, 'ELECTIVE'],
-        ],
-        'DKT' => [
-            ['GTA101', 1, 'REQUIRED'], ['GEB101', 1, 'REQUIRED'], ['EMB101', 2, 'REQUIRED'],
-            ['OOP101', 2, 'REQUIRED'], ['ADT101', 3, 'REQUIRED'], ['OS101', 3, 'REQUIRED'],
-        ],
+    /** Khóa {P} = năm trước năm hiện hành, {Y} = năm hiện hành, {N} = năm sau. */
+    private const SEMESTER_PLAN = [
+        ['{P}-{Y}', 1, '{P}-09-01', '{Y}-01-31', '{P}-08-01', '{P}-08-25'],
+        ['{P}-{Y}', 2, '{Y}-02-01', '{Y}-06-30', '{Y}-01-01', '{Y}-01-25'],
+        ['{P}-{Y}', 3, '{Y}-07-01', '{Y}-08-31', '{Y}-05-01', '{Y}-06-15'],
+        // Kỳ hiện hành: cổng mở quanh ngày chạy seeder để màn hình đăng ký còn dùng được.
+        ['{Y}-{N}', 1, '{Y}-09-01', '{N}-01-31', null, null],
+        ['{Y}-{N}', 2, '{N}-02-01', '{N}-06-30', '{N}-01-01', '{N}-01-25'],
+        ['{Y}-{N}', 3, '{N}-07-01', '{N}-08-31', '{N}-05-01', '{N}-06-15'],
     ];
 
-    /** Môn đã học ở học kỳ trước, theo chuyên ngành: [mã môn, nhóm]. */
+    /** Lớp hành chính: [mã lớp, tên lớp, chuyên ngành, mã giảng viên chủ nhiệm]. */
+    private const CLASSES = [
+        ['CN24A', 'Công nghệ phần mềm 24A', 'CNPM', 'GV002'],
+        ['CN24B', 'Công nghệ phần mềm 24B', 'CNPM', 'GV009'],
+        ['HS24A', 'Hệ thống thông tin 24A', 'HTTT', 'GV003'],
+        ['HC24A', 'Khoa học máy tính 24A', 'KHMT', 'GV008'],
+        ['AT24A', 'An toàn thông tin 24A', 'ATTT', 'GV007'],
+        ['MM24A', 'Mạng máy tính & Truyền thông 24A', 'MMT', 'GV004'],
+    ];
+
+    /** Năm nhập học của toàn bộ sinh viên demo — khớp đầu mã số và mã lớp. */
+    private const INTAKE_YEAR = 2024;
+
+    private const EDUCATION_LEVEL = 'Đại học';
+
+    private const DEFAULT_TRAINING = 'Chính quy';
+
+    /**
+     * Môn đã học ở kỳ trước theo chuyên ngành: [mã môn, nhóm]. Mọi môn nằm trong học kỳ 1-2 của
+     * khung và bao đủ các môn tiên quyết mà kỳ này cần, trừ đúng một trường hợp trượt có chủ đích.
+     */
     private const PAST_COURSES = [
-        'KTPM' => [['OOP101', 'TN01'], ['GTA101', 'TN01'], ['PROB101', 'TN01']],
-        'HTTT' => [['OOP101', 'TN01'], ['GTA101', 'TN01'], ['PROB101', 'TN01']],
-        'KHMT' => [['OOP101', 'TN02'], ['GEB101', 'TN01'], ['PROB101', 'TN01']],
-        'DKT' => [['GEB101', 'TN01'], ['OOP101', 'TN02'], ['PROB101', 'TN01']],
+        'CNPM' => [['DS101', 'TN01'], ['SE101', 'TN01'], ['MATH101', 'TN01'], ['DB101', 'TN01']],
+        'HTTT' => [['DS101', 'TN01'], ['MATH101', 'TN01'], ['DB101', 'TN01'], ['NET101', 'TN01']],
+        'KHMT' => [['DS101', 'TN02'], ['MATH101', 'TN01'], ['DB101', 'TN01'], ['NET101', 'TN01']],
+        'ATTT' => [['DS101', 'TN01'], ['MATH101', 'TN02'], ['DB101', 'TN01'], ['NET101', 'TN01']],
+        'MMT' => [['DS101', 'TN01'], ['MATH101', 'TN02'], ['DB101', 'TN01'], ['NET101', 'TN01']],
     ];
 
     /**
@@ -79,50 +93,60 @@ class DatabaseSeeder extends Seeder
      * Độ dài tín chỉ luôn dưới ngưỡng 14 của config('academic.max_credits_per_term').
      */
     private const CURRENT_COURSES = [
-        'KTPM' => [['WEB101', 'TN01'], ['DB101', 'TN01'], ['ADT101', 'TN01']],
-        'HTTT' => [['NET101', 'TN01'], ['SEC201', 'TN01'], ['BIG201', 'TN01'], ['CLO201', 'TN01']],
-        'KHMT' => [['ADT101', 'TN01'], ['OS101', 'TN01'], ['SE201', 'TN01']],
-        'DKT' => [['WEB101', 'TN02'], ['MOB201', 'TN01']],
+        'CNPM' => [['WEB101', 'TN01'], ['CNPM102', 'TN01'], ['NOSQL101', 'TN01']],
+        'HTTT' => [['HTTT101', 'TN01'], ['NOSQL101', 'TN01'], ['MKT101', 'TN01']],
+        'KHMT' => [['KHMT101', 'TN01'], ['OPEN101', 'TN01'], ['IOT101', 'TN01']],
+        'ATTT' => [['ATTT101', 'TN01'], ['SEC101', 'TN01'], ['MMT101', 'TN01']],
+        'MMT' => [['MMT101', 'TN01'], ['SEC101', 'TN01'], ['IOT101', 'TN01']],
     ];
 
     /**
-     * Sinh viên này trượt OOP101 học kỳ trước nên không được đăng ký môn có tiên quyết là
-     * OOP101 (WEB101, DB101); danh sách riêng để dữ liệu khớp với EnrollmentPolicy.
+     * Sinh viên này trượt DS101 học kỳ trước nên không được đăng ký môn có tiên quyết là DS101
+     * (WEB101); CNPM102 cũng bị chặn vì phải học song hành với WEB101. Danh sách riêng để dữ
+     * liệu khớp với EnrollmentPolicy.
      */
     private const COURSES_BY_STUDENT_CODE = [
-        '20240007' => [['ADT101', 'TN01'], ['MOB201', 'TN01']],
+        '20240007' => [['NOSQL101', 'TN01'], ['MKT101', 'TN01']],
     ];
 
-    /** Lớp của học kỳ trước không còn mở ở kỳ này, chỉ dùng để dựng lịch sử học tập. */
+    /** [mã môn, chuyên ngành] của em trượt tiên quyết — điểm ba cột được ghi thấp có chủ đích. */
+    private const FAILING_STUDENT = ['code' => '20240007', 'subject' => 'DS101', 'scores' => [6.0, 4.0, 3.0]];
+
+    /** Lớp của kỳ trước không còn mở ở kỳ này, chỉ dùng để dựng lịch sử học tập. */
     private const PAST_OFFERINGS = [
-        ['OOP101', 'TN01', 'GV01', 'A101', 40],
-        ['OOP101', 'TN02', 'GV02', 'A102', 35],
-        ['GTA101', 'TN01', 'GV13', 'C201', 60],
-        ['GEB101', 'TN01', 'GV14', 'C202', 60],
-        ['PROB101', 'TN01', 'GV15', 'C203', 50],
+        ['DS101', 'TN01', 'GV005', 'B.101', 60],
+        ['DS101', 'TN02', 'GV005', 'B.102', 55],
+        ['SE101', 'TN01', 'GV009', 'B.201', 45],
+        ['MATH101', 'TN01', 'GV_KH01', 'C.301', 70],
+        ['MATH101', 'TN02', 'GV_KH01', 'C.302', 65],
+        ['DB101', 'TN01', 'GV006', 'B.103', 60],
+        ['NET101', 'TN01', 'GV004', 'A.201', 50],
     ];
 
     /**
-     * Lớp học kỳ hiện hành: [mã môn, nhóm, mã giảng viên|null, phòng, sĩ số, mở cổng].
-     * Ba dòng cuối không có sinh viên nào đăng ký và chỉ tồn tại để màn hình chọn lớp còn đất
-     * hiển thị các trạng thái ngoại lệ: AI101 thiếu tiên quyết với mọi người, DB101 nhóm 2 hết
-     * chỗ, CLO201 nhóm 2 chưa mở cổng; BIG201 chưa phân công giảng viên.
+     * Lớp kỳ hiện hành: [mã môn, nhóm, mã giảng viên|null, phòng, sĩ số, mở cổng].
+     * Bốn dòng cuối không có sinh viên nào đăng ký và chỉ tồn tại để màn hình chọn lớp còn đất
+     * hiển thị các trạng thái ngoại lệ: GRAD101 chưa mở cổng, WEB101 nhóm 2 hết chỗ, KHMT102
+     * không ai đủ tiên quyết, MMT102 chưa phân công giảng viên.
      */
     private const CURRENT_OFFERINGS = [
-        ['WEB101', 'TN01', 'GV01', 'A101', 30, true],
-        ['WEB101', 'TN02', 'GV02', 'A102', 25, true],
-        ['DB101', 'TN01', 'GV03', 'A103', 35, true],
-        ['ADT101', 'TN01', 'GV04', 'B201', 30, true],
-        ['OS101', 'TN01', 'GV05', 'B202', 30, true],
-        ['NET101', 'TN01', 'GV06', 'B203', 40, true],
-        ['SEC201', 'TN01', 'GV07', 'B204', 20, true],
-        ['SE201', 'TN01', 'GV08', 'A204', 30, true],
-        ['AI101', 'TN01', 'GV09', 'C301', 25, true],
-        ['MOB201', 'TN01', 'GV10', 'C302', 25, true],
-        ['CLO201', 'TN01', 'GV11', 'C303', 25, true],
-        ['BIG201', 'TN01', null, 'D401', 30, true],
-        ['DB101', 'TN02', 'GV12', 'A104', 0, true],
-        ['CLO201', 'TN02', 'GV17', 'C304', 25, false],
+        ['WEB101', 'TN01', 'GV010', 'B.101', 40, true],
+        ['CNPM102', 'TN01', 'GV002', 'B.102', 40, true],
+        ['NOSQL101', 'TN01', 'GV006', 'B.103', 50, true],
+        ['HTTT101', 'TN01', 'GV003', 'A.201', 40, true],
+        ['MKT101', 'TN01', 'GV_QTR02', 'A.202', 60, true],
+        ['KHMT101', 'TN01', 'GV008', 'B.201', 40, true],
+        ['OPEN101', 'TN01', 'GV001', 'B.202', 45, true],
+        ['IOT101', 'TN01', 'GV_DT02', 'C.101', 45, true],
+        ['ATTT101', 'TN01', 'GV007', 'D.301', 40, true],
+        ['SEC101', 'TN01', 'GV007', 'D.302', 40, true],
+        ['MMT101', 'TN01', 'GV004', 'A.301', 50, true],
+        ['ENG101', 'TN01', 'GV_NN01', 'E.101', 80, true],
+        ['LAW101', 'TN01', 'GV_LUAT01', 'E.202', 70, true],
+        ['GRAD101', 'TN01', 'GV009', 'F.401', 20, false],
+        ['WEB101', 'TN02', 'GV005', 'B.104', 0, true],
+        ['KHMT102', 'TN01', 'GV008', 'B.203', 30, true],
+        ['MMT102', 'TN01', null, 'A.302', 35, true],
     ];
 
     /**
@@ -134,6 +158,7 @@ class DatabaseSeeder extends Seeder
         ['07:00', '09:30'],
         ['09:40', '12:00'],
         ['13:00', '15:30'],
+        ['15:40', '18:00'],
     ];
 
     /**
@@ -153,21 +178,29 @@ class DatabaseSeeder extends Seeder
         [8.5, 9.5, 9.0, true],
     ];
 
+    /** Môn kỳ trước giữ trạng thái chưa công bố, để bảng điểm còn hai nhánh hiển thị. */
+    private const UNPUBLISHED_SUBJECT = 'MATH101';
+
+    /** MSSV có chữ số cuối chia hết cho 3 được giả lập đã chuyển khoản kỳ này. */
+    private const PAID_EVERY = 3;
+
     public function run(): void
     {
+        $catalog = require __DIR__.'/data/catalog.php';
+
         // Một lần băm duy nhất: 50+ tài khoản demo mà băm riêng thì `db:seed` mất hàng chục giây.
         $password = Hash::make(self::PASSWORD);
 
         $this->admins($password);
-        $departments = $this->departments();
-        $majors = $this->majors($departments);
-        $subjects = $this->subjects($majors);
-        $teachers = $this->teachers($password);
+        $departments = $this->departments($catalog['departments']);
+        $majors = $this->majors($catalog['majors'], $departments);
+        $subjects = $this->subjects($catalog['subjects'], $majors);
+        $teachers = $this->teachers($catalog['lecturers'], $departments, $password);
         $classes = $this->classes($majors, $teachers);
         $students = $this->students($classes, $password);
 
-        $this->studyPlans($majors, $subjects);
-        $this->subjectRelations($subjects);
+        $this->studyPlans($catalog['study_plans'], $majors, $subjects);
+        $this->subjectRelations($catalog, $subjects);
 
         [$past, $current] = $this->semesters();
         $pastOfferings = $this->offerings($subjects, $teachers, $past, self::PAST_OFFERINGS);
@@ -175,6 +208,7 @@ class DatabaseSeeder extends Seeder
 
         $this->history($students, $pastOfferings);
         $this->register($students, $currentOfferings);
+        $this->tuition($past, $current);
     }
 
     /** Tài khoản quản trị dùng chung cho môi trường demo. */
@@ -193,106 +227,98 @@ class DatabaseSeeder extends Seeder
         );
     }
 
-    /** @return Collection<string, Department> */
-    private function departments(): Collection
+    /**
+     * Khoa của danh mục, kèm số điện thoại, email và địa điểm làm việc thật để bảng khoa không
+     * còn trơ hai cột mã tên.
+     *
+     * @param  list<array<string, string>>  $rows
+     * @return Collection<string, Department>
+     */
+    private function departments(array $rows): Collection
     {
-        return collect([
-            ['code' => 'CNTT', 'name' => 'Khoa Công nghệ thông tin'],
-            ['code' => 'KHTN', 'name' => 'Khoa Khoa học cơ bản'],
-            ['code' => 'KTDT', 'name' => 'Khoa Điện — Điện tử'],
-        ])->mapWithKeys(fn (array $data) => [
-            $data['code'] => Department::updateOrCreate(['code' => $data['code']], ['name' => $data['name']]),
+        return collect($rows)->mapWithKeys(fn (array $data) => [
+            $data['code'] => Department::updateOrCreate(['code' => $data['code']], [
+                'name' => $data['name'],
+                'phone' => $data['phone'],
+                'email' => $data['email'],
+                'office' => $data['office'],
+                'description' => $data['description'],
+            ]),
         ]);
     }
 
-    /** @return Collection<string, Major> */
-    private function majors(Collection $departments): Collection
+    /**
+     * @param  list<array<string, string>>  $rows
+     * @param  Collection<string, Department>  $departments
+     * @return Collection<string, Major>
+     */
+    private function majors(array $rows, Collection $departments): Collection
     {
-        return collect([
-            ['code' => 'KTPM', 'name' => 'Kỹ thuật phần mềm', 'department' => 'CNTT'],
-            ['code' => 'HTTT', 'name' => 'Hệ thống thông tin', 'department' => 'CNTT'],
-            ['code' => 'KHMT', 'name' => 'Khoa học máy tính', 'department' => 'CNTT'],
-            ['code' => 'DKT', 'name' => 'Điều khiển và tự động hóa', 'department' => 'KTDT'],
-        ])->mapWithKeys(fn (array $data) => [
+        return collect($rows)->mapWithKeys(fn (array $data) => [
             $data['code'] => Major::updateOrCreate(
                 ['code' => $data['code']],
-                ['name' => $data['name'], 'department_id' => $departments[$data['department']]->id],
+                [
+                    'name' => $data['name'],
+                    'description' => $data['description'],
+                    'department_id' => $departments[$data['department']]->id,
+                ],
             ),
         ]);
     }
 
     /**
+     * @param  list<array<string, mixed>>  $rows
      * @param  Collection<string, Major>  $majors
      * @return Collection<string, Subject>
      */
-    private function subjects(Collection $majors): Collection
+    private function subjects(array $rows, Collection $majors): Collection
     {
-        $ktpm = $majors['KTPM']->id;
-        $httt = $majors['HTTT']->id;
-        $khmt = $majors['KHMT']->id;
-        $dkt = $majors['DKT']->id;
-
-        $rows = [
-            ['GTA101', 'Giải tích A', 3, null, 45, 'Giới hạn, đạo hàm và tích hàm của một biến.'],
-            ['GEB101', 'Giải tích B', 3, null, 45, 'Chuỗi số, tích phân nhiều lớp và phương trình vi phân.'],
-            ['PROB101', 'Xác suất thống kê', 3, null, 45, 'Môn chung của toàn trường, dùng cho mọi chuyên ngành.'],
-            ['OOP101', 'Lập trình hướng đối tượng', 4, $ktpm, 75, 'Kế thừa, đa hình và thiết kế lớp với Java.'],
-            ['WEB101', 'Lập trình Web', 3, $ktpm, 60, 'Xây dựng ứng dụng web với Laravel và Bootstrap.'],
-            ['DB101', 'Cơ sở dữ liệu', 3, $ktpm, 60, 'Thiết kế, chuẩn hóa và truy vấn cơ sở dữ liệu quan hệ.'],
-            ['ADT101', 'Cấu trúc dữ liệu và giải thuật', 4, $khmt, 75, 'Danh sách, cây, bảng băm và độ phức tạp.'],
-            ['OS101', 'Hệ điều hành', 3, $khmt, 60, 'Tiến trình, bộ nhớ ảo và đồng bộ hóa.'],
-            ['NET101', 'Mạng máy tính', 2, $httt, 45, 'Mô hình TCP/IP, định tuyến và chuyển mạch.'],
-            ['SEC201', 'An toàn thông tin', 3, $httt, 60, 'Mật mã, an toàn mạng và ứng cứu sự cố.'],
-            ['AI101', 'Trí tuệ nhân tạo', 3, $khmt, 60, 'Tìm kiếm, biểu diễn tri thức và học máy cơ bản.'],
-            ['SE201', 'Kỹ nghệ phần mềm', 3, $ktpm, 60, 'Quy trình, đặc tả và kiểm thử phần mềm.'],
-            ['MOB201', 'Lập trình di động', 3, $ktpm, 60, 'Ứng dụng Android và iOS theo mô hình MVC.'],
-            ['CLO201', 'Điện toán đám mây', 2, $httt, 45, 'Ảo hóa, containers và dịch vụ cloud.'],
-            ['BIG201', 'Khai phá dữ liệu', 3, $httt, 60, 'Tiền xử lý, lớp hồi quy và phân cụm dữ liệu lớn.'],
-            ['EMB101', 'Hệ thống nhúng', 3, $dkt, 60, 'Vi điều khiển, RTOS và giao tiếp cảm biến.'],
-        ];
-
-        return collect($rows)->mapWithKeys(fn (array $row) => [
-            $row[0] => Subject::updateOrCreate(
-                ['code' => $row[0]],
-                ['name' => $row[1], 'credits' => $row[2], 'major_id' => $row[3],
-                    'total_sessions' => $row[4], 'description' => $row[5]],
+        return collect($rows)->mapWithKeys(fn (array $data) => [
+            $data['code'] => Subject::updateOrCreate(
+                ['code' => $data['code']],
+                [
+                    'name' => $data['name'],
+                    'credits' => $data['credits'],
+                    'major_id' => $data['major'] === null ? null : $majors[$data['major']]->id,
+                    'total_sessions' => $data['sessions'],
+                    'description' => $data['description'],
+                ],
             ),
         ]);
     }
 
-    /** @return Collection<string, User>  theo mã giảng viên */
-    private function teachers(string $password): Collection
+    /**
+     * Giảng viên theo đúng danh sách bộ môn: học vị, khoa quản lý và email công tác — email này
+     * cũng là tài khoản đăng nhập của họ.
+     *
+     * @param  list<array<string, string>>  $rows
+     * @param  Collection<string, Department>  $departments
+     * @return Collection<string, User>
+     */
+    private function teachers(array $rows, Collection $departments, string $password): Collection
     {
-        $names = [
-            'Nguyễn Văn Đạt', 'Trần Thị Kim Oanh', 'Lê Minh Hùng', 'Phạm Quốc Trung',
-            'Hoàng Thanh Tùng', 'Võ Thị Lệ Xuân', 'Đặng Tiến Dũng', 'Bùi Hải Triều',
-            'Đỗ Quang Lâm', 'Hồ Hoài Nam', 'Ngô Thị Thu Trang', 'Dương Trường Giang',
-            'Lý Hoàng Long', 'Trịnh Thị Hồng Hạnh', 'Mai Tiến Dụng', 'Phan Đức Thắng',
-            'Trương Ái Nhung', 'Lê Viết Lam', 'Nguyễn Thị Bích Trâm', 'Trần Nhật Hào',
-            'Phạm Thị Yến My', 'Hoàng Lê Phi Phượng', 'Vũ Đình Khoa', 'Đoàn Minh Khôi',
-            'Nguyễn Thị Kim Ngân',
-        ];
-        $hometowns = ['Hà Nội', 'Nghệ An', 'Đà Nẵng', 'Hải Phòng', 'Cần Thơ', 'Huế', 'Nha Trang'];
+        $hometowns = ['TP. Hồ Chí Minh', 'Hà Nội', 'Nghệ An', 'Đà Nẵng', 'Cần Thơ', 'Huế', 'Nha Trang'];
 
-        return collect($names)->values()->mapWithKeys(function (string $name, int $index) use ($hometowns, $password) {
-            $code = 'GV'.str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT);
+        return collect($rows)->values()->mapWithKeys(function (array $data, int $index) use ($departments, $hometowns, $password) {
             $teacher = User::updateOrCreate(
-                ['email' => 'giangvien'.($index + 1).'@gmail.com'],
+                ['email' => $data['email']],
                 [
-                    'name' => $name,
-                    'teacher_code' => $code,
+                    'name' => $data['name'],
+                    'teacher_code' => $data['code'],
                     'student_code' => null,
                     'password' => $password,
                     'role' => 'teacher',
                     'class_id' => null,
-                    'dob' => sprintf('%d-%02d-%02d', 1979 + ($index % 15), ($index % 12) + 1, ($index % 27) + 1),
-                    'gender' => $index % 3 === 1 ? 'FEMALE' : 'MALE',
+                    'degree' => $data['degree'],
+                    'department_id' => $departments[$data['department']]->id,
+                    'gender' => $data['gender'],
+                    'dob' => sprintf('%d-%02d-%02d', 1978 + ($index % 17), ($index % 12) + 1, ($index % 27) + 1),
                     'hometown' => $hometowns[$index % count($hometowns)],
-                    'phone' => '09'.(10000000 + $index * 137333),
+                    'phone' => $data['phone'],
                 ],
             );
 
-            return [$code => $teacher];
+            return [$data['code'] => $teacher];
         });
     }
 
@@ -303,64 +329,34 @@ class DatabaseSeeder extends Seeder
      */
     private function classes(Collection $majors, Collection $teachers): Collection
     {
-        $rows = [
-            ['CTK44A', 'Công nghệ thông tin 44A', 2024, 'KTPM', 'GV01'],
-            ['CTK44B', 'Công nghệ thông tin 44B', 2024, 'KTPM', 'GV02'],
-            ['CTT44A', 'Hệ thống thông tin 44A', 2024, 'HTTT', 'GV06'],
-            ['KHT44A', 'Khoa học máy tính 44A', 2024, 'KHMT', 'GV04'],
-            ['DKT45A', 'Điều khiển tự động 45A', 2024, 'DKT', 'GV19'],
-        ];
-
-        return collect($rows)->mapWithKeys(fn (array $row) => [
+        return collect(self::CLASSES)->mapWithKeys(fn (array $row) => [
             $row[0] => StudentClass::updateOrCreate(
                 ['class_code' => $row[0]],
                 [
                     'class_name' => $row[1],
-                    'intake_year' => $row[2],
-                    'department_id' => $majors[$row[3]]->department_id,
-                    'major_id' => $majors[$row[3]]->id,
-                    'adviser_id' => $teachers[$row[4]]->id,
+                    'intake_year' => self::INTAKE_YEAR,
+                    'department_id' => $majors[$row[2]]->department_id,
+                    'major_id' => $majors[$row[2]]->id,
+                    'adviser_id' => $teachers[$row[3]]->id,
                 ],
             ),
         ]);
     }
 
     /**
+     * Hồ sơ sinh viên lấy từ dữ liệu MaNguon: mỗi dòng là một bộ trường lý lịch trích ngang, đủ
+     * để trang hồ sơ và phiếu in không còn chỗ trống ngoài ý muốn — trừ ba dòng cuối để trống có
+     * chủ đích.
+     *
      * @param  Collection<string, StudentClass>  $classes
      * @return Collection<string, ?string> mã sinh viên => mã lớp hành chính (null: chưa xếp lớp)
      */
     private function students(Collection $classes, string $password): Collection
     {
-        $rows = [
-            ['Nguyễn Minh Anh', 'MALE', 'Hà Nội', 'CTK44A'],
-            ['Trần Hoàng Nam', 'MALE', 'Đà Nẵng', 'CTK44A'],
-            ['Lê Thu Hà', 'FEMALE', 'Hải Phòng', 'CTK44A'],
-            ['Phạm Quốc Bảo', 'MALE', 'Cần Thơ', 'CTK44B'],
-            ['Võ Ngọc Linh', 'FEMALE', 'Huế', 'CTK44B'],
-            ['Đặng Tiến Dũng', 'MALE', 'Nha Trang', 'CTK44B'],
-            ['Bùi Gia Huy', 'MALE', 'Hà Nội', 'CTK44A'],
-            ['Đỗ Thị Mai', 'FEMALE', 'Nghệ An', 'CTK44A'],
-            ['Hồ Khánh Vy', 'FEMALE', 'Đà Nẵng', 'CTK44B'],
-            ['Ngô Văn Tú', 'MALE', 'Hải Phòng', 'CTK44A'],
-            ['Dương Thị Yến', 'FEMALE', 'Cần Thơ', 'CTK44B'],
-            ['Lý Thanh Tùng', 'MALE', 'Huế', 'CTK44A'],
-            ['Trịnh Hoàng Phúc', 'MALE', 'Nha Trang', 'CTK44B'],
-            ['Mai Thảo My', 'FEMALE', 'Hà Nội', 'CTK44A'],
-            ['Phan Văn Đạt', 'MALE', 'Nghệ An', 'KHT44A'],
-            ['Trương Thị Hoa', 'FEMALE', 'Đà Nẵng', 'KHT44A'],
-            ['Lê Minh Khôi', 'MALE', 'Hải Phòng', 'KHT44A'],
-            ['Nguyễn Nhật Lan', 'FEMALE', 'Cần Thơ', 'CTT44A'],
-            ['Trần Quang Huy', 'MALE', 'Huế', 'CTT44A'],
-            ['Phạm Thanh Tâm', 'FEMALE', 'Nha Trang', 'CTT44A'],
-            ['Hoàng Bảo Ngọc', 'FEMALE', 'Hà Nội', 'DKT45A'],
-            ['Vũ Tiến Lực', 'MALE', 'Nghệ An', 'DKT45A'],
-            ['Đoàn Thị Mai Anh', 'FEMALE', 'Đà Nẵng', 'DKT45A'],
-            // Tốt nghiệp nên không còn lớp hành chính: bộ lọc "Chưa xếp lớp" và hồ sơ trống lớp còn đất hiển thị.
-            ['Ngô Thị Diễm My', 'FEMALE', 'Hải Phòng', null],
-        ];
+        $rows = require __DIR__.'/data/students.php';
 
         return collect($rows)->values()->mapWithKeys(function (array $row, int $index) use ($classes, $password) {
-            $code = '2024'.str_pad((string) ($index + 1), 4, '0', STR_PAD_LEFT);
+            $code = self::INTAKE_YEAR.str_pad((string) ($index + 1), 4, '0', STR_PAD_LEFT);
             User::updateOrCreate(
                 ['email' => 'sinhvien'.($index + 1).'@gmail.com'],
                 [
@@ -369,17 +365,31 @@ class DatabaseSeeder extends Seeder
                     'teacher_code' => null,
                     'password' => $password,
                     'role' => 'student',
-                    'class_id' => $row[3] === null ? null : $classes[$row[3]]->id,
-                    'dob' => sprintf('200%d-%02d-%02d', $index % 7, ($index % 12) + 1, ($index % 27) + 1),
+                    'class_id' => $row[4] === null ? null : $classes[$row[4]]->id,
+                    'dob' => $row[2],
                     'gender' => $row[1],
-                    'hometown' => $row[2],
+                    'hometown' => $row[3],
                     'phone' => '09'.(20000000 + $index * 173311),
+                    'enrolled_on' => self::INTAKE_YEAR.'-09-15',
+                    'education_level' => self::EDUCATION_LEVEL,
+                    'training_type' => $row[16] ?? self::DEFAULT_TRAINING,
+                    'admission_region' => $row[8],
+                    'priority_category' => $row[9],
+                    'ethnicity' => $row[5],
+                    'religion' => $row[6],
+                    'nationality' => $row[7],
+                    'birth_place' => $row[13],
+                    'permanent_residence' => $row[14],
+                    'contact_address' => $row[15],
+                    'id_card_number' => $row[10],
+                    'id_card_issued_at' => $row[11],
+                    'id_card_issued_place' => $row[12],
                     'academic_status' => $this->statusFor($index),
                     'academic_status_updated_at' => now()->subDays($index),
                 ],
             );
 
-            return [$code => $row[3]];
+            return [$code => $row[4]];
         });
     }
 
@@ -392,70 +402,89 @@ class DatabaseSeeder extends Seeder
         return match (true) {
             $index === 4 => 'AT_RISK',
             $index === 9 => 'SUSPENDED',
-            $index === 22 => 'DROPPED',
-            $index === 23 => 'GRADUATED',
+            $index === 23 => 'DROPPED',
+            $index === 24 => 'GRADUATED',
             default => 'STUDYING',
         };
     }
 
     /**
+     * @param  list<array{0: string, 1: int, 2: string}>  $rows
      * @param  Collection<string, Major>  $majors
      * @param  Collection<string, Subject>  $subjects
      */
-    private function studyPlans(Collection $majors, Collection $subjects): void
+    private function studyPlans(array $rows, Collection $majors, Collection $subjects): void
     {
-        foreach (self::STUDY_PLANS as $majorCode => $rows) {
-            foreach ($rows as [$subjectCode, $semester, $kind]) {
-                StudyPlan::updateOrCreate(
-                    ['major_id' => $majors[$majorCode]->id, 'subject_id' => $subjects[$subjectCode]->id],
-                    ['plan_semester' => $semester, 'kind' => $kind],
-                );
+        foreach ($rows as [$majorCode, $semester, $codes]) {
+            [$required, $elective] = array_pad(explode('|', $codes), 2, '');
+
+            foreach (['REQUIRED' => $required, 'ELECTIVE' => $elective] as $kind => $list) {
+                foreach (array_filter(array_map('trim', explode(',', $list))) as $subjectCode) {
+                    StudyPlan::updateOrCreate(
+                        ['major_id' => $majors[$majorCode]->id, 'subject_id' => $subjects[$subjectCode]->id],
+                        ['plan_semester' => $semester, 'kind' => $kind],
+                    );
+                }
             }
         }
     }
 
     /**
-     * WEB101 và DB101 cần OOP101, AI101 cần ADT101; CLO201 học song hành với NET101.
+     * Quan hệ tiên quyết và song hành của danh mục. Đồng bộ nguyên danh sách nên chạy lại seeder
+     * cũng xóa những cạnh người dùng thêm thử trên màn hình admin.
      *
+     * @param  array<string, array<string, list<string>>>  $catalog
      * @param  Collection<string, Subject>  $subjects
      */
-    private function subjectRelations(Collection $subjects): void
+    private function subjectRelations(array $catalog, Collection $subjects): void
     {
-        $subjects['WEB101']->prerequisites()->sync([$subjects['OOP101']->id]);
-        $subjects['DB101']->prerequisites()->sync([$subjects['OOP101']->id]);
-        $subjects['AI101']->prerequisites()->sync([$subjects['ADT101']->id]);
-        $subjects['SEC201']->concurrents()->sync([$subjects['NET101']->id]);
+        foreach (['prerequisites' => 'prerequisites', 'concurrents' => 'concurrents'] as $key => $relation) {
+            foreach ($catalog[$key] as $subjectCode => $partners) {
+                $subjects[$subjectCode]->{$relation}()->sync(
+                    collect($partners)->map(fn (string $code) => $subjects[$code]->id)->all()
+                );
+            }
+        }
     }
 
-    /** @return array{0: Semester, 1: Semester} [học kỳ trước, học kỳ hiện hành] */
+    /** @return array{0: Semester, 1: Semester} [học kỳ đã có điểm, học kỳ hiện hành] */
     private function semesters(): array
     {
-        $startYear = now()->month >= 8 ? (int) now()->format('Y') : (int) now()->format('Y') - 1;
+        $year = now()->month >= 8 ? (int) now()->format('Y') : (int) now()->format('Y') - 1;
+        $tokens = ['{P}' => $year - 1, '{Y}' => $year, '{N}' => $year + 1];
 
-        $past = Semester::updateOrCreate(
-            ['academic_year' => ($startYear - 1).'-'.$startYear, 'term' => 1],
-            [
-                'starts_at' => ($startYear - 1).'-09-01',
-                'ends_at' => $startYear.'-01-31',
-                'registration_starts_at' => ($startYear - 1).'-08-01',
-                'registration_ends_at' => ($startYear - 1).'-08-25',
-            ],
-        );
+        $past = null;
+        $current = null;
 
-        $current = Semester::updateOrCreate(
-            ['academic_year' => $startYear.'-'.($startYear + 1), 'term' => 1],
-            [
-                'starts_at' => $startYear.'-09-01',
-                'ends_at' => ($startYear + 1).'-01-31',
-                'registration_starts_at' => now()->subDays(14),
-                'registration_ends_at' => now()->addDays(14),
-            ],
-        );
+        foreach (self::SEMESTER_PLAN as [$academicYear, $term, $starts, $ends, $regFrom, $regTo]) {
+            $semester = Semester::updateOrCreate(
+                ['academic_year' => self::expand($academicYear, $tokens), 'term' => $term],
+                [
+                    'starts_at' => self::expand($starts, $tokens),
+                    'ends_at' => self::expand($ends, $tokens),
+                    'registration_starts_at' => $regFrom === null ? now()->subDays(14) : self::expand($regFrom, $tokens),
+                    'registration_ends_at' => $regTo === null ? now()->addDays(14) : self::expand($regTo, $tokens),
+                ],
+            );
+
+            if ($academicYear === '{P}-{Y}' && $term === 1) {
+                $past = $semester;
+            }
+            if ($academicYear === '{Y}-{N}' && $term === 1) {
+                $current = $semester;
+            }
+        }
 
         // booted() tự bật is_active cho kỳ tạo đầu tiên, nên chốt kỳ hiện hành ở bước cuối.
         Semester::activate($current->id);
 
         return [$past, $current];
+    }
+
+    /** @param  array<string, int>  $tokens */
+    private static function expand(string $value, array $tokens): string
+    {
+        return strtr($value, $tokens);
     }
 
     /**
@@ -512,7 +541,7 @@ class DatabaseSeeder extends Seeder
     }
 
     /**
-     * Học kỳ trước: ai còn có lớp đều để lại ba môn đã học kèm điểm tổng kết (PROB101 giữ trạng
+     * Kỳ trước: ai còn có lớp đều để lại bốn môn đã học kèm điểm tổng kết (MATH101 giữ trạng
      * thái chưa công bố), đủ để GPA, tín chỉ tích lũy và "Lịch sử học tập" hiển thị.
      *
      * @param  Collection<string, ?string>  $students  mã sinh viên => mã lớp hành chính
@@ -537,8 +566,11 @@ class DatabaseSeeder extends Seeder
 
                 [$attendance, $midterm, $final, $published] = self::scoreSet($code, $offset);
 
-                // Trượt OOP101 để môn có tiên quyết là OOP101 còn đường hiển thị cảnh báo.
-                $final = $code === '20240007' && $subjectCode === 'OOP101' ? 3.5 : $final;
+                // Trượt DS101 để môn có tiên quyết là DS101 còn đường hiển thị cảnh báo.
+                if ($code === self::FAILING_STUDENT['code'] && $subjectCode === self::FAILING_STUDENT['subject']) {
+                    [$attendance, $midterm, $final] = self::FAILING_STUDENT['scores'];
+                    $published = true;
+                }
 
                 Grade::updateOrCreate(
                     ['course_offering_id' => $offering->id, 'user_id' => $student->id],
@@ -547,7 +579,7 @@ class DatabaseSeeder extends Seeder
                         'attendance_score' => $attendance,
                         'midterm_score' => $midterm,
                         'final_score' => $final,
-                        'is_published' => $subjectCode === 'PROB101' ? false : $published,
+                        'is_published' => $subjectCode === self::UNPUBLISHED_SUBJECT ? false : $published,
                     ],
                 );
             }
@@ -555,7 +587,7 @@ class DatabaseSeeder extends Seeder
     }
 
     /**
-     * Học kỳ hiện hành: đăng ký theo khung, lịch điểm danh của các buổi đã qua và điểm thành
+     * Kỳ hiện hành: đăng ký theo khung, lịch điểm danh của các buổi đã qua và điểm thành
      * phần — một nửa lớp đã công bố, nửa còn lại chờ thi cuối kỳ. Sinh viên bị đình chỉ hoặc
      * nghỉ học vẫn có đăng ký nhưng ở trạng thái DROPPED và không có điểm.
      *
@@ -674,14 +706,48 @@ class DatabaseSeeder extends Seeder
         return $first->addWeeks($week);
     }
 
+    /**
+     * Thông báo học phí hai kỳ có dữ liệu: kỳ đã đóng thu xong toàn bộ, kỳ hiện hành thu một
+     * phần để màn hình còn cả trạng thái chờ. Đơn giá do nhà trường cấu hình, mức 0 nghĩa là
+     * chưa áp học phí thì seeder không tự bịa ra thông báo.
+     */
+    private function tuition(Semester $past, Semester $current): void
+    {
+        if (Tuition::perCredit() === 0) {
+            return;
+        }
+
+        Tuition::declare($past);
+        Tuition::declare($current);
+
+        $collector = User::where('role', 'admin')->sole()->id;
+
+        TuitionInvoice::where('semester_id', $past->id)->whereNull('paid_at')->update([
+            'paid_at' => $past->ends_at->copy()->subWeek()->format('Y-m-d H:i:s'),
+            'collected_by' => $collector,
+        ]);
+
+        TuitionInvoice::with('student')
+            ->where('semester_id', $current->id)
+            ->whereNull('paid_at')
+            ->get()
+            ->filter(fn (TuitionInvoice $invoice) => $invoice->student !== null
+                && (int) substr((string) $invoice->student->student_code, -1) % self::PAID_EVERY === 0)
+            ->each(fn (TuitionInvoice $invoice) => $invoice->update([
+                'paid_at' => $current->starts_at->copy()->addWeeks(6)->format('Y-m-d H:i:s'),
+                'collected_by' => $collector,
+            ]));
+    }
+
     /** Suy ra mã chuyên ngành từ mã lớp hành chính. */
     private function majorOf(string $classCode): string
     {
-        return match ($classCode) {
-            'CTK44A', 'CTK44B' => 'KTPM',
-            'CTT44A' => 'HTTT',
-            'KHT44A' => 'KHMT',
-            default => 'DKT',
-        };
+        foreach (self::CLASSES as [$code, , $majorCode]) {
+            if ($code === $classCode) {
+                return $majorCode;
+            }
+        }
+
+        throw new RuntimeException("Lớp {$classCode} không có trong danh sách lớp demo.");
     }
 }
