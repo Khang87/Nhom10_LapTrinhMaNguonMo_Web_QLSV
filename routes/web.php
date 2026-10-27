@@ -19,6 +19,7 @@ use App\Http\Controllers\Student\CourseOfferingController as StudentCourseOfferi
 use App\Http\Controllers\Student\EnrollmentController as StudentEnrollmentController;
 use App\Http\Controllers\Student\GradeController as StudentGradeController;
 use App\Http\Controllers\StudentDashboardController;
+use App\Http\Controllers\Teacher\AttendanceController as TeacherAttendanceController;
 use App\Http\Controllers\Teacher\DashboardController as TeacherDashboardController;
 use App\Http\Controllers\Teacher\GradeController as TeacherGradeController;
 use App\Http\Controllers\Teacher\OfferingController as TeacherOfferingController;
@@ -87,6 +88,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/course-offerings/{offering}/grades', [TeacherGradeController::class, 'edit'])->name('course-offerings.grades');
         Route::post('/course-offerings/{offering}/grades', [TeacherGradeController::class, 'update'])->name('course-offerings.grades.update');
         Route::post('/course-offerings/{offering}/grades/publish', [TeacherGradeController::class, 'publish'])->name('course-offerings.grades.publish');
+        Route::get('/course-offerings/{offering}/attendance', [TeacherAttendanceController::class, 'index'])->name('course-offerings.attendance');
+        Route::get('/course-offerings/{offering}/attendance/session/create', [TeacherAttendanceController::class, 'create'])->name('course-offerings.attendance.session.create');
+        Route::post('/course-offerings/{offering}/attendance/session', [TeacherAttendanceController::class, 'store'])->name('course-offerings.attendance.session.store');
     });
 
     Route::prefix('student')->name('student.')->middleware('checkRole:student')->group(function () {

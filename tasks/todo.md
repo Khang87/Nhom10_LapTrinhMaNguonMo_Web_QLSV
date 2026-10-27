@@ -587,11 +587,40 @@ Quy ước branch/commit: một commit cho mỗi task, message tiếng Việt th
   - Deviation: `pending` (buổi chưa điểm danh) là khóa thêm ngoài ba khóa của spec vì spec yêu
     cầu UI đếm riêng "chưa điểm danh (n)".
 
-- [ ] 7.4 Màn hình điểm danh nhanh cho giảng viên
+- [x] 7.4 Màn hình điểm danh nhanh cho giảng viên
   - Acceptance: mặc định "Có mặt", bỏ check người vắng, lưu một lần; chỉ teacher phụ trách.
   - Verify: feature test + kiểm tay.
   - Files: `app/Http/Controllers/Teacher/AttendanceController.php`,
     `resources/views/teacher/attendance/*`
+  - Done 2026-10-27: ba route `teacher/course-offerings/{offering}/attendance` (lưới tuần),
+    `.../attendance/session/create` (form một buổi), `.../attendance/session` (POST).
+    Lưới tuần đọc `lecture_slots` theo `?week=`, ô chỉ hiện trong khoảng `starts_on`/`ends_on`,
+    mỗi ô có nhãn "Đã điểm danh x/y" hoặc "Chưa điểm danh" và nút mở form của đúng ngày đó.
+    Form mặc định "Có mặt" (input ẩn `statuses[id]=PRESENT`), checkbox "Vắng buổi này" ghi đè
+    thành `ABSENT`; `store()` upsert `(offering, session_date)` rồi upsert từng dòng theo
+    `(session, enrollment)` nên chấm lại không tăng số dòng; chỉ `enrollments()->active()`;
+    `lecture_slot_id` chỉ nhận slot của chính lớp; `note` tối đa 2000. `authorizeTeacher()`
+    chặn `teacher_id` khác ⇒ 403 cho mọi action. Nút "Điểm danh" thêm vào
+    `teacher/offerings/index.blade.php` cạnh "Nhập điểm".
+  - Evidence: `tests/Feature/TeacherAttendanceTest.php` 13 test xanh (suite 210 test, 995
+    assertions) — 15 sinh viên lưu một lần ⇒ 15 dòng `PRESENT`, bỏ check ở buổi thứ 5 ⇒ 80%
+    (đúng ngưỡng, không cảnh báo) và 60% cho người vắng 2/5 buổi ⇒ badge "Dưới ngưỡng 80%",
+    chấm lại cùng ngày ⇒ 1 session/2 dòng + `note`, chưa buổi nào ⇒ "Chưa có dữ liệu" (không
+    phải 0%), giảng viên B mở lớp giảng viên A ⇒ 403 trên cả ba route, sinh viên ⇒ 403,
+    gửi `statuses` = `LATE` ⇒ 422, sinh viên `DROPPED` không được chấm. Kiểm tay bằng curl với
+    `giangvien1@gmail.com`: lưới tuần 26/10 hiện "Thứ 4 · 07:00–09:30 A101", POST buổi
+    28/10 ⇒ 3 `ABSENT`/2 `PRESENT`, mở lại hiện "Buổi này đã điểm danh 5/5 sinh viên",
+    badge "Đã điểm danh 5/5", trung bình lớp 50%, `/teacher/course-offerings/3/attendance`
+    (lớp giảng viên 2) ⇒ 403.
+  - Deviation: thêm `AttendanceRate::forEnrollments()` (2 truy vấn cho cả lớp) vì lưới và form
+    cần tỷ lệ của từng người; gọi `forEnrollment()` cho từng sinh viên là 3N truy vấn.
+    Bên ngoài spec: điều hướng tuần (`?week=`, "Tuần này"), `?slot=` để mở form từ ô lịch và
+    ô lịch không có slot thì hiện "—".
+  - Caveat: Blade không compile được thuộc tính bound chứa ngoặc đơn trong chuỗi PHP,
+    `:title="'Lớp học phần của tôi ('.$n.')'"` sinh mã lỗi cú pháp ⇒ 500 khi trang có dữ liệu
+    (test cũ chỉ cover trang rỗng nên không phát hiện). Viết thành
+    `title="Lớp học phần của tôi ({{ $n }})"`. Đã sửa ở `teacher/dashboard.blade.php` và
+    `teacher/attendance/session.blade.php`, thêm test `teacher_dashboard_lists_the_classes...`.
 
 - [ ] 7.5 Thời khóa biểu tuần cho sinh viên và giảng viên
   - Acceptance: lưới Thứ 2–Thứ 7, đúng 2 ô cho 2 slot; lớp đã `DROPPED` biến mất; phát hiện

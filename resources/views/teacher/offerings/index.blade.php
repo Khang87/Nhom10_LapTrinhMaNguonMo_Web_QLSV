@@ -42,6 +42,8 @@
                     <td class="text-nowrap">
                         <a class="btn btn-custom btn-custom-sm btn-custom-outline-primary"
                             href="{{ route('teacher.course-offerings.grades', $offering) }}">Nhập điểm</a>
+                        <a class="btn btn-custom btn-custom-sm btn-custom-outline-secondary"
+                            href="{{ route('teacher.course-offerings.attendance', $offering) }}">Điểm danh</a>
                     </td>
                 </tr>
             @empty
