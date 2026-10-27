@@ -3,112 +3,44 @@
 @section('title', 'Trang quản trị')
 
 @section('content')
-    <div class="page-header">
-        <div>
-            <h1 class="page-title">Trang quản trị</h1>
-            <p class="page-subtitle">Quản lý thông tin đào tạo và kết quả học tập.</p>
-        </div>
-    </div>
+    @php
+        $modules = [
+            ['route' => 'admin.classes.index', 'icon' => 'bi-building', 'label' => 'Lớp học',
+                'note' => 'Quản lý danh sách lớp và phòng học.'],
+            ['route' => 'admin.subjects.index', 'icon' => 'bi-book', 'label' => 'Môn học',
+                'note' => 'Cập nhật môn học và số tín chỉ.'],
+            ['route' => 'admin.departments.index', 'icon' => 'bi-diagram-3', 'label' => 'Khoa',
+                'note' => 'Quản lý khoa và chuyên ngành trực thuộc.'],
+            ['route' => 'admin.majors.index', 'icon' => 'bi-mortarboard', 'label' => 'Chuyên ngành',
+                'note' => 'Chuyên ngành thuộc khoa và môn học của ngành.'],
+            ['route' => 'admin.study-plans.index', 'icon' => 'bi-list-nested', 'label' => 'Khung CTĐT',
+                'note' => 'Xếp môn theo học kỳ dự kiến cho từng chuyên ngành.'],
+            ['route' => 'admin.students.index', 'icon' => 'bi-people', 'label' => 'Sinh viên',
+                'note' => 'Quản lý hồ sơ và lớp của sinh viên.'],
+            ['route' => 'admin.grades.index', 'icon' => 'bi-journal-check', 'label' => 'Điểm',
+                'note' => 'Nhập và theo dõi kết quả học tập.'],
+            ['route' => 'admin.attendances.index', 'icon' => 'bi-calendar-check', 'label' => 'Điểm danh',
+                'note' => 'Ghi nhận và xem tình hình chuyên cần.'],
+            ['route' => 'admin.accounts.index', 'icon' => 'bi-person-badge', 'label' => 'Tài khoản',
+                'note' => 'Quản lý tài khoản quản trị, giảng viên, sinh viên.'],
+        ];
+    @endphp
+
+    <x-page-header title="Trang quản trị" subtitle="Quản lý thông tin đào tạo và kết quả học tập." />
 
     <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
-        <div class="col">
-            <a class="card h-100 text-decoration-none" href="{{ route('admin.classes.index') }}">
-                <div class="card-body d-flex align-items-center gap-3">
-                    <i class="bi bi-building fs-2 text-success" aria-hidden="true"></i>
-                    <div>
-                        <h2 class="h5 card-title mb-1">Lớp học</h2>
-                        <p class="card-text text-muted mb-0">Quản lý danh sách lớp và phòng học.</p>
+        @foreach ($modules as $module)
+            <div class="col">
+                <a class="card h-100 text-decoration-none" href="{{ route($module['route']) }}">
+                    <div class="d-flex align-items-center gap-3">
+                        <i class="bi {{ $module['icon'] }} fs-2 text-muted-green" aria-hidden="true"></i>
+                        <div>
+                            <h2 class="card-title mb-1">{{ $module['label'] }}</h2>
+                            <p class="page-subtitle mb-0">{{ $module['note'] }}</p>
+                        </div>
                     </div>
-                </div>
-            </a>
-        </div>
-        <div class="col">
-            <a class="card h-100 text-decoration-none" href="{{ route('admin.subjects.index') }}">
-                <div class="card-body d-flex align-items-center gap-3">
-                    <i class="bi bi-book fs-2 text-success" aria-hidden="true"></i>
-                    <div>
-                        <h2 class="h5 card-title mb-1">Môn học</h2>
-                        <p class="card-text text-muted mb-0">Cập nhật môn học và số tín chỉ.</p>
-                    </div>
-                </div>
-            </a>
-        </div>
-        <div class="col">
-            <a class="card h-100 text-decoration-none" href="{{ route('admin.departments.index') }}">
-                <div class="card-body d-flex align-items-center gap-3">
-                    <i class="bi bi-diagram-3 fs-2 text-success" aria-hidden="true"></i>
-                    <div>
-                        <h2 class="h5 card-title mb-1">Khoa</h2>
-                        <p class="card-text text-muted mb-0">Quản lý khoa và chuyên ngành trực thuộc.</p>
-                    </div>
-                </div>
-            </a>
-        </div>
-        <div class="col">
-            <a class="card h-100 text-decoration-none" href="{{ route('admin.majors.index') }}">
-                <div class="card-body d-flex align-items-center gap-3">
-                    <i class="bi bi-mortarboard fs-2 text-success" aria-hidden="true"></i>
-                    <div>
-                        <h2 class="h5 card-title mb-1">Chuyên ngành</h2>
-                        <p class="card-text text-muted mb-0">Chuyên ngành thuộc khoa và môn học của ngành.</p>
-                    </div>
-                </div>
-            </a>
-        </div>
-        <div class="col">
-            <a class="card h-100 text-decoration-none" href="{{ route('admin.study-plans.index') }}">
-                <div class="card-body d-flex align-items-center gap-3">
-                    <i class="bi bi-list-nested fs-2 text-success" aria-hidden="true"></i>
-                    <div>
-                        <h2 class="h5 card-title mb-1">Khung CTĐT</h2>
-                        <p class="card-text text-muted mb-0">Xếp môn theo học kỳ dự kiến cho từng chuyên ngành.</p>
-                    </div>
-                </div>
-            </a>
-        </div>
-        <div class="col">
-            <a class="card h-100 text-decoration-none" href="{{ route('admin.students.index') }}">
-                <div class="card-body d-flex align-items-center gap-3">
-                    <i class="bi bi-people fs-2 text-success" aria-hidden="true"></i>
-                    <div>
-                        <h2 class="h5 card-title mb-1">Sinh viên</h2>
-                        <p class="card-text text-muted mb-0">Quản lý hồ sơ và lớp của sinh viên.</p>
-                    </div>
-                </div>
-            </a>
-        </div>
-        <div class="col">
-            <a class="card h-100 text-decoration-none" href="{{ route('admin.grades.index') }}">
-                <div class="card-body d-flex align-items-center gap-3">
-                    <i class="bi bi-journal-check fs-2 text-success" aria-hidden="true"></i>
-                    <div>
-                        <h2 class="h5 card-title mb-1">Điểm</h2>
-                        <p class="card-text text-muted mb-0">Nhập và theo dõi kết quả học tập.</p>
-                    </div>
-                </div>
-            </a>
-        </div>
-        <div class="col">
-            <a class="card h-100 text-decoration-none" href="{{ route('admin.attendances.index') }}">
-                <div class="card-body d-flex align-items-center gap-3">
-                    <i class="bi bi-calendar-check fs-2 text-success" aria-hidden="true"></i>
-                    <div>
-                        <h2 class="h5 card-title mb-1">Điểm danh</h2>
-                        <p class="card-text text-muted mb-0">Ghi nhận và xem tình hình chuyên cần.</p>
-                    </div>
-                </div>
-            </a>
-        </div>
-        <div class="col">
-            <a class="card h-100 text-decoration-none" href="{{ route('admin.accounts.index') }}">
-                <div class="card-body d-flex align-items-center gap-3">
-                    <i class="bi bi-person-badge fs-2 text-success" aria-hidden="true"></i>
-                    <div>
-                        <h2 class="h5 card-title mb-1">Tài khoản</h2>
-                        <p class="card-text text-muted mb-0">Quản lý tài khoản quản trị, giảng viên, sinh viên.</p>
-                    </div>
-                </div>
-            </a>
-        </div>
+                </a>
+            </div>
+        @endforeach
     </div>
 @endsection

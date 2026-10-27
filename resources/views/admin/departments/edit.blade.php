@@ -1,15 +1,19 @@
 @extends('layouts.spark')
 @section('title', 'Sửa khoa')
 @section('content')
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-        <h1 class="h3 mb-0">Sửa khoa: {{ $department->code }}</h1>
-        <a class="btn btn-outline-secondary" href="{{ route('admin.departments.index') }}">Quay lại</a>
+    <x-page-header title="Sửa khoa: {{ $department->code }}">
+        <x-slot name="actions">
+            <a class="btn btn-custom btn-custom-light" href="{{ route('admin.departments.index') }}">Quay lại</a>
+        </x-slot>
+    </x-page-header>
+
+    <div class="card">
+        <form method="POST" action="{{ route('admin.departments.update', $department) }}">
+            @csrf @method('PUT')
+            @include('admin.departments.form')
+            <button class="btn btn-custom btn-custom-primary mt-3" type="submit">
+                <i class="bi bi-check-lg me-1" aria-hidden="true"></i>Cập nhật
+            </button>
+        </form>
     </div>
-    <form method="POST" action="{{ route('admin.departments.update', $department) }}">
-        @csrf @method('PUT')
-        @include('admin.departments.form')
-        <button class="btn btn-primary" type="submit">
-            <i class="bi bi-check-lg me-1" aria-hidden="true"></i>Cập nhật
-        </button>
-    </form>
 @endsection
