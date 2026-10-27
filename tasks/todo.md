@@ -74,3 +74,19 @@
   - Deviation: ý tưởng gốc (Manguon) có thêm trạng thái "đã nộp một phần" và kỳ hạn nộp; ở đây mỗi
     thông báo chỉ có 2 trạng thái chưa thu / đã thu vì schema điểm danh - học vụ chưa có khái niệm
     hạn nộp hay thu một phần.
+
+- [x] 10.3 Kiểm chứng lại hai ý tưởng "reset mật khẩu" và "trang chi tiết sinh viên"
+  - Acceptance: xác nhận hai ý tưởng này đã được hệ thống phủ trước khi tính tới màn hình mới.
+  - Done 2026-10-27: quên mật khẩu bằng OTP 6 số (Nodemailer) gồm 5 route có throttle
+    `password.request/email/verify/reset/update`, link "Quên mật khẩu?" trên trang đăng nhập,
+    10 test trong `tests/Feature/PasswordResetTest.php`; admin còn đổi được mật khẩu trực tiếp ở
+    form tài khoản/sinh viên (`AccountController`, `StudentController`). Trang hồ sơ
+    `/admin/students/{id}` đã có: thông tin cá nhân, lớp hành chính - khóa - khoa - chuyên ngành,
+    4 thẻ thống kê (GPA hệ 4, điểm TB hệ 10, tín chỉ tích lũy, tỷ lệ chuyên cần), danh sách lớp học
+    phần đã đăng ký, bảng kết quả học tập và khối xét duyệt học vụ kèm gợi ý trạng thái.
+  - Evidence: curl `GET /admin/students/4` trên DB dev trả 200 với "GPA hệ 4 3.50 Khá · Điểm TB hệ
+    10 7.44 · 8 / 16 TC · Tỷ lệ chuyên cần 75% Có mặt 3/4 buổi" và dòng "Gợi ý: Cảnh báo học vụ
+    (AT_RISK) — Tỷ lệ chuyên cần 75% dưới ngưỡng 80%."; suite 242 test xanh.
+  - Kết luận: không xây màn hình mới cho hai ý tưởng này. Trong danh sách ý tưởng, TKB theo tuần,
+    mở lớp hàng loạt và học phí là ba thứ còn thiếu phải xây; hai ý tưởng còn lại đã có sẵn từ các
+    wave trước.
