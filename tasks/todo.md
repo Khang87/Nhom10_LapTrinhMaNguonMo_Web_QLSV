@@ -32,3 +32,45 @@
   - Deviation: mã nhóm nằm trên thanh lọc vì nó quyết định môn nào "đã có lớp" (cùng môn có thể
     mở thêm nhóm khác); spec ý tưởng chỉ nói "mở theo khung". Sĩ số và trạng thái mở cổng áp
     dụng chung cho cả lô, không nhập riêng từng môn.
+
+- [x] 10.2 Học phí theo tín chỉ và mã QR VietQR
+  - Acceptance: admin phát hành một thông báo học phí mỗi học kỳ cho toàn bộ sinh viên đang học,
+    theo số tín chỉ đã đăng ký; sinh viên xem số phải nộp, mã QR và nội dung chuyển khoản; kế
+    toán ghi nhận đã thu / hủy ghi nhận.
+  - Verify: feature test + kiểm tay bằng curl.
+  - Files: `database/migrations/2026_11_08_000001_create_tuition_invoices_table.php`,
+    `app/Models/TuitionInvoice.php`, `app/Support/Tuition.php`,
+    `app/Http/Controllers/Admin/TuitionController.php`,
+    `app/Http/Controllers/Student/TuitionController.php`,
+    `resources/views/admin/tuition/index.blade.php`, `resources/views/student/tuition.blade.php`
+  - Done 2026-10-27: bảng `tuition_invoices` một dòng cho (sinh viên, học kỳ) — `credits`,
+    `amount`, `content` (nội dung chuyển khoản), `paid_at`/`collected_by`/`note`. Đơn giá một tín
+    chỉ lấy từ `config('academic.tuition_per_credit')` (biến `ACADEMIC_TUITION_PER_CREDIT`), mặc
+    định 0 = chưa cấu hình ⇒ nút "Phát hành" disabled và controller từ chối, hệ thống không tự bịa
+    số tiền. `Tuition::declare()` nhóm `enrollments` ACTIVE theo sinh viên trong học kỳ,
+    `firstOrNew` rồi chỉ ghi khi tín chỉ thay đổi: thông báo đã thu bị đóng băng, thông báo chưa
+    thu được làm mới vì sinh viên còn quyền thêm/hủy môn tới hết cổng đăng ký. `content` dựng từ
+    mã số sinh viên (`QLSV<mã số>-HK<kỳ>`), cắt 25 ký tự vì VietQR/ngân hàng cắt ngầm; mã chưa có
+    thì fallback `SV<id>`. Ảnh QR là URL động của `img.vietqr.io` (kèm `amount` + `addInfo`), chỉ
+    tồn tại khi cấu hình đủ `TUITION_BANK_CODE`/`TUITION_BANK_ACCOUNT`. Trang admin có lọc theo học
+    kỳ, 3 thẻ thống kê (đã phát hành / đã thu / còn chưa thu) và nút thu — hủy thu; trang sinh viên
+    hiện từng kỳ, khi kỳ hiện hành chưa phát hành thì báo số tín chỉ đang học kèm số tạm tính.
+    Sidebar: thêm "Học phí" cho admin và student. Danh sách admin chia trang 10 thông báo, còn
+    thẻ "Đã thu"/"Còn chưa thu" tính bằng SUM trên cả học kỳ nên không đổi theo trang.
+  - Evidence: `tests/Feature/TuitionTest.php` 11 test (suite 242 test, 1170 assertions) — 7 TC
+    kỳ này × 350.000 đ = 2.450.000 đ, môn đã hủy và môn ở kỳ khác không tính; nội dung chuyển
+    khoản đúng 25 ký tự khi mã số dài tối đa và không rời ký tự `-` thừa; declare chạy 2 lần ⇒
+    `created 2 / refreshed 0` rồi `0 / 0`; thêm môn ⇒ `refreshed 1`, sau khi đã thu ⇒ không đổi
+    `credits`; `qr_url` null khi chưa cấu hình ngân hàng và đúng
+    `https://img.vietqr.io/image/vietcombank-1234567890-compact2.png?amount=1050000&addInfo=QLSV20240001-HK1`
+    khi có; trang admin hiển thị "350.000 đ", "1.050.000 đ", "Chưa thu" → "Đã thu" (kèm `note`,
+    người thu) → "Hủy ghi nhận thu"; sinh viên chỉ thấy thông báo của mình; giảng viên/sinh viên
+    gọi route admin ⇒ 403; xóa sinh viên ⇒ xóa thông báo; 12 thông báo ⇒ trang 1 chỉ 10 dòng
+    nhưng thẻ tiền vẫn "12.600.000 đ · 12 sinh viên" và trang 2 hiện 2 dòng còn lại. Kiểm tay curl trên DB dev với mức tạm
+    380.000 đ/TC: phát hành 5 thông báo HK1-2026-2027 (11 TC = 4.180.000 đ, còn chưa thu
+    16.340.000 đ), ghi nhận thu 1 sinh viên ⇒ thẻ "Đã thu 4.180.000 đ · 1 sinh viên", trang
+    `/student/tuition` hiển thị ảnh QR `...compact2.png?amount=4180000&addInfo=QLSV20240001-HK1`.
+    Cấu hình và dữ liệu kiểm đã gỡ lại sau khi quay.
+  - Deviation: ý tưởng gốc (Manguon) có thêm trạng thái "đã nộp một phần" và kỳ hạn nộp; ở đây mỗi
+    thông báo chỉ có 2 trạng thái chưa thu / đã thu vì schema điểm danh - học vụ chưa có khái niệm
+    hạn nộp hay thu một phần.

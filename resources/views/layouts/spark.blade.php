@@ -133,6 +133,14 @@
                             </a>
                         </li>
                         <li class="sidebar-menu-item">
+                            <a class="sidebar-menu-link {{ request()->routeIs('admin.tuition.*') ? 'active' : '' }}"
+                                href="{{ route('admin.tuition.index') }}"
+                                @if (request()->routeIs('admin.tuition.*')) aria-current="page" @endif>
+                                <i class="bi bi-cash-coin" aria-hidden="true"></i>
+                                <span>Học phí</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-menu-item">
                             <a class="sidebar-menu-link {{ request()->routeIs('admin.accounts.*') ? 'active' : '' }}"
                                 href="{{ route('admin.accounts.index') }}"
                                 @if (request()->routeIs('admin.accounts.*')) aria-current="page" @endif>
@@ -198,6 +206,14 @@
                                 @if (request()->routeIs('student.grades.history')) aria-current="page" @endif>
                                 <i class="bi bi-clock-history" aria-hidden="true"></i>
                                 <span>Lịch sử học tập</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-menu-item">
+                            <a class="sidebar-menu-link {{ request()->routeIs('student.tuition') ? 'active' : '' }}"
+                                href="{{ route('student.tuition') }}"
+                                @if (request()->routeIs('student.tuition')) aria-current="page" @endif>
+                                <i class="bi bi-cash-coin" aria-hidden="true"></i>
+                                <span>Học phí</span>
                             </a>
                         </li>
                     </ul>

@@ -8,6 +8,7 @@
 - Khôi phục mật khẩu qua mã OTP 6 chữ số gửi bằng Node.js/Nodemailer; mã hết hạn sau 15 phút và chỉ dùng một lần.
 - Admin quản lý lớp học, môn học, tài khoản sinh viên; ghi nhận điểm và điểm danh.
 - Student xem các môn học, đăng ký/hủy đăng ký và xem điểm.
+- Admin phát hành học phí theo tín chỉ cho từng học kỳ; sinh viên xem số phải nộp kèm mã QR VietQR và nội dung chuyển khoản. Cần đặt `ACADEMIC_TUITION_PER_CREDIT`, `TUITION_BANK_CODE`, `TUITION_BANK_ACCOUNT` trong `.env`; để trống nghĩa là chưa thu học phí.
 - Tìm kiếm, phân trang danh sách lớp, môn học và sinh viên.
 - Dữ liệu demo có một tài khoản admin, hai lớp, ba môn và năm sinh viên.
 
