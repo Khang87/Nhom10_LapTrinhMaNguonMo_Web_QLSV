@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -22,11 +23,13 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
+        'username',
         'name',
         'email',
         'password',
         'role',
         'class_id',
+        'is_active',
     ];
 
     /**
@@ -49,7 +52,33 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'boolean',
         ];
+    }
+
+    public function student(): HasOne
+    {
+        return $this->hasOne(Student::class);
+    }
+
+    public function lecturer(): HasOne
+    {
+        return $this->hasOne(Lecturer::class);
+    }
+
+    public function isStudent(): bool
+    {
+        return strtolower($this->role) === 'student';
+    }
+
+    public function isLecturer(): bool
+    {
+        return strtolower($this->role) === 'lecturer';
+    }
+
+    public function isAdmin(): bool
+    {
+        return strtolower($this->role) === 'admin';
     }
 
     public function studentClass(): BelongsTo

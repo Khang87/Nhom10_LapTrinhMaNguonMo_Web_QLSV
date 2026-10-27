@@ -82,21 +82,30 @@
 
     <section class="mb-4" aria-labelledby="student-shortcuts-title">
         <h2 class="visually-hidden" id="student-shortcuts-title">Truy cập nhanh</h2>
-        <div class="row row-cols-1 row-cols-sm-2 g-3">
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-xl-4 g-3">
             <div class="col">
-                <a class="card student-action-card h-100" href="{{ route('student.subjects.index') }}">
+                <a class="card student-action-card h-100" href="{{ route('student.schedule.index') }}">
                     <div class="card-body d-flex align-items-center gap-3">
-                        <i class="bi bi-journal-plus" aria-hidden="true"></i>
-                        <span>Đăng ký học phần</span>
+                        <i class="bi bi-calendar-week fs-4 text-primary" aria-hidden="true"></i>
+                        <span class="fw-bold">Lịch theo tuần</span>
                         <i class="bi bi-arrow-right ms-auto" aria-hidden="true"></i>
                     </div>
                 </a>
             </div>
             <div class="col">
-                <a class="card student-action-card h-100" href="{{ route('student.grades.index') }}">
+                <a class="card student-action-card h-100" href="{{ route('student.profile') }}">
                     <div class="card-body d-flex align-items-center gap-3">
-                        <i class="bi bi-bar-chart-line" aria-hidden="true"></i>
-                        <span>Kết quả học tập</span>
+                        <i class="bi bi-person-badge fs-4 text-success" aria-hidden="true"></i>
+                        <span class="fw-bold">Hồ sơ sinh viên</span>
+                        <i class="bi bi-arrow-right ms-auto" aria-hidden="true"></i>
+                    </div>
+                </a>
+            </div>
+            <div class="col">
+                <a class="card student-action-card h-100" href="{{ route('student.tuition.index') }}">
+                    <div class="card-body d-flex align-items-center gap-3">
+                        <i class="bi bi-qr-code-scan fs-4 text-danger" aria-hidden="true"></i>
+                        <span class="fw-bold">Học phí & VietQR</span>
                         <i class="bi bi-arrow-right ms-auto" aria-hidden="true"></i>
                     </div>
                 </a>

@@ -11,8 +11,35 @@
     <link rel="stylesheet" href="{{ asset('css/spark-layout.css') }}">
 </head>
 <body>
-    <aside class="sidebar-wrapper" id="sidebar" aria-label="Điều hướng {{ auth()->user()->role === 'admin' ? 'quản trị' : 'sinh viên' }}">
-        <a class="sidebar-brand" href="{{ route(auth()->user()->role.'.dashboard') }}">
+    @php
+        $userRole = auth()->user()->role ?? 'student';
+        $brandRoute = match ($userRole) {
+            'admin' => route('admin.dashboard'),
+            'lecturer' => route('lecturer.schedule.index'),
+            default => route('student.dashboard'),
+        };
+        $isHomeActive = match ($userRole) {
+            'admin' => request()->routeIs('admin.dashboard'),
+            'lecturer' => request()->routeIs('lecturer.schedule.*'),
+            default => request()->routeIs('student.dashboard'),
+        };
+        $homeLabel = match ($userRole) {
+            'admin' => 'Trang chủ',
+            'lecturer' => 'Lịch giảng dạy',
+            default => 'Trang chủ',
+        };
+        $homeIcon = match ($userRole) {
+            'lecturer' => 'bi-calendar-week',
+            default => 'bi-grid-fill',
+        };
+        $roleLabel = match ($userRole) {
+            'admin' => 'quản trị',
+            'lecturer' => 'giảng viên',
+            default => 'sinh viên',
+        };
+    @endphp
+    <aside class="sidebar-wrapper" id="sidebar" aria-label="Điều hướng {{ $roleLabel }}">
+        <a class="sidebar-brand" href="{{ $brandRoute }}">
             <img src="{{ asset('images/HUIT_logo.png') }}" alt="" width="32" height="32">
             <span>Quản lý sinh viên</span>
         </a>
@@ -22,26 +49,34 @@
                 <h2 class="sidebar-menu-title" id="spark-overview-title">Tổng quan</h2>
                 <ul class="sidebar-menu-list">
                     <li class="sidebar-menu-item">
-                        <a class="sidebar-menu-link {{ request()->routeIs(auth()->user()->role.'.dashboard') ? 'active' : '' }}"
-                            href="{{ route(auth()->user()->role.'.dashboard') }}"
-                            @if (request()->routeIs(auth()->user()->role.'.dashboard')) aria-current="page" @endif>
-                            <i class="bi bi-grid-fill" aria-hidden="true"></i>
-                            <span>Trang chủ</span>
+                        <a class="sidebar-menu-link {{ $isHomeActive ? 'active' : '' }}"
+                            href="{{ $brandRoute }}"
+                            @if ($isHomeActive) aria-current="page" @endif>
+                            <i class="bi {{ $homeIcon }}" aria-hidden="true"></i>
+                            <span>{{ $homeLabel }}</span>
                         </a>
                     </li>
                 </ul>
             </section>
 
-            @if (auth()->user()->role === 'admin')
+            @if (auth()->user()->isAdmin())
                 <section class="sidebar-menu-section" aria-labelledby="spark-management-title">
-                    <h2 class="sidebar-menu-title" id="spark-management-title">Quản lý</h2>
+                    <h2 class="sidebar-menu-title" id="spark-management-title">Quản lý đào tạo</h2>
                     <ul class="sidebar-menu-list">
                         <li class="sidebar-menu-item">
-                            <a class="sidebar-menu-link {{ request()->routeIs('admin.classes.*') ? 'active' : '' }}"
-                                href="{{ route('admin.classes.index') }}"
-                                @if (request()->routeIs('admin.classes.*')) aria-current="page" @endif>
+                            <a class="sidebar-menu-link {{ request()->routeIs('admin.faculties.*') ? 'active' : '' }}"
+                                href="{{ route('admin.faculties.index') }}"
+                                @if (request()->routeIs('admin.faculties.*')) aria-current="page" @endif>
                                 <i class="bi bi-building" aria-hidden="true"></i>
-                                <span>Lớp học</span>
+                                <span>Quản lý Khoa</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-menu-item">
+                            <a class="sidebar-menu-link {{ request()->routeIs('admin.specializations.*') ? 'active' : '' }}"
+                                href="{{ route('admin.specializations.index') }}"
+                                @if (request()->routeIs('admin.specializations.*')) aria-current="page" @endif>
+                                <i class="bi bi-mortarboard-fill" aria-hidden="true"></i>
+                                <span>Quản lý Chuyên ngành</span>
                             </a>
                         </li>
                         <li class="sidebar-menu-item">
@@ -49,7 +84,15 @@
                                 href="{{ route('admin.subjects.index') }}"
                                 @if (request()->routeIs('admin.subjects.*')) aria-current="page" @endif>
                                 <i class="bi bi-book" aria-hidden="true"></i>
-                                <span>Môn học</span>
+                                <span>Môn học & Khung CT</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-menu-item">
+                            <a class="sidebar-menu-link {{ request()->routeIs('admin.lecturers.*') ? 'active' : '' }}"
+                                href="{{ route('admin.lecturers.index') }}"
+                                @if (request()->routeIs('admin.lecturers.*')) aria-current="page" @endif>
+                                <i class="bi bi-person-video3" aria-hidden="true"></i>
+                                <span>Quản lý Giảng viên</span>
                             </a>
                         </li>
                         <li class="sidebar-menu-item">
@@ -57,7 +100,23 @@
                                 href="{{ route('admin.students.index') }}"
                                 @if (request()->routeIs('admin.students.*')) aria-current="page" @endif>
                                 <i class="bi bi-people" aria-hidden="true"></i>
-                                <span>Sinh viên</span>
+                                <span>Quản lý Sinh viên</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-menu-item">
+                            <a class="sidebar-menu-link {{ request()->routeIs('admin.semesters.*') ? 'active' : '' }}"
+                                href="{{ route('admin.semesters.index') }}"
+                                @if (request()->routeIs('admin.semesters.*')) aria-current="page" @endif>
+                                <i class="bi bi-calendar2-range" aria-hidden="true"></i>
+                                <span>Học kỳ & Đợt ĐK</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-menu-item">
+                            <a class="sidebar-menu-link {{ request()->routeIs('admin.course-sections.*') ? 'active' : '' }}"
+                                href="{{ route('admin.course-sections.index') }}"
+                                @if (request()->routeIs('admin.course-sections.*')) aria-current="page" @endif>
+                                <i class="bi bi-diagram-3" aria-hidden="true"></i>
+                                <span>Mở Lớp học phần</span>
                             </a>
                         </li>
                         <li class="sidebar-menu-item">
@@ -65,7 +124,7 @@
                                 href="{{ route('admin.grades.index') }}"
                                 @if (request()->routeIs('admin.grades.*')) aria-current="page" @endif>
                                 <i class="bi bi-journal-check" aria-hidden="true"></i>
-                                <span>Điểm</span>
+                                <span>Quản lý Điểm</span>
                             </a>
                         </li>
                         <li class="sidebar-menu-item">
@@ -73,29 +132,117 @@
                                 href="{{ route('admin.attendances.index') }}"
                                 @if (request()->routeIs('admin.attendances.*')) aria-current="page" @endif>
                                 <i class="bi bi-calendar-check" aria-hidden="true"></i>
-                                <span>Điểm danh</span>
+                                <span>Báo cáo Điểm danh</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-menu-item">
+                            <a class="sidebar-menu-link {{ request()->routeIs('admin.classes.*') ? 'active' : '' }}"
+                                href="{{ route('admin.classes.index') }}"
+                                @if (request()->routeIs('admin.classes.*')) aria-current="page" @endif>
+                                <i class="bi bi-building" aria-hidden="true"></i>
+                                <span>Lớp học danh nghĩa</span>
+                            </a>
+                        </li>
+                    </ul>
+                </section>
+            @elseif (auth()->user()->isLecturer())
+                <section class="sidebar-menu-section" aria-labelledby="spark-lecturer-title">
+                    <h2 class="sidebar-menu-title" id="spark-lecturer-title">Giảng viên</h2>
+                    <ul class="sidebar-menu-list">
+                        <li class="sidebar-menu-item">
+                            <a class="sidebar-menu-link {{ request()->routeIs('lecturer.schedule.*') ? 'active' : '' }}"
+                                href="{{ route('lecturer.schedule.index') }}"
+                                @if (request()->routeIs('lecturer.schedule.*')) aria-current="page" @endif>
+                                <i class="bi bi-calendar-week" aria-hidden="true"></i>
+                                <span>Lịch giảng dạy tuần</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-menu-item">
+                            <a class="sidebar-menu-link {{ request()->routeIs('lecturer.attendances.*') ? 'active' : '' }}"
+                                href="{{ route('lecturer.attendances.index') }}"
+                                @if (request()->routeIs('lecturer.attendances.*')) aria-current="page" @endif>
+                                <i class="bi bi-calendar-check" aria-hidden="true"></i>
+                                <span>Điểm danh lớp học</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-menu-item">
+                            <a class="sidebar-menu-link {{ request()->routeIs('lecturer.grades.*') ? 'active' : '' }}"
+                                href="{{ route('lecturer.grades.index') }}"
+                                @if (request()->routeIs('lecturer.grades.*')) aria-current="page" @endif>
+                                <i class="bi bi-pencil-square" aria-hidden="true"></i>
+                                <span>Nhập điểm học phần</span>
                             </a>
                         </li>
                     </ul>
                 </section>
             @else
+                <section class="sidebar-menu-section" aria-labelledby="spark-general-title">
+                    <h2 class="sidebar-menu-title" id="spark-general-title">Thông tin chung</h2>
+                    <ul class="sidebar-menu-list">
+                        <li class="sidebar-menu-item">
+                            <a class="sidebar-menu-link {{ request()->routeIs('student.profile') ? 'active' : '' }}"
+                                href="{{ route('student.profile', [], false) }}"
+                                @if (request()->routeIs('student.profile')) aria-current="page" @endif>
+                                <i class="bi bi-person-badge" aria-hidden="true"></i>
+                                <span>Thông tin sinh viên</span>
+                            </a>
+                        </li>
+                    </ul>
+                </section>
+
                 <section class="sidebar-menu-section" aria-labelledby="spark-learning-title">
                     <h2 class="sidebar-menu-title" id="spark-learning-title">Học tập</h2>
                     <ul class="sidebar-menu-list">
                         <li class="sidebar-menu-item">
-                            <a class="sidebar-menu-link {{ request()->routeIs('student.subjects.*') ? 'active' : '' }}"
-                                href="{{ route('student.subjects.index') }}"
-                                @if (request()->routeIs('student.subjects.*')) aria-current="page" @endif>
-                                <i class="bi bi-journal-plus" aria-hidden="true"></i>
-                                <span>Đăng ký học phần</span>
+                            <a class="sidebar-menu-link {{ request()->routeIs('student.schedule.*') ? 'active' : '' }}"
+                                href="{{ route('student.schedule.index', [], false) }}"
+                                @if (request()->routeIs('student.schedule.*')) aria-current="page" @endif>
+                                <i class="bi bi-calendar-week" aria-hidden="true"></i>
+                                <span>Lịch theo tuần</span>
                             </a>
                         </li>
                         <li class="sidebar-menu-item">
                             <a class="sidebar-menu-link {{ request()->routeIs('student.grades.*') ? 'active' : '' }}"
-                                href="{{ route('student.grades.index') }}"
+                                href="{{ route('student.grades.index', [], false) }}"
                                 @if (request()->routeIs('student.grades.*')) aria-current="page" @endif>
                                 <i class="bi bi-bar-chart-line" aria-hidden="true"></i>
                                 <span>Kết quả học tập</span>
+                            </a>
+                        </li>
+                    </ul>
+                </section>
+
+                <section class="sidebar-menu-section" aria-labelledby="spark-register-title">
+                    <h2 class="sidebar-menu-title" id="spark-register-title">Đăng ký học phần</h2>
+                    <ul class="sidebar-menu-list">
+                        <li class="sidebar-menu-item">
+                            <a class="sidebar-menu-link {{ request()->routeIs('student.curriculum.*') ? 'active' : '' }}"
+                                href="{{ route('student.curriculum.index', [], false) }}"
+                                @if (request()->routeIs('student.curriculum.*')) aria-current="page" @endif>
+                                <i class="bi bi-diagram-3" aria-hidden="true"></i>
+                                <span>Chương trình khung</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-menu-item">
+                            <a class="sidebar-menu-link {{ request()->routeIs('student.subjects.*') ? 'active' : '' }}"
+                                href="{{ route('student.subjects.index', [], false) }}"
+                                @if (request()->routeIs('student.subjects.*')) aria-current="page" @endif>
+                                <i class="bi bi-journal-plus" aria-hidden="true"></i>
+                                <span>Đăng ký môn học</span>
+                            </a>
+                        </li>
+                    </ul>
+                </section>
+
+                <section class="sidebar-menu-section" aria-labelledby="spark-tuition-title">
+                    <h2 class="sidebar-menu-title" id="spark-tuition-title">Học phí</h2>
+                    <ul class="sidebar-menu-list">
+                        <li class="sidebar-menu-item">
+                            <a class="sidebar-menu-link {{ request()->routeIs('student.tuition.*') ? 'active' : '' }}"
+                                href="{{ route('student.tuition.index', [], false) }}"
+                                @if (request()->routeIs('student.tuition.*')) aria-current="page" @endif>
+                                <i class="bi bi-credit-card-2-front" aria-hidden="true"></i>
+                                <span>Tra cứu nợ & VietQR</span>
                             </a>
                         </li>
                     </ul>
@@ -123,15 +270,20 @@
                     aria-label="Mở thanh điều hướng" aria-controls="sidebar" aria-expanded="false">
                     <i class="bi bi-list" aria-hidden="true"></i>
                 </button>
-                @if (auth()->user()->role === 'admin')
+                @if (auth()->user()->isAdmin())
                     <a class="btn-quick-action" href="{{ route('admin.students.create') }}">
                         <i class="bi bi-person-plus" aria-hidden="true"></i>
                         <span>Thêm sinh viên</span>
                     </a>
+                @elseif (auth()->user()->isLecturer())
+                    <a class="btn-quick-action" href="{{ route('lecturer.schedule.index') }}">
+                        <i class="bi bi-calendar-week" aria-hidden="true"></i>
+                        <span>Lịch giảng dạy</span>
+                    </a>
                 @else
-                    <a class="btn-quick-action" href="{{ route('student.subjects.index') }}">
-                        <i class="bi bi-journal-plus" aria-hidden="true"></i>
-                        <span>Đăng ký học phần</span>
+                    <a class="btn-quick-action" href="{{ route('student.schedule.index') }}">
+                        <i class="bi bi-calendar-week" aria-hidden="true"></i>
+                        <span>Lịch theo tuần</span>
                     </a>
                 @endif
             </div>
@@ -167,7 +319,7 @@
             @if (session('error'))
                 <div class="alert alert-danger" role="alert">{{ session('error') }}</div>
             @endif
-            @if ($errors->any())
+            @if (isset($errors) && $errors->any())
                 <div class="alert alert-danger" role="alert">
                     <ul class="mb-0">
                         @foreach ($errors->all() as $error)
@@ -191,5 +343,18 @@
     <script src="{{ asset('vendor/spark-admin/assets/libs/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
     <script src="{{ asset('js/app.js') }}"></script>
     <script src="{{ asset('js/spark-layout.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Tự động load dữ liệu ngay lập tức khi người dùng chọn bất kỳ dropdown bộ lọc nào (trừ form có class no-auto-submit)
+            document.querySelectorAll('form[method="GET"]:not(.no-auto-submit) select:not(.no-auto-submit), form select[onchange*="submit"]').forEach(function (select) {
+                // Đảm bảo không trùng lặp nếu đã có onchange inline
+                select.addEventListener('change', function () {
+                    if (this.form && !this.form.classList.contains('no-auto-submit') && !this.classList.contains('no-auto-submit')) {
+                        this.form.submit();
+                    }
+                });
+            });
+        });
+    </script>
 </body>
 </html>

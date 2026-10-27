@@ -21,12 +21,14 @@ return new class extends Migration
 
         Schema::create('users', function (Blueprint $table) {
             $table->id();
+            $table->string('username', 30)->nullable()->unique();
             $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->enum('role', ['admin', 'student'])->default('student');
-            $table->foreignId('class_id')->nullable()->constrained('classes')->cascadeOnDelete();
+            $table->string('role')->default('student');
+            $table->foreignId('class_id')->nullable()->constrained('classes')->nullOnDelete();
+            $table->boolean('is_active')->default(true);
             $table->rememberToken();
             $table->timestamps();
         });
