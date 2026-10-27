@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\AccountController;
 use App\Http\Controllers\Admin\AttendanceController;
 use App\Http\Controllers\Admin\ClassController;
 use App\Http\Controllers\Admin\CourseOfferingController;
+use App\Http\Controllers\Admin\CurriculumOfferingController;
 use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Admin\EnrollmentController as AdminEnrollmentController;
 use App\Http\Controllers\Admin\GradeController;
@@ -60,6 +61,8 @@ Route::middleware('auth')->group(function () {
         Route::resource('semesters', SemesterController::class)->except('show');
         Route::post('/semesters/{semester}/activate', [SemesterController::class, 'activate'])->name('semesters.activate');
         Route::resource('course-offerings', CourseOfferingController::class)->except('show');
+        Route::get('/course-offerings/open-by-plan', [CurriculumOfferingController::class, 'index'])->name('course-offerings.open-by-plan');
+        Route::post('/course-offerings/open-by-plan', [CurriculumOfferingController::class, 'store'])->name('course-offerings.open-by-plan.store');
         Route::resource('departments', DepartmentController::class)->except('show');
         Route::resource('majors', MajorController::class)->except('show');
         Route::get('/study-plans', [StudyPlanController::class, 'index'])->name('study-plans.index');

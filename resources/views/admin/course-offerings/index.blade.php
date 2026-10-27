@@ -6,6 +6,9 @@
     <x-page-header title="Quản lý lớp học phần"
         subtitle="Một môn có thể mở nhiều nhóm trong cùng học kỳ. Sĩ số 0 nghĩa là không giới hạn.">
         <x-slot name="actions">
+            <a class="btn btn-custom btn-custom-outline-primary" href="{{ route('admin.course-offerings.open-by-plan') }}">
+                <i class="bi bi-list-check me-1" aria-hidden="true"></i>Mở lớp theo khung
+            </a>
             <a class="btn btn-custom btn-custom-primary" href="{{ route('admin.course-offerings.create') }}">
                 <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Thêm lớp học phần
             </a>
