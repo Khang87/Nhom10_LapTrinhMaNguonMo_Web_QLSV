@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class Department extends Model
 {
-    protected $fillable = ['code', 'name'];
+    protected $fillable = ['code', 'name', 'phone', 'email', 'office', 'description'];
 
     public function majors(): HasMany
     {

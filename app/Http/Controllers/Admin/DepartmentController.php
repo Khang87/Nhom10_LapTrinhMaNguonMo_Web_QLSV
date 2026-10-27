@@ -67,6 +67,10 @@ class DepartmentController extends Controller
                 Rule::unique('departments', 'code')->ignore($department?->id),
             ],
             'name' => ['required', 'string', 'max:150'],
+            'phone' => ['nullable', 'string', 'max:20'],
+            'email' => ['nullable', 'email', 'max:100'],
+            'office' => ['nullable', 'string', 'max:150'],
+            'description' => ['nullable', 'string', 'max:2000'],
         ]);
     }
 }

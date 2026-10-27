@@ -40,7 +40,12 @@
                 <tr>
                     <td>{{ $majors->firstItem() + $loop->index }}</td>
                     <td class="table-order-id">{{ $major->code }}</td>
-                    <td class="table-product-name">{{ $major->name }}</td>
+                    <td>
+                        <div class="table-product-name">{{ $major->name }}</div>
+                        @if ($major->description)
+                            <div class="table-user-sub">{{ $major->description }}</div>
+                        @endif
+                    </td>
                     <td>{{ $major->department?->name ?? '—' }}</td>
                     <td>{{ $major->subjects_count }}</td>
                     <td>{{ $major->study_plans_count }}</td>

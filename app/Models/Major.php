@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class Major extends Model
 {
-    protected $fillable = ['department_id', 'code', 'name'];
+    protected $fillable = ['department_id', 'code', 'name', 'description'];
 
     public function department(): BelongsTo
     {

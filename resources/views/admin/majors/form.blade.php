@@ -20,4 +20,9 @@
         <input class="form-control form-control-custom" id="name" name="name" maxlength="150"
             value="{{ old('name', $major->name) }}" required>
     </div>
+    <div class="col-12">
+        <label class="form-label-custom" for="description">Mô tả chương trình</label>
+        <textarea class="form-control form-control-custom" id="description" name="description" rows="3"
+            maxlength="2000">{{ old('description', $major->description) }}</textarea>
+    </div>
 </div>

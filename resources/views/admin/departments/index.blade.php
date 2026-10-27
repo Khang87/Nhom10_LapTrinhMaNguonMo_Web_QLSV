@@ -17,6 +17,8 @@
                 <th scope="col">STT</th>
                 <th scope="col">Mã khoa</th>
                 <th scope="col">Tên khoa</th>
+                <th scope="col">Liên hệ</th>
+                <th scope="col">Nơi làm việc</th>
                 <th scope="col">Chuyên ngành</th>
                 <th scope="col">Lớp</th>
                 <th scope="col">Giảng viên</th>
@@ -38,7 +40,17 @@
                 <tr>
                     <td>{{ $departments->firstItem() + $loop->index }}</td>
                     <td class="table-order-id">{{ $department->code }}</td>
-                    <td class="table-product-name">{{ $department->name }}</td>
+                    <td>
+                        <div class="table-product-name">{{ $department->name }}</div>
+                        @if ($department->description)
+                            <div class="table-user-sub">{{ $department->description }}</div>
+                        @endif
+                    </td>
+                    <td>
+                        <div>{{ $department->phone ?? '—' }}</div>
+                        <div class="table-user-sub">{{ $department->email }}</div>
+                    </td>
+                    <td class="table-user-sub">{{ $department->office ?? 'Chưa xác định' }}</td>
                     <td>{{ $department->majors_count }}</td>
                     <td>{{ $department->classes_count }}</td>
                     <td>{{ $department->teachers_count }}</td>
@@ -54,7 +66,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="8" class="text-center py-5">
+                    <td colspan="10" class="text-center py-5">
                         <div class="empty-state-icon bi bi-inbox" aria-hidden="true"></div>
                         <div class="table-user-sub">Chưa có khoa nào.</div>
                     </td>

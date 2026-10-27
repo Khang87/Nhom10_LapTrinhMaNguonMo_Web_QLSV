@@ -85,6 +85,7 @@ class MajorController extends Controller
                 Rule::unique('majors', 'code')->ignore($major?->id),
             ],
             'name' => ['required', 'string', 'max:150'],
+            'description' => ['nullable', 'string', 'max:2000'],
         ]);
     }
 }
