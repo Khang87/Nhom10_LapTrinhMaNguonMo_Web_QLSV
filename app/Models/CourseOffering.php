@@ -51,6 +51,16 @@ class CourseOffering extends Model
         return $this->hasMany(LectureSlot::class);
     }
 
+    public function attendanceSessions(): HasMany
+    {
+        return $this->hasMany(AttendanceSession::class);
+    }
+
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(Attendance::class);
+    }
+
     public function grades(): HasMany
     {
         return $this->hasMany(Grade::class, 'course_offering_id');

@@ -63,7 +63,6 @@ class EnrollmentContext
 
     /**
      * Ngữ cảnh cho quy tắc hủy: cổng của lớp và dữ liệu điểm danh/điểm đã có hay chưa.
-     * Điểm danh vẫn khóa theo môn (Wave 7 mới re-key theo lớp học phần).
      *
      * @return array{gate_open: bool, has_record: bool}
      */
@@ -76,9 +75,7 @@ class EnrollmentContext
             'has_record' => Grade::where('user_id', $enrollment->user_id)
                 ->where('course_offering_id', $enrollment->course_offering_id)
                 ->exists()
-                || Attendance::where('user_id', $enrollment->user_id)
-                    ->where('subject_id', $enrollment->offering?->subject_id)
-                    ->exists(),
+                || Attendance::where('enrollment_id', $enrollment->id)->exists(),
         ];
     }
 

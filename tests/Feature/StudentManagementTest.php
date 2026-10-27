@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Attendance;
 use App\Models\Enrollment;
 use App\Models\StudentClass;
 use App\Models\User;
@@ -179,48 +180,25 @@ class StudentManagementTest extends TestCase
         $this->get('/admin/grades')->assertOk()->assertSee('Môn MATH101');
     }
 
-    public function test_admin_can_record_attendance_for_a_student(): void
+    public function test_admin_sees_the_attendance_of_a_day_on_the_report(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $student = User::factory()->create(['role' => 'student']);
         $subject = $this->subject('NET101');
         $offering = $this->offering($subject, $this->semester(), 'TN01');
-        $this->enroll($student, $offering);
+        $enrollment = $this->enroll($student, $offering);
+        $this->attend($enrollment, '2026-10-20');
 
-        $this->actingAs($admin)->post('/admin/attendances', [
-            'date' => '2026-10-20',
-            'attendances' => [
-                $student->id => [
-                    $subject->id => 'present',
-                ],
-            ],
-        ])->assertRedirect('/admin/attendances?date=2026-10-20');
-
-        $this->assertDatabaseHas('attendances', [
-            'user_id' => $student->id,
-            'subject_id' => $subject->id,
-            'date' => '2026-10-20 00:00:00',
-            'status' => 'present',
-        ]);
-        $this->post('/admin/attendances', [
-            'date' => '2026-10-20',
-            'attendances' => [
-                $student->id => [
-                    $subject->id => 'absent',
-                ],
-            ],
-        ])->assertRedirect('/admin/attendances?date=2026-10-20');
-
-        $this->assertDatabaseCount('attendances', 1);
-        $this->assertDatabaseHas('attendances', [
-            'user_id' => $student->id,
-            'subject_id' => $subject->id,
-            'date' => '2026-10-20 00:00:00',
-            'status' => 'absent',
-        ]);
-        $this->get('/admin/attendances?date=2026-10-20')
+        $this->actingAs($admin)->get('/admin/attendances?date=2026-10-20')
             ->assertOk()
             ->assertSee('NET101')
+            ->assertSee('Có mặt');
+
+        $this->attend($enrollment, '2026-10-20', Attendance::ABSENT);
+        $this->assertSame(1, Attendance::count());
+
+        $this->actingAs($admin)->get('/admin/attendances?date=2026-10-20')
+            ->assertOk()
             ->assertSee('Vắng');
     }
 
@@ -294,13 +272,9 @@ class StudentManagementTest extends TestCase
         ]);
         $student->update(['class_id' => $class->id]);
         $offering = $this->offering($this->subject('WEB101'), $this->semester(), 'TN01');
-        $this->enroll($student, $offering);
+        $enrollment = $this->enroll($student, $offering);
         $this->grade($student, $offering, 8.5);
-        $student->attendances()->create([
-            'subject_id' => $offering->subject_id,
-            'date' => '2026-10-20',
-            'status' => 'present',
-        ]);
+        $this->attend($enrollment, '2026-10-20');
 
         $this->actingAs($student)->get('/student/dashboard')
             ->assertOk()

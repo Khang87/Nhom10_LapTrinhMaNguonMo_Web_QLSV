@@ -136,13 +136,8 @@ class ExtendedRequirementsTest extends TestCase
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $student = User::factory()->create(['role' => 'student', 'name' => 'Lê Hai']);
-        $subject = Subject::create(['code' => 'CS2', 'name' => 'Cơ số 2', 'credits' => 2]);
-        Attendance::create([
-            'user_id' => $student->id,
-            'subject_id' => $subject->id,
-            'date' => '2026-10-21',
-            'status' => 'absent',
-        ]);
+        $offering = $this->offering(Subject::create(['code' => 'CS2', 'name' => 'Cơ số 2', 'credits' => 2]), $this->semester());
+        $this->attend($this->enroll($student, $offering), '2026-10-21', Attendance::ABSENT);
 
         $response = $this->actingAs($admin)->get('/admin/attendances/export?date=2026-10-21');
 

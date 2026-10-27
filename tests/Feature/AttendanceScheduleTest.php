@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\Attendance;
+use App\Models\AttendanceSession;
 use App\Models\LectureSlot;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -103,5 +105,30 @@ class AttendanceScheduleTest extends TestCase
 
         $this->assertNull($openEnded->starts_on);
         $this->assertNull($openEnded->ends_on);
+    }
+
+    public function test_attending_the_same_session_twice_updates_instead_of_duplicating(): void
+    {
+        $offering = $this->singleOffering('TKB01');
+        $enrollment = $this->enroll($this->student('Nguyễn Văn A'), $offering);
+
+        $this->attend($enrollment, '2026-10-20');
+        $this->attend($enrollment, '2026-10-20', Attendance::ABSENT);
+
+        $this->assertSame(1, Attendance::count());
+        $this->assertSame(1, AttendanceSession::count());
+        $this->assertSame(Attendance::ABSENT, Attendance::firstOrFail()->status);
+    }
+
+    public function test_one_session_line_per_student_of_the_class(): void
+    {
+        $offering = $this->singleOffering('TKB01');
+
+        foreach (range(1, 15) as $number) {
+            $this->attend($this->enroll($this->student('Sinh viên '.$number), $offering), '2026-10-20');
+        }
+
+        $this->assertSame(15, Attendance::count());
+        $this->assertSame(15, $offering->attendanceSessions()->firstOrFail()->records()->count());
     }
 }

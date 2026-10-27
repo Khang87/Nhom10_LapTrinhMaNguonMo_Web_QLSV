@@ -22,11 +22,6 @@ class Subject extends Model
         return "{$this->code} - {$this->name}";
     }
 
-    public function attendances(): HasMany
-    {
-        return $this->hasMany(Attendance::class);
-    }
-
     public function grades(): HasMany
     {
         return $this->hasMany(Grade::class);

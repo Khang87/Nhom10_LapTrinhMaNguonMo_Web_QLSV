@@ -278,7 +278,7 @@ class EnrollmentTest extends TestCase
         $offering = $this->offering($subject, $gate);
         $student = $this->student();
         $enrollment = $this->enroll($student, $offering);
-        Attendance::create(['user_id' => $student->id, 'subject_id' => $subject->id, 'date' => '2026-01-05', 'status' => 'present']);
+        $this->attend($enrollment, '2026-01-05');
         $this->grade($student, $offering, 9.0);
 
         $this->actingAs($student)

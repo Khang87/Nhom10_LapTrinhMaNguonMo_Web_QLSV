@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
@@ -165,9 +166,13 @@ class User extends Authenticatable
             ->values();
     }
 
-    public function attendances(): HasMany
+    /**
+     * Các lượt điểm danh của sinh viên, đi qua bảng đăng ký (SPEC-attendance-schedule:
+     * attendances được khóa theo enrollment, không còn theo môn).
+     */
+    public function attendances(): HasManyThrough
     {
-        return $this->hasMany(Attendance::class);
+        return $this->hasManyThrough(Attendance::class, Enrollment::class, 'user_id', 'enrollment_id');
     }
 
     public function grades(): HasMany

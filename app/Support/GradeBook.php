@@ -88,11 +88,11 @@ final class GradeBook
      */
     public static function attendanceRate(User $student): ?float
     {
-        $total = Attendance::where('user_id', $student->id)->count();
+        $total = $student->attendances()->count();
 
         return $total === 0
             ? null
-            : round(Attendance::where('user_id', $student->id)->where('status', 'present')->count() / $total * 100, 1);
+            : round($student->attendances()->where('attendances.status', Attendance::PRESENT)->count() / $total * 100, 1);
     }
 
     /**

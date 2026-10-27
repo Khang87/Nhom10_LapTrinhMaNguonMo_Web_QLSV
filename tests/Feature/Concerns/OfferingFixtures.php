@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Concerns;
 
+use App\Models\Attendance;
+use App\Models\AttendanceSession;
 use App\Models\CourseOffering;
 use App\Models\Department;
 use App\Models\Enrollment;
@@ -113,6 +115,23 @@ trait OfferingFixtures
         return Enrollment::updateOrCreate(
             ['course_offering_id' => $offering->id, 'user_id' => $student->id],
             ['status' => 'ACTIVE', 'dropped_at' => null],
+        );
+    }
+
+    /**
+     * Ghi một lượt điểm danh của một đăng ký trong một buổi: (lớp, ngày) thành một
+     * attendance_session nếu chưa có, dòng điểm danh upsert theo (buổi, đăng ký).
+     */
+    protected function attend(Enrollment $enrollment, string $date, string $status = Attendance::PRESENT): Attendance
+    {
+        $session = AttendanceSession::updateOrCreate(
+            ['course_offering_id' => $enrollment->course_offering_id, 'session_date' => $date],
+            ['recorded_by' => CourseOffering::find($enrollment->course_offering_id)?->teacher_id],
+        );
+
+        return Attendance::updateOrCreate(
+            ['attendance_session_id' => $session->id, 'enrollment_id' => $enrollment->id],
+            ['course_offering_id' => $enrollment->course_offering_id, 'status' => $status],
         );
     }
 

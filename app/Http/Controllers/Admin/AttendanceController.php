@@ -4,62 +4,47 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
-use App\Models\Enrollment;
-use App\Models\Subject;
-use App\Models\User;
+use App\Models\AttendanceSession;
 use App\Support\Csv;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
+/**
+ * Điểm danh là thao tác của giảng viên (SPEC-attendance-schedule 7.4); trang admin chỉ đọc
+ * và xuất báo cáo, nên ở đây không còn form ghi.
+ */
 class AttendanceController extends Controller
 {
     public function index(Request $request): View
     {
-        $date = $request->query('date', today()->toDateString());
-        validator(['date' => $date], ['date' => ['required', 'date']])->validate();
-
-        $records = Attendance::with(['user', 'subject'])
-            ->whereDate('date', $date)
-            ->orderBy('subject_id')
-            ->orderBy('user_id')
-            ->get();
-
-        $students = User::where('role', 'student')->with('offerings.subject')->orderBy('name')->get();
+        $date = $this->date($request);
+        $sessions = $this->sessionsOn($date);
 
         return view('admin.attendances.index', [
             'date' => $date,
-            'students' => $students,
-            'subjects' => Subject::orderBy('code')->get(),
-            'records' => $records,
-            'presentCount' => $records->where('status', 'present')->count(),
-            'absentCount' => $records->where('status', 'absent')->count(),
+            'sessions' => $sessions,
+            'presentCount' => $this->countByStatus($sessions, Attendance::PRESENT),
+            'absentCount' => $this->countByStatus($sessions, Attendance::ABSENT),
         ]);
     }
 
     public function export(Request $request): Response
     {
-        $date = $request->query('date', today()->toDateString());
-        validator(['date' => $date], ['date' => ['required', 'date']])->validate();
-
-        $rows = Attendance::with(['user', 'subject'])
-            ->whereDate('date', $date)
-            ->orderBy('subject_id')
-            ->orderBy('user_id')
-            ->get()
-            ->map(fn (Attendance $record) => [
-                $record->user->name,
-                $record->user->email,
-                $record->subject->code,
-                $record->subject->name,
-                Carbon::parse($record->date)->format('d/m/Y'),
-                $record->status === 'present' ? 'Có mặt' : 'Vắng',
-            ]);
+        $date = $this->date($request);
+        $rows = $this->sessionsOn($date)
+            ->flatMap(fn (AttendanceSession $session) => $session->records
+                ->map(fn (Attendance $record) => [
+                    $record->enrollment?->user?->name ?? '(đã xóa)',
+                    $record->enrollment?->user?->email ?? '',
+                    $session->offering?->subject?->code ?? '',
+                    $session->offering?->subject?->name ?? '',
+                    $session->session_date->format('d/m/Y'),
+                    $record->statusLabel(),
+                ]))
+            ->all();
 
         return Csv::download(
             'diem-danh-'.Carbon::parse($date)->toDateString().'.csv',
@@ -68,51 +53,36 @@ class AttendanceController extends Controller
         );
     }
 
-    public function store(Request $request): RedirectResponse
+    /**
+     * Các buổi của một ngày kèm lớp, người điểm danh và từng dòng điểm danh.
+     *
+     * @return Collection<int, AttendanceSession>
+     */
+    private function sessionsOn(string $date): Collection
     {
-        $data = $request->validate([
-            'date' => ['required', 'date'],
-            'attendances' => ['nullable', 'array'],
-            'attendances.*' => ['array'],
-            'attendances.*.*' => ['nullable', Rule::in(['present', 'absent'])],
-        ]);
-        $attendanceDate = Carbon::parse($data['date'])->startOfDay();
+        return AttendanceSession::with([
+            'offering.subject',
+            'recorder',
+            'records.enrollment.user',
+        ])
+            ->whereDate('session_date', $date)
+            ->orderBy('course_offering_id')
+            ->get();
+    }
 
-        DB::transaction(function () use ($data, $attendanceDate) {
-            foreach ($data['attendances'] ?? [] as $studentId => $subjects) {
-                $student = User::where('role', 'student')->findOrFail($studentId);
+    /**
+     * @param  Collection<int, AttendanceSession>  $sessions
+     */
+    private function countByStatus(Collection $sessions, string $status): int
+    {
+        return $sessions->sum(fn (AttendanceSession $session) => $session->records->where('status', $status)->count());
+    }
 
-                foreach ($subjects as $subjectId => $status) {
-                    if ($status === null || $status === '') {
-                        continue;
-                    }
+    private function date(Request $request): string
+    {
+        $date = $request->query('date', today()->toDateString());
+        validator(['date' => $date], ['date' => ['required', 'date']])->validate();
 
-                    $subject = Subject::findOrFail($subjectId);
-
-                    $enrolled = Enrollment::where('user_id', $student->id)
-                        ->where('status', 'ACTIVE')
-                        ->whereHas('offering', fn ($query) => $query->where('subject_id', $subject->id))
-                        ->exists();
-
-                    if (! $enrolled) {
-                        throw ValidationException::withMessages([
-                            'attendances' => "Sinh viên {$student->name} chưa đăng ký {$subject->name}.",
-                        ]);
-                    }
-
-                    Attendance::updateOrCreate(
-                        [
-                            'user_id' => $student->id,
-                            'subject_id' => $subject->id,
-                            'date' => $attendanceDate,
-                        ],
-                        ['status' => $status],
-                    );
-                }
-            }
-        });
-
-        return redirect()->route('admin.attendances.index', ['date' => $attendanceDate->toDateString()])
-            ->with('success', 'Đã lưu điểm danh.');
+        return $date;
     }
 }

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class LectureSlot extends Model
 {
@@ -42,6 +43,11 @@ class LectureSlot extends Model
     public function offering(): BelongsTo
     {
         return $this->belongsTo(CourseOffering::class, 'course_offering_id');
+    }
+
+    public function sessions(): HasMany
+    {
+        return $this->hasMany(AttendanceSession::class);
     }
 
     /** Nhãn hiển thị: "Thứ 3 · 07:00–09:00". */

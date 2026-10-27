@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Attendance;
 use App\Models\Department;
 use App\Models\Major;
 use App\Models\StudentClass;
@@ -81,7 +82,7 @@ class StudentController extends Controller
 
         return view('admin.students.show', [
             'student' => $student,
-            'presentCount' => $student->attendances->where('status', 'present')->count(),
+            'presentCount' => $student->attendances->where('status', Attendance::PRESENT)->count(),
             'review' => GradeBook::review($student),
         ]);
     }

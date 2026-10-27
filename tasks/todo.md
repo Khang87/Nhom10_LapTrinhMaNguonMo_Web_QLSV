@@ -527,16 +527,48 @@ Quy ước branch/commit: một commit cho mỗi task, message tiếng Việt th
 
 ## Wave 7 — `attendance-schedule`
 
-- [ ] 7.1 Migration `lecture_slots`
+- [x] 7.1 Migration `lecture_slots`
   - Acceptance: một offering có 2 slot Thứ 3 + Thứ 5; unique `(offering, week_day, start_time)`.
   - Verify: `php artisan test --filter=AttendanceScheduleTest`.
   - Files: `database/migrations/*_create_lecture_slots.php`, `app/Models/LectureSlot.php`
+  - Done 2026-10-27: `2026_11_07_000001_create_lecture_slots_table.php` đúng schema spec
+    (week_day tinyint, start/end time, room 50, starts_on/ends_on nullable, unique `slot_unique`);
+    `LectureSlot` có `WEEK_DAYS`, `label()` ("Thứ 3 · 07:00–09:30"), `weekDayLabel()`,
+    `timeRange()`; `CourseOffering::lectureSlots()`.
+  - Evidence: `test_a_class_can_hold_several_weekly_slots` (2 slot Thứ 3 + Thứ 5),
+    `test_the_same_day_and_start_time_is_taken_once_per_class`
+    (UniqueConstraintViolationException), `test_two_classes_share_the_same_slot_time`
+    (unique chỉ chặn trong phạm vi một lớp), `test_a_slot_can_be_limited_to_a_range_of_weeks`.
+  - Deviation: spec ghi "2=Thứ 2 ... 7=Chủ nhật" nhưng cũng yêu cầu lưới "6 cột Thứ 2–Thứ 7";
+    hai câu này mâu nhau nên chốt theo mã 2 = Thứ 2 ... 7 = Thứ 7 (6 ngày, không xếp lịch Chủ
+    nhật) — đúng với "ISO, bỏ 1" và đúng với số cột lưới.
 
-- [ ] 7.2 Migration `attendance_sessions` + re-key `attendances`
+- [x] 7.2 Migration `attendance_sessions` + re-key `attendances`
   - Acceptance: 16 dòng cũ thành `(session, enrollment)`; điểm danh lại cùng buổi ⇒ update,
     không tăng số dòng.
   - Verify: `php artisan test --filter=AttendanceScheduleTest` + tinker đếm 16.
   - Files: migration, `app/Models/{AttendanceSession,Attendance}.php`
+  - Done 2026-10-27: `2026_11_07_000002` tạo `attendance_sessions` (unique `session_date_unique`
+    theo (lớp, ngày)); `2026_11_07_000003` đọc toàn bộ dòng cũ, dựng buổi học theo
+    (lớp của đăng ký, ngày), ghi lại thành `(session, enrollment)` với `status` in hoa, rồi
+    tạo lại bảng `attendances` theo schema mới (FK cascade, unique `attendance_session_student_unique`)
+    và có `down()` khôi phục shape cũ. Model `Attendance` có hằng số `PRESENT`/`ABSENT`,
+    `STATUS_LABELS`, `isPresent()`, `statusLabel()`; `AttendanceSession` có `offering`, `slot`,
+    `recorder`, `records`. Người dùng đọc qua `User::attendances()` (hasManyThrough enrollments),
+    `Enrollment::attendances()`, `CourseOffering::attendances()`; bỏ `Subject::attendances()`.
+    Trang admin thành báo cáo đọc (index + CSV theo ngày), bỏ route POST `/admin/attendances`
+    vì điểm danh thuộc giảng viên (7.4); `EnrollmentContext::forDrop()` khóa hủy theo
+    `enrollment_id`.
+  - Evidence: DB dev chạy migration — 16 dòng cũ thành 15 dòng mới trên 3 buổi (1 dòng bị loại
+    vì sinh viên đó không còn đăng ký môn, `enrollment_id` là FK bắt buộc); vấn tin
+    `group by status` ⇒ 11 PRESENT / 4 ABSENT. `/admin/attendances?date=2026-10-26` render
+    "Điểm danh trong ngày (3 buổi)", `/admin/students/4` còn "Có mặt 2/3 buổi",
+    `/student/dashboard` còn 2/1. `test_one_session_line_per_student_of_the_class` dựng đúng
+    15 dòng cho một buổi; `test_attending_the_same_session_twice_updates_instead_of_duplicating`
+    chốt số dòng không tăng. Toàn bộ 190 test xanh.
+  - Deviation: `recorded_by` để nullable + nullOnDelete (spec để bắt buộc) vì dòng di cư từ dữ
+    liệu cũ không có giảng viên nào ghi nhận, và xóa tài khoản không được xóa luôn lịch sử
+    điểm danh.
 
 - [ ] 7.3 `AttendanceRate` + unit test
   - Acceptance: 1 vắng/4 buổi ⇒ 75%; chưa buổi nào ⇒ `null` (UI "Chưa có dữ liệu").

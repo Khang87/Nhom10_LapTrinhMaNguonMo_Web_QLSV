@@ -75,7 +75,6 @@ Route::middleware('auth')->group(function () {
         Route::delete('/grades/{grade}', [GradeController::class, 'destroy'])->name('grades.destroy');
         Route::get('/attendances', [AttendanceController::class, 'index'])->name('attendances.index');
         Route::get('/attendances/export', [AttendanceController::class, 'export'])->name('attendances.export');
-        Route::post('/attendances', [AttendanceController::class, 'store'])->name('attendances.store');
         Route::get('/enrollments', [AdminEnrollmentController::class, 'index'])->name('enrollments.index');
         Route::get('/enrollments/export', [AdminEnrollmentController::class, 'export'])->name('enrollments.export');
         Route::post('/enrollments', [AdminEnrollmentController::class, 'store'])->name('enrollments.store');
