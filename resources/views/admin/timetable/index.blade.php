@@ -44,10 +44,8 @@
         </div>
     @else
         <div class="table-header-control d-flex justify-content-end">
-            <a class="btn btn-custom btn-custom-sm btn-custom-outline-primary"
-                href="{{ route('admin.timetable.export', ['semester_id' => $semester?->id, 'offering_id' => $offering?->id]) }}">
-                <i class="bi bi-download me-1" aria-hidden="true"></i>Tải CSV
-            </a>
+            <x-export-buttons route="admin.timetable.export"
+                :query="array_filter(['semester_id' => $semester?->id, 'offering_id' => $offering?->id])" />
         </div>
 
         <x-timetable-grid :grid="$grid" :title="$offering?->label()" />

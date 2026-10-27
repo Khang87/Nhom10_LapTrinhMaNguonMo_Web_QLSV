@@ -5,12 +5,12 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
 use App\Models\AttendanceSession;
-use App\Support\Csv;
+use App\Support\ReportFormats;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Điểm danh là thao tác của giảng viên (SPEC-attendance-schedule 7.4); trang admin chỉ đọc
@@ -34,6 +34,15 @@ class AttendanceController extends Controller
     public function export(Request $request): Response
     {
         $date = $this->date($request);
+
+        return ReportFormats::download($request, 'diem-danh-'.$date, $this->report($date));
+    }
+
+    /**
+     * @return array{title: string, header: list<string>, rows: list<list<mixed>>}
+     */
+    private function report(string $date): array
+    {
         $rows = $this->sessionsOn($date)
             ->flatMap(fn (AttendanceSession $session) => $session->records
                 ->map(fn (Attendance $record) => [
@@ -46,11 +55,11 @@ class AttendanceController extends Controller
                 ]))
             ->all();
 
-        return Csv::download(
-            'diem-danh-'.Carbon::parse($date)->toDateString().'.csv',
-            ['Sinh viên', 'Email', 'Mã môn', 'Môn học', 'Ngày', 'Trạng thái'],
-            $rows
-        );
+        return [
+            'title' => 'Điểm danh ngày '.Carbon::parse($date)->format('d/m/Y'),
+            'header' => ['Sinh viên', 'Email', 'Mã môn', 'Môn học', 'Ngày', 'Trạng thái'],
+            'rows' => $rows,
+        ];
     }
 
     /**

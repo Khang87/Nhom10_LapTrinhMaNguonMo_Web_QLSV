@@ -9,15 +9,15 @@ use App\Models\Enrollment;
 use App\Models\Grade;
 use App\Models\Semester;
 use App\Models\User;
-use App\Support\Csv;
 use App\Support\GradeBook;
 use App\Support\GradingScale;
+use App\Support\ReportFormats;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * SCREEN ĐIỂM CỦA QUẢN TRỊ VIÊN: sửa hộ khi giảng viên nhập nhầm, lọc theo kỳ/khoa và xem
@@ -51,6 +51,17 @@ class GradeController extends Controller
 
     public function export(Request $request): Response
     {
+        return ReportFormats::download($request, 'diem-'.today()->toDateString(), $this->report($request));
+    }
+
+    /**
+     * Bảng điểm dưới dạng ba hàng cột dùng chung cho CSV, Excel và PDF, nên một lần lọc ra
+     * cùng những dòng này cho cả ba file.
+     *
+     * @return array{title: string, header: list<string>, rows: list<list<mixed>>}
+     */
+    private function report(Request $request): array
+    {
         // Điểm viết ra CSV dùng dấu phẩy thập phân kiểu Việt Nam để Excel mở là hiểu ngay.
         $score = fn (float|string|null $value): string => $value === null ? '' : number_format((float) $value, 2, ',', '');
 
@@ -76,18 +87,18 @@ class GradeController extends Controller
                     $grade->updated_at?->format('d/m/Y H:i'),
                 ],
             );
-        });
+        })->all();
 
         $headers = ['Sinh viên', 'Mã SV', 'Mã môn', 'Môn học', 'Nhóm', 'Học kỳ', 'Tín chỉ'];
         foreach (GradingScale::components() as $component) {
             $headers[] = $component['label'].' ('.$component['weight'].'%)';
         }
 
-        return Csv::download(
-            'diem-'.today()->toDateString().'.csv',
-            [...$headers, 'Tổng kết', 'Chữ', 'Hệ 4', 'Trạng thái', 'Cập nhật lúc'],
-            $rows
-        );
+        return [
+            'title' => 'Bảng điểm',
+            'header' => [...$headers, 'Tổng kết', 'Chữ', 'Hệ 4', 'Trạng thái', 'Cập nhật lúc'],
+            'rows' => $rows,
+        ];
     }
 
     public function store(Request $request): RedirectResponse

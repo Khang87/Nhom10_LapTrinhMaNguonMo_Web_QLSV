@@ -6,12 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\CourseOffering;
 use App\Models\LectureSlot;
 use App\Models\Semester;
-use App\Support\Csv;
+use App\Support\ReportFormats;
 use App\Support\TimetableService;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Trang thời khóa biểu của quản trị viên: chọn một lớp học phần để xem lưới tuần và tải CSV.
@@ -35,6 +35,18 @@ class TimetableController extends Controller
     {
         [, , $offering] = $this->selection($request);
 
+        return ReportFormats::download(
+            $request,
+            'thoi-khoa-bieu-'.($offering?->semester?->slug ?? 'khong-ky').'-'.($offering?->group_code ?? 'lop'),
+            $this->report($offering)
+        );
+    }
+
+    /**
+     * @return array{title: string, header: list<string>, rows: list<list<mixed>>}
+     */
+    private function report(?CourseOffering $offering): array
+    {
         $rows = $this->slots($offering)->map(fn (LectureSlot $slot) => [
             $slot->weekDayLabel(),
             $slot->timeRange(),
@@ -46,11 +58,11 @@ class TimetableController extends Controller
             $slot->offering?->semester?->slug ?? '',
         ])->all();
 
-        return Csv::download(
-            'thoi-khoa-bieu-'.($offering?->semester?->slug ?? 'khong-ky').'-'.($offering?->group_code ?? 'lop').'.csv',
-            ['Ngày', 'Giờ', 'Mã môn', 'Môn học', 'Nhóm', 'Phòng', 'Giảng viên', 'Học kỳ'],
-            $rows
-        );
+        return [
+            'title' => 'Thời khóa biểu '.($offering?->label() ?? ''),
+            'header' => ['Ngày', 'Giờ', 'Mã môn', 'Môn học', 'Nhóm', 'Phòng', 'Giảng viên', 'Học kỳ'],
+            'rows' => $rows,
+        ];
     }
 
     /**

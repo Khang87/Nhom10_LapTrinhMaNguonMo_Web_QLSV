@@ -232,6 +232,58 @@ class ReportingTest extends TestCase
         $mine->assertDontSee('name="department_id"', false);
     }
 
+    public function test_grades_and_attendance_screens_offer_the_same_three_formats_as_reports(): void
+    {
+        $fixture = $this->fixture();
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)->get('/admin/grades')->assertOk()
+            ->assertSee('Xuất Excel')->assertSee('Xuất PDF')->assertSee('Tải CSV');
+        $this->actingAs($admin)->get('/admin/attendances?date=2026-01-12')->assertOk()
+            ->assertSee('Xuất Excel')->assertSee('Xuất PDF')->assertSee('Tải CSV');
+    }
+
+    public function test_the_two_legacy_exports_still_answer_csv_when_no_format_is_asked(): void
+    {
+        $fixture = $this->fixture();
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $grades = $this->actingAs($admin)->get('/admin/grades/export?semester_id='.$fixture['semester']->id);
+        $grades->assertOk()
+            ->assertHeader('Content-Type', 'text/csv; charset=UTF-8')
+            ->assertDownload('diem-'.today()->toDateString().'.csv');
+        $this->assertStringStartsWith("\xEF\xBB\xBF", $grades->getContent());
+        $this->assertStringContainsString('Lưu An', $grades->getContent());
+
+        $attendance = $this->actingAs($admin)->get('/admin/attendances/export?date=2026-01-12');
+        $attendance->assertOk()->assertDownload('diem-danh-2026-01-12.csv');
+        $this->assertStringContainsString('Vắng', $attendance->getContent());
+    }
+
+    public function test_excel_and_pdf_of_the_legacy_screens_are_real_files_of_the_same_numbers(): void
+    {
+        $fixture = $this->fixture();
+        $admin = User::factory()->create(['role' => 'admin']);
+        $today = today()->toDateString();
+
+        $signature = ['xlsx' => 'PK', 'pdf' => '%PDF'];
+        $targets = [
+            '/admin/grades/export?semester_id='.$fixture['semester']->id => 'diem-'.$today,
+            '/admin/attendances/export?date=2026-01-12' => 'diem-danh-2026-01-12',
+        ];
+
+        foreach ($targets as $url => $basename) {
+            foreach ($signature as $format => $bytes) {
+                $response = $this->actingAs($admin)->get($url.'&format='.$format);
+                $response->assertOk()->assertDownload($basename.'.'.$format);
+                $content = $format === 'xlsx' ? $response->streamedContent() : $response->getContent();
+                $this->assertStringStartsWith($bytes, $content, "File {$basename}.{$format} không đúng định dạng thật.");
+            }
+
+            $this->actingAs($admin)->get($url.'&format=docx')->assertNotFound();
+        }
+    }
+
     /**
      * Bảy sinh viên, hai lớp học phần, điểm và điểm danh đã biết trước:
      * WEB101 (3 TC) có sáu điểm công bố + một dòng chưa công bố, HTT101 (2 TC) có hai điểm.

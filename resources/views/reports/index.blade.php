@@ -12,21 +12,12 @@
             default => (string) $value,
         };
         $percent = fn (int $index): bool => str_contains($report['header'][$index], '(%)');
-        $exportUrl = fn (string $format) => route("{$routeBase}.export", array_merge(request()->query(), ['type' => $type, 'format' => $format]));
     @endphp
 
     <x-page-header title="Thống kê & báo cáo"
         subtitle="Một bộ lọc dùng chung cho bốn bảng số; mọi con số tính lại từ dữ liệu đào tạo, không qua bảng trung gian.">
         <x-slot name="actions">
-            <a class="btn btn-custom btn-custom-outline-primary" href="{{ $exportUrl('xlsx') }}">
-                <i class="bi bi-file-earmark-excel me-1" aria-hidden="true"></i>Xuất Excel
-            </a>
-            <a class="btn btn-custom btn-custom-outline-primary" href="{{ $exportUrl('pdf') }}">
-                <i class="bi bi-file-earmark-pdf me-1" aria-hidden="true"></i>Xuất PDF
-            </a>
-            <a class="btn btn-custom btn-custom-light" href="{{ $exportUrl('csv') }}">
-                <i class="bi bi-download me-1" aria-hidden="true"></i>Tải CSV
-            </a>
+            <x-export-buttons :route="$routeBase.'.export'" :query="array_merge(request()->query(), ['type' => $type])" />
         </x-slot>
     </x-page-header>
 

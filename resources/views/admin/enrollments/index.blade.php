@@ -6,9 +6,7 @@
     <x-page-header title="Quản lý đăng ký học phần"
         subtitle="Mỗi đăng ký đều ghi lại người thực hiện. Hủy hộ không xóa điểm hay điểm danh đã có.">
         <x-slot name="actions">
-            <a class="btn btn-custom btn-custom-outline-primary" href="{{ route('admin.enrollments.export') }}">
-                <i class="bi bi-download me-1" aria-hidden="true"></i>Tải CSV
-            </a>
+            <x-export-buttons route="admin.enrollments.export" :query="request()->query()" />
         </x-slot>
     </x-page-header>
 

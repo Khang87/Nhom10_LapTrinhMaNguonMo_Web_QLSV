@@ -7,13 +7,13 @@ use App\Models\CourseOffering;
 use App\Models\Enrollment;
 use App\Models\Semester;
 use App\Models\User;
-use App\Support\Csv;
 use App\Support\EnrollmentRegistrar;
+use App\Support\ReportFormats;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Response;
 
 class EnrollmentController extends Controller
 {
@@ -31,6 +31,18 @@ class EnrollmentController extends Controller
 
     public function export(Request $request): Response
     {
+        return ReportFormats::download(
+            $request,
+            'dang-ky-hoc-phan-'.today()->toDateString(),
+            $this->report($request)
+        );
+    }
+
+    /**
+     * @return array{title: string, header: list<string>, rows: list<list<mixed>>}
+     */
+    private function report(Request $request): array
+    {
         $rows = $this->filtered($request)->get()->map(fn (Enrollment $enrollment) => [
             $enrollment->user->name,
             $enrollment->user->person_code,
@@ -41,13 +53,13 @@ class EnrollmentController extends Controller
             $enrollment->status,
             $enrollment->registeredByLabel(),
             $enrollment->dropped_at?->format('d/m/Y H:i'),
-        ]);
+        ])->all();
 
-        return Csv::download(
-            'dang-ky-hoc-phan-'.today()->toDateString().'.csv',
-            ['Sinh viên', 'Mã SV', 'Mã môn', 'Môn học', 'Nhóm', 'Học kỳ', 'Trạng thái', 'Người thực hiện', 'Ngày hủy'],
-            $rows
-        );
+        return [
+            'title' => 'Danh sách đăng ký học phần',
+            'header' => ['Sinh viên', 'Mã SV', 'Mã môn', 'Môn học', 'Nhóm', 'Học kỳ', 'Trạng thái', 'Người thực hiện', 'Ngày hủy'],
+            'rows' => $rows,
+        ];
     }
 
     /**

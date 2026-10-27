@@ -2,7 +2,11 @@
 @section('title', 'Điểm danh và báo cáo')
 @section('content')
     <x-page-header title="Điểm danh và báo cáo"
-        subtitle="Giảng viên điểm danh trên lớp của mình; trang này xem lại và xuất báo cáo theo ngày." />
+        subtitle="Giảng viên điểm danh trên lớp của mình; trang này xem lại và xuất báo cáo theo ngày.">
+        <x-slot name="actions">
+            <x-export-buttons route="admin.attendances.export" :query="['date' => $date]" />
+        </x-slot>
+    </x-page-header>
 
     <div class="card">
         <form class="row g-2 align-items-end" method="GET" action="{{ route('admin.attendances.index') }}">
@@ -18,10 +22,6 @@
         Ngày {{ \Illuminate\Support\Carbon::parse($date)->format('d/m/Y') }}:
         <x-status-badge tone="success">Có mặt: {{ $presentCount }}</x-status-badge>
         <x-status-badge tone="failed">Vắng: {{ $absentCount }}</x-status-badge>
-        <a class="btn btn-custom btn-custom-sm btn-custom-outline-primary ms-2"
-            href="{{ route('admin.attendances.export', ['date' => $date]) }}">
-            <i class="bi bi-download me-1" aria-hidden="true"></i>Tải CSV
-        </a>
     </p>
 
     <x-data-table title="Điểm danh trong ngày ({{ $sessions->count() }} buổi)">

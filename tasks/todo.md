@@ -127,3 +127,48 @@
     10/20/70. DB dev giữ các dòng cũ do seeder trước để lại (9 đăng ký, 4 lịch) nên tỷ lệ chuyên
     cần hiển thị 50,3% thay vì 50,0%; muốn sạch cần `migrate:fresh --seed` — chưa chạy vì sẽ xóa
     dữ liệu người dùng gõ tay trên môi trường dev.
+
+## Wave 11 — Thống kê & báo cáo (nhóm yêu cầu 8)
+
+- [x] 11.1 `ReportFilter` + `Reports`: bốn bảng số dựng từ dữ liệu đào tạo
+  - Acceptance: một bộ lọc (kỳ, khoa, chuyên ngành, lớp, khóa, giới tính, tình trạng học tập)
+    cho bốn báo cáo thống kê sinh viên / phổ điểm / chuyên cần / xếp hạng GPA; mọi con số tính
+    lại từ `users`, `enrollments`, `grades`, `attendance_sessions`, không có bảng trung gian.
+  - Done 2026-10-27: `app/Support/ReportFilter.php` là value object đọc từ query, bỏ mọi giá trị
+    không phải số nguyên dương thay vì báo lỗi (thanh lọc luôn có ô trống), mặc định kỳ hiện hành.
+    `app/Support/Reports.php` trả `[title, header, rows]` cho cả màn hình lẫn file xuất. Phổ điểm
+    lấy khoảng từ `GradingScale::buckets()` (dẫn xuất từ `FAIL_FLOOR` + `BANDS`) nên bảng khoảng
+    và thang chữ không thể lệch nhau. Điểm TB chuyên cần là trung bình cộng tỷ lệ từng cá nhân,
+    không phải tỷ lệ số buổi — hai con số này hay bị nhầm nên test khóa chặt bằng số tuyệt đối.
+- [x] 11.2 `ReportExporter` CSV/XLSX/PDF
+  - Acceptance: cùng một bảng số tải ra được ba định dạng, file đúng định dạng thật (không phải
+    đổi tên), tiếng Việt có dấu hiển thị đúng trong PDF.
+  - Done 2026-10-27: khế ước `ReportExporter::export(filename, report)` + `ReportFormats::make()`
+    để controller không biết định dạng. `CsvExporter` giữ nguyên khế ước TSV + BOM UTF-8 của
+    `App\Support\Csv` vì hai test hồi quy viết từ trước khi có Excel/PDF. `XlsxExporter` dùng
+    phpspreadsheet (tiêu đề đậm, freeze pane, số nguyên/thập phân giữ kiểu số, số liệu kiểu chuỗi
+    như MSSV ghi dạng `@` để Excel không cắt số 0 đầu). `PdfExporter` nhúng DejaVu Sans, tự chuyển
+    khổ ngang từ cột thứ bảy.
+- [x] 11.3 Màn hình thống kê + route
+  - Acceptance: admin và giảng viên cùng dùng một màn hình, có tab bốn báo cáo, thanh lọc và ba nút xuất.
+  - Done 2026-10-27: `admin/reports/{type}` và `teacher/reports/{type}` trỏ vào một view
+    `resources/views/reports/index.blade.php`; `resources/views/reports/pdf.blade.php` là bản in
+    đứng độc lập. Cột có "(%)" tự vẽ thanh progress. Sidebar Spark có mục cho cả hai vai trò.
+- [x] 11.4 Phân quyền phạm vi + mở rộng export cũ sang ba định dạng
+  - Acceptance: giảng viên chỉ thấy số liệu lớp mình; các route export đã tồn tại (điểm, điểm
+    danh, đăng ký học phần, thời khóa biểu) nhận thêm `format=xlsx|pdf` mà không đổi hành vi CSV.
+  - Done 2026-10-27: `Teacher\ReportController` kế thừa controller admin, chỉ ghi đè cách dựng bộ
+    lọc (`forOfferings()`), danh sách ô lọc và route base. `ReportFilter::$offeringIds` phân biệt
+    `null` (không giới hạn) và `[]` (chưa được phân công lớp nào) — nếu chỉ kiểm tra `!== []` thì
+    giảng viên chưa có lớp sẽ nhìn thấy số liệu toàn trường. Bốn controller export cũ đổi sang
+    dựng `[title, header, rows]` rồi gọi `ReportFormats::download()`, mặc định vẫn là CSV để
+    không phá liên kết và test đang có. Nút xuất chung đóng vào `x-export-buttons`.
+  - Evidence: `tests/Feature/ReportingTest.php` 14 test — census đếm tuyệt đối theo sáu nhóm,
+    phổ điểm cộng dồn đúng sĩ số, chuyên cần trung bình các tỷ lệ (85,7), xếp hạng GPA chính xác
+    từng dòng, một bộ lọc hẹp thì cả bốn bảng cùng hẹp, ba định dạng trả đúng magic byte
+    (`PK` / `%PDF` / BOM) với tên file không dấu, type/định dạng lạ trả 404 chứ không 500,
+    giảng viên B thấy trang rỗng thay vì số liệu của giảng viên A, và màn admin chặn 403 với
+    giảng viên/sinh viên. Hai màn hình cũ cũng được kiểm cùng ba định dạng.
+  - Deviation: giảng viên chưa được phân công lớp nào nhận báo cáo rỗng (HTTP 200, dòng
+    "Bộ lọc hiện tại chưa có dữ liệu.") thay vì 403, vì phạm vi nằm trong tài khoản chứ không
+    nằm trong URL nên không có đối tượng để so quyền.

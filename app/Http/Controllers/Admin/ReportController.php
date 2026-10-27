@@ -37,15 +37,13 @@ class ReportController extends Controller
 
     public function export(Request $request, string $type): Response
     {
-        $format = (string) $request->query('format', 'xlsx');
-        $exporter = ReportFormats::make($format);
-        abort_if($exporter === null, 404, 'Định dạng file không tồn tại.');
-
         $report = $this->report($request, $type);
 
-        return $exporter->export(
-            ReportFormats::filename($report['title'].' '.$this->period($request), $format),
-            $report
+        return ReportFormats::download(
+            $request,
+            $report['title'].' '.$this->period($request),
+            $report,
+            'xlsx',
         );
     }
 

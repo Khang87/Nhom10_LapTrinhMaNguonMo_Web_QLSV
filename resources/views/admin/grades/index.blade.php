@@ -16,10 +16,7 @@
     <x-page-header title="Quản lý điểm"
         subtitle="Ba cột điểm thành phần quyết định điểm tổng kết; điểm do quản trị viên cập nhật được công bố ngay.">
         <x-slot name="actions">
-            <a class="btn btn-custom btn-custom-outline-primary"
-                href="{{ route('admin.grades.export', request()->query()) }}">
-                <i class="bi bi-download" aria-hidden="true"></i>Tải CSV
-            </a>
+            <x-export-buttons route="admin.grades.export" :query="request()->query()" />
         </x-slot>
     </x-page-header>
 
