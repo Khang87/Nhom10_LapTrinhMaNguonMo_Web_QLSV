@@ -22,6 +22,7 @@ use App\Support\EnrollmentPolicy;
 use App\Support\TimetableService;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Tests\TestCase;
 
@@ -231,6 +232,20 @@ class DemoDataTest extends TestCase
         $this->assertSame(100.0, AttendanceRate::forStudent($this->studentByCode('20240001')));
         $this->assertTrue(AttendanceRate::isBelowThreshold(AttendanceRate::forStudent($this->studentByCode('20240005'))));
         $this->assertFalse(AttendanceRate::isBelowThreshold(AttendanceRate::forStudent($this->studentByCode('20240001'))));
+    }
+
+    /**
+     * Giảng viên mở lưới lịch là xem tuần hiện hành và vài tuần trước đó. Điểm danh demo phải rơi
+     * vào đúng khoảng ấy, nếu không màn hình của họ lúc nào cũng "Chưa điểm danh".
+     */
+    public function test_attendance_sessions_land_on_the_weeks_a_teacher_is_viewing(): void
+    {
+        $dates = AttendanceSession::pluck('session_date');
+
+        $this->assertSame(0, $dates->filter(fn (Carbon $date) => $date->greaterThan(now()->endOfDay()))->count(),
+            'Seeder không được điểm danh hộ buổi chưa diễn ra.');
+        $this->assertGreaterThanOrEqual(now()->subDays(7)->startOfDay()->timestamp, $dates->max()->timestamp,
+            'Buổi mới nhất phải còn trong vòng một tuần tính đến hôm nay.');
     }
 
     /**

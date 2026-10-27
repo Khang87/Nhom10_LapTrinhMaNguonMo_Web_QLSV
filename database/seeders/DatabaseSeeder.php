@@ -627,7 +627,7 @@ class DatabaseSeeder extends Seeder
     }
 
     /**
-     * Bốn buổi đã diễn ra của lớp, lấy từ slot định kỳ của nó. Ba mã dưới đây vắng mặt có chủ
+     * Bốn buổi gần nhất của lớp, lấy từ slot định kỳ của nó. Ba mã dưới đây vắng mặt có chủ
      * đích: 20240005 nghỉ hai buổi gần nhất nên chuyên cần còn 50%, 20240003 và 20240007 nghỉ
      * một buổi nên còn 75% - tất cả đều dưới ngưỡng config('academic.min_attendance_rate') để
      * màn hình học vụ còn đất gợi ý; những sinh viên khác đi học đầy đủ.
@@ -635,22 +635,19 @@ class DatabaseSeeder extends Seeder
     private function sessions(Enrollment $enrollment, CourseOffering $offering, string $code): void
     {
         $slot = $this->slotsByOffering[$offering->id];
+        $semester = $offering->semester;
 
-        for ($week = 0; $week < 4; $week++) {
-            $date = $this->lectureDate($slot->week_day, $offering->semester->starts_at, $week);
+        $dates = $this->recentLectureDates($slot->week_day, $semester->starts_at, $semester->ends_at);
 
-            if ($date->greaterThan(now())) {
-                break;
-            }
-
+        foreach ($dates as $index => $date) {
             $session = AttendanceSession::updateOrCreate(
                 ['course_offering_id' => $offering->id, 'session_date' => $date->toDateString()],
                 ['lecture_slot_id' => $slot->id, 'recorded_by' => $offering->teacher_id],
             );
 
             $absent = match ($code) {
-                '20240005' => $week >= 2,
-                '20240003', '20240007' => $week === 1,
+                '20240005' => $index >= count($dates) - 2,
+                '20240003', '20240007' => $index === count($dates) - 3,
                 default => false,
             };
 
@@ -694,16 +691,34 @@ class DatabaseSeeder extends Seeder
     }
 
     /**
-     * Ngày của buổi thứ $week trong lớp: từ đầu học kỳ, tìm ngày gần nhất đúng thứ của slot
-     * rồi cộng dồn theo tuần. week_day theo lịch trường (2 = Thứ 2) nên Carbon dayOfWeek
-     * (0 = Chủ nhật) là week_day - 1.
+     * Bốn buổi gần nhất đã diễn ra của một lớp, tính từ hôm nay lùi lại theo tuần (hoặc từ ngày
+     * cuối kỳ nếu kỳ đã đóng). Điểm danh demo phải nằm ở đúng các tuần mà giảng viên đang mở
+     * lưới lịch, thay vì bốn tuần đầu học kỳ để rồi cả tháng sau màn hình vẫn "Chưa điểm danh".
+     *
+     * week_day theo lịch trường (2 = Thứ 2) nên Carbon dayOfWeek (0 = Chủ nhật) là week_day - 1.
+     *
+     * @return list<Carbon> các ngày theo thứ tự từ cũ đến mới
      */
-    private function lectureDate(int $weekDay, Carbon $startsAt, int $week): Carbon
+    private function recentLectureDates(int $weekDay, Carbon $startsAt, Carbon $endsAt): array
     {
         $target = $weekDay - 1;
         $first = (clone $startsAt)->addDays((7 + $target - (int) $startsAt->dayOfWeek) % 7);
+        $until = $endsAt->lessThan(now()) ? $endsAt : now();
+        $last = (clone $until)->startOfDay()->subDays((7 + (int) $until->dayOfWeek - $target) % 7);
 
-        return $first->addWeeks($week);
+        $dates = [];
+
+        for ($week = 0; $week < 4; $week++) {
+            $date = (clone $last)->subWeeks($week);
+
+            if ($date->lessThan($first)) {
+                break;
+            }
+
+            array_unshift($dates, $date);
+        }
+
+        return $dates;
     }
 
     /**
