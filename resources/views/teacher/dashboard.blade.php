@@ -3,53 +3,61 @@
 @section('title', 'Trang giảng viên')
 
 @section('content')
-    <div class="page-header">
-        <div>
-            <h1 class="page-title">Trang giảng viên</h1>
-            <p class="page-subtitle">Khu làm việc của {{ $teacher->roleLabel() }}.</p>
-        </div>
-    </div>
+    <x-page-header title="Trang giảng viên"
+        subtitle="Khu làm việc của {{ $teacher->roleLabel() }}." />
 
-    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
-        <div class="col">
-            <div class="card h-100">
-                <div class="card-body d-flex align-items-center gap-3">
-                    <img class="rounded-circle border" width="56" height="56" alt=""
-                        src="{{ e($teacher->avatarUrl()) }}">
-                    <div>
-                        <h2 class="h5 card-title mb-1">{{ $teacher->name }}</h2>
-                        <p class="card-text text-muted mb-0">{{ $teacher->email }}</p>
-                        <p class="card-text text-muted mb-0 small">{{ $teacher->roleLabel() }}</p>
-                    </div>
+    <div class="card">
+        <div class="card-body">
+            <div class="table-user-cell">
+                <img class="table-user-avatar table-user-avatar-lg" width="58" height="58" alt=""
+                    src="{{ e($teacher->avatarUrl()) }}">
+                <div>
+                    <div class="table-user-name">{{ $teacher->name }}</div>
+                    <div class="table-user-sub">{{ $teacher->email }}</div>
+                    <div class="table-user-sub">{{ $teacher->roleLabel() }}</div>
                 </div>
             </div>
         </div>
     </div>
 
     @if ($offerings->isEmpty())
-        <div class="alert alert-secondary mt-4" role="status">
-            Chưa có lớp học phần nào được phân công cho bạn.
-        </div>
-    @else
-        <div class="card mt-4">
-            <div class="card-body">
-                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-                    <h2 class="h5 card-title mb-0">Lớp học phần của tôi ({{ $offerings->count() }})</h2>
-                    <a class="btn btn-sm btn-outline-primary" href="{{ route('teacher.offerings.index') }}">
-                        Xem chi tiết
-                    </a>
-                </div>
-                <ul class="list-unstyled mb-0">
-                    @foreach ($offerings as $offering)
-                        <li class="border-bottom py-2">
-                            {{ $offering->label() }} · {{ $offering->active_count }} sinh viên
-                            @unless ($offering->is_open)
-                                · <span class="badge text-bg-secondary">Đóng</span>
-                            @endunless
-                        </li>
-                    @endforeach
-                </ul>
+        <div class="alert-custom alert-custom-info" role="status">
+            <div class="alert-custom-content">
+                Chưa có lớp học phần nào được phân công cho bạn.
             </div>
         </div>
+    @else
+        <x-data-table :title="'Lớp học phần của tôi ('.$offerings->count().')'">
+            <x-slot name="controls">
+                <a class="btn btn-custom btn-custom-sm btn-custom-outline-primary"
+                    href="{{ route('teacher.offerings.index') }}">Xem chi tiết</a>
+            </x-slot>
+            <thead>
+                <tr>
+                    <th scope="col">Môn học</th>
+                    <th scope="col">Đã đăng ký / sĩ số</th>
+                    <th scope="col">Trạng thái</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($offerings as $offering)
+                    <tr>
+                        <td class="table-product-name">{{ $offering->label() }}</td>
+                        <td class="table-amount">
+                            @if ($offering->max_students === 0)
+                                {{ $offering->active_count }} / Không giới hạn
+                            @else
+                                {{ $offering->active_count }}/{{ $offering->max_students }}
+                            @endif
+                        </td>
+                        <td>
+                            <x-status-badge :tone="$offering->is_open ? 'success' : 'neutral'">
+                                {{ $offering->is_open ? 'Mở' : 'Đóng' }}
+                            </x-status-badge>
+                        </td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </x-data-table>
     @endif
 @endsection

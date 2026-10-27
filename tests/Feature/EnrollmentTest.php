@@ -213,7 +213,7 @@ class EnrollmentTest extends TestCase
             ->assertSee('Lớp đã đủ sĩ số')
             ->assertSee('Cổng đăng ký đã đóng');
 
-        $this->assertSame(2, substr_count($page->getContent(), 'btn btn-sm btn-primary" type="button" disabled'),
+        $this->assertSame(2, substr_count($page->getContent(), 'btn-custom-primary" type="button" disabled'),
             'Mỗi lớp không đủ điều kiện phải hiện nút Đăng ký đã vô hiệu.');
     }
 
