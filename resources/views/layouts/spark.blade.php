@@ -245,14 +245,21 @@
 
         <main id="main-content">
             @if (session('success'))
-                <div class="alert alert-success" role="status">{{ session('success') }}</div>
+                <div class="alert-custom alert-custom-success" role="status">
+                    <i class="bi bi-check2-circle alert-custom-icon" aria-hidden="true"></i>
+                    <span class="alert-custom-content">{{ session('success') }}</span>
+                </div>
             @endif
             @if (session('error'))
-                <div class="alert alert-danger" role="alert">{{ session('error') }}</div>
+                <div class="alert-custom alert-custom-danger" role="alert">
+                    <i class="bi bi-exclamation-octagon alert-custom-icon" aria-hidden="true"></i>
+                    <span class="alert-custom-content">{{ session('error') }}</span>
+                </div>
             @endif
             @if ($errors->any())
-                <div class="alert alert-danger" role="alert">
-                    <ul class="mb-0">
+                <div class="alert-custom alert-custom-danger" role="alert">
+                    <i class="bi bi-exclamation-octagon alert-custom-icon" aria-hidden="true"></i>
+                    <ul class="alert-custom-content mb-0">
                         @foreach ($errors->all() as $error)
                             <li>{{ $error }}</li>
                         @endforeach
