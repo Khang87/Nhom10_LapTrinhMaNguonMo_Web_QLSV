@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Attendance;
 use App\Models\Grade;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -385,6 +386,32 @@ class GradingTest extends TestCase
 
         $this->assertSame('STUDYING', $student->fresh()->academic_status);
         $this->assertNull($student->academic_status_updated_at, 'Gợi ý không tự đổi tình trạng.');
+    }
+
+    public function test_low_attendance_alone_is_enough_to_suggest_academic_warning(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $student = $this->student('Đỗ Minh');
+        $offering = $this->offering($this->subject('WEB101'), $this->gate());
+        $enrollment = $this->enroll($student, $offering);
+        $this->grade($student, $offering, 7.0);
+
+        $this->attend($enrollment, '2026-03-02');
+        $this->attend($enrollment, '2026-03-09');
+        $this->attend($enrollment, '2026-03-16');
+        $this->attend($enrollment, '2026-03-23', Attendance::ABSENT);
+
+        $this->actingAs($admin)->get('/admin/students/'.$student->id)
+            ->assertOk()
+            ->assertSee('Gợi ý: Cảnh báo học vụ (AT_RISK)')
+            ->assertSee('Tỷ lệ chuyên cần 75% dưới ngưỡng 80%.');
+
+        $this->attend($enrollment, '2026-03-30');
+
+        $this->actingAs($admin)->get('/admin/students/'.$student->id)
+            ->assertOk()
+            ->assertSee('Không có môn F, đủ điều kiện lên lớp năm học tiếp.')
+            ->assertDontSee('dưới ngưỡng 80%.');
     }
 
     public function test_the_review_rejects_a_status_that_is_not_in_the_dictionary(): void

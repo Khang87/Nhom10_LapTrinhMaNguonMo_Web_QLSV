@@ -660,10 +660,21 @@ Quy ước branch/commit: một commit cho mỗi task, message tiếng Việt th
     `whereRelation('offering', 'semester_id', ...)`; `?offering_id=` của trang admin bị bỏ qua
     nếu lớp đó không thuộc học kỳ đã chọn (đúng ý "chỉ xem được lớp của kỳ đang xem").
 
-- [ ] 7.6 Gắn tỷ lệ chuyên cần vào `grading` (cảnh báo học vụ)
+- [x] 7.6 Gắn tỷ lệ chuyên cần vào `grading` (cảnh báo học vụ)
   - Acceptance: tỷ lệ < 80% xuất hiện trong lý do gợi ý `AT_RISK`.
   - Verify: feature test.
   - Files: `app/Support/GradingScale.php`
+  - Done 2026-10-27: `GradeBook::review()` đã đưa `attendance_rate` (từ
+    `AttendanceRate::forStudent()`) vào ngữ cảnh, `GradingScale::progression()` có nhánh
+    `$attendanceRate < config('academic.min_attendance_rate')` ⇒ lý do
+    "Tỷ lệ chuyên cần 75% dưới ngưỡng 80%." và gợi ý `AT_RISK`; ngưỡng lấy từ cấu hình, không
+    còn số 80 cứng trong view.
+  - Evidence: test `test_low_attendance_alone_is_enough_to_suggest_academic_warning` — điểm 7.0
+    (GPA 3.5, không môn F) nên chuyên cần là lý do duy nhất: 3 buổi có mặt + 1 vắng ⇒ trang
+    `/admin/students/{id}` hiện "Gợi ý: Cảnh báo học vụ (AT_RISK)" cùng dòng lý do; thêm buổi có
+    mặt thứ tư ⇒ 80% đúng ngưỡng, gợi ý trở lại "Không có môn F, đủ điều kiện lên lớp…".
+  - Deviation: không đổi `GradingScale.php` vì nhánh đã có sẵn từ Wave 6 (khi `AttendanceRate`
+    ra đời ở 7.3); lát này chỉ chứng minh bằng feature test đúng yêu cầu của 7.6.
 
 ## Wave 8 — `reporting`
 
