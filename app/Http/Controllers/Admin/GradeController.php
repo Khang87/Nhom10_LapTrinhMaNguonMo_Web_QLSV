@@ -28,10 +28,17 @@ class GradeController extends Controller
     public function index(Request $request): View
     {
         $grades = $this->filtered($request)->paginate(10)->withQueryString();
+        // Chọn một sinh viên thì hiển thị thêm hồ sơ học tập của người đó; các thẻ tổng kết bên dưới
+        // vẫn tính theo bộ lọc để bảng, bản xuất và số liệu không lệch nhau.
+        $selectedStudent = $request->filled('user_id')
+            ? User::with('studentClass.major.department')->find($request->integer('user_id'))
+            : null;
 
         return view('admin.grades.index', [
             'grades' => $grades,
             'summary' => GradeBook::summary($this->filtered($request)->get()),
+            'selectedStudent' => $selectedStudent,
+            'review' => $selectedStudent === null ? null : GradeBook::review($selectedStudent),
             'students' => User::where('role', 'student')->orderBy('name')->get(),
             'offerings' => CourseOffering::with(['subject', 'semester'])
                 ->orderBy('group_code')
