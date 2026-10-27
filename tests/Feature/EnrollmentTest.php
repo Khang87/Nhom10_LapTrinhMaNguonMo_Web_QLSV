@@ -9,6 +9,7 @@ use App\Models\Subject;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Feature\Concerns\OfferingFixtures;
+use Tests\Feature\Concerns\RendersHtml;
 use Tests\TestCase;
 
 /**
@@ -17,7 +18,7 @@ use Tests\TestCase;
  */
 class EnrollmentTest extends TestCase
 {
-    use OfferingFixtures, RefreshDatabase;
+    use OfferingFixtures, RefreshDatabase, RendersHtml;
 
     public function test_a_student_registers_while_the_gate_is_open(): void
     {
@@ -90,11 +91,7 @@ class EnrollmentTest extends TestCase
 
         $student = $this->student();
         $this->enroll($student, $this->offering($db, $gate, 'TN01'));
-        Grade::create([
-            'user_id' => $student->id,
-            'course_offering_id' => $db->offerings()->sole()->id,
-            'final_score' => 4.9,
-        ]);
+        $this->grade($student, $db->offerings()->sole(), 4.9);
 
         $this->actingAs($student)
             ->post(route('student.course-offerings.enroll', $this->offering($web, $gate, 'TN02')))
@@ -114,7 +111,7 @@ class EnrollmentTest extends TestCase
         $dbOffering = $this->offering($db, $gate, 'TN01');
         $student = $this->student();
         $this->enroll($student, $dbOffering);
-        Grade::create(['user_id' => $student->id, 'course_offering_id' => $dbOffering->id, 'final_score' => 8.5]);
+        $this->grade($student, $dbOffering, 8.5);
 
         $this->actingAs($student)
             ->post(route('student.course-offerings.enroll', $this->offering($web, $gate, 'TN02')))
@@ -230,7 +227,7 @@ class EnrollmentTest extends TestCase
 
         $old = Subject::create(['code' => 'OLD101', 'name' => 'Môn cũ', 'credits' => 5]);
         $finished = $this->offering($old, $this->semester('2024-2025', 2));
-        Grade::create(['user_id' => $student->id, 'course_offering_id' => $finished->id, 'final_score' => 7.0]);
+        $this->grade($student, $finished, 7.0);
 
         $this->actingAs($student)->get('/student/course-offerings')
             ->assertOk()
@@ -282,7 +279,7 @@ class EnrollmentTest extends TestCase
         $student = $this->student();
         $enrollment = $this->enroll($student, $offering);
         Attendance::create(['user_id' => $student->id, 'subject_id' => $subject->id, 'date' => '2026-01-05', 'status' => 'present']);
-        Grade::create(['user_id' => $student->id, 'course_offering_id' => $offering->id, 'final_score' => 9.0]);
+        $this->grade($student, $offering, 9.0);
 
         $this->actingAs($student)
             ->delete(route('student.enrollments.drop', $enrollment))
@@ -375,7 +372,7 @@ class EnrollmentTest extends TestCase
         $offering = $this->offering($this->subject('WEB101'), $gate);
         $student = $this->student();
         $enrollment = $this->enroll($student, $offering);
-        Grade::create(['user_id' => $student->id, 'course_offering_id' => $offering->id, 'final_score' => 9.0]);
+        $this->grade($student, $offering, 9.0);
         $this->travelTo(now()->addDays(3));
 
         $this->actingAs(User::factory()->create(['role' => 'admin']))
@@ -410,21 +407,5 @@ class EnrollmentTest extends TestCase
     public function test_a_student_cannot_reach_the_admin_enrollment_screen(): void
     {
         $this->actingAs($this->student())->get('/admin/enrollments')->assertForbidden();
-    }
-
-    /**
-     * Bảng kết quả nằm trong tbody; form lọc vẫn liệt kê mọi lớp nên chỉ soi vùng bảng.
-     */
-    private function rowsOnly(string $content): string
-    {
-        $start = strpos($content, '<tbody');
-        $end = strpos($content, '</tbody>');
-
-        return $start === false || $end === false ? '' : substr($content, $start, $end - $start);
-    }
-
-    private function student(string $name = 'Sinh viên A'): User
-    {
-        return User::factory()->create(['role' => 'student', 'name' => $name]);
     }
 }

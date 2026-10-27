@@ -3,26 +3,26 @@
 @section('title', 'Kết quả học tập')
 
 @section('content')
-    <h1 class="h3 mb-3">Kết quả học tập</h1>
-    <div class="table-responsive">
-        <table class="table table-bordered table-hover bg-white align-middle">
-            <thead class="table-light">
-                <tr><th>Mã môn</th><th>Tên môn</th><th>Nhóm</th><th>Học kỳ</th><th>Điểm</th></tr>
-            </thead>
-            <tbody>
-                @forelse ($grades as $grade)
-                    <tr>
-                        <td>{{ $grade->subject?->code }}</td>
-                        <td>{{ $grade->subject?->name }}</td>
-                        <td>{{ $grade->offering->group_code }}</td>
-                        <td>{{ $grade->offering->semester?->label ?? '—' }}</td>
-                        <td>{{ $grade->final_score }}</td>
-                    </tr>
-                @empty
-                    <tr><td colspan="5" class="text-center">Chưa có điểm được cập nhật.</td></tr>
-                @endforelse
-            </tbody>
-        </table>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h1 class="h3 mb-0">Kết quả học tập</h1>
+            <p class="text-muted mb-0">Điểm các học phần đang học, tính theo trọng số chuyên cần / giữa kỳ / cuối kỳ.</p>
+        </div>
+        <a class="btn btn-outline-secondary" href="{{ route('student.grades.history') }}">Lịch sử học tập</a>
     </div>
-    {{ $grades->links() }}
+
+    <div class="card mb-3">
+        <div class="card-body">
+            @if ($summary['gpa'] === null)
+                <p class="mb-0 text-muted">Chưa có điểm đã công bố nên chưa tính được trung bình tích lũy.</p>
+            @else
+                <p class="mb-1">Trung bình tích lũy: hệ 4 = {{ number_format($summary['gpa'], 2) }}, hệ 10 = {{ number_format($summary['average_ten'], 2) }}, tín chỉ đã tích lũy = {{ $summary['credits_accumulated'] }} TC, xếp loại = {{ $summary['classification'] }}</p>
+                @if ($summary['failing_subjects'] > 0)
+                    <div class="form-text">Đang có {{ $summary['failing_subjects'] }} môn F chưa học lại.</div>
+                @endif
+            @endif
+        </div>
+    </div>
+
+    @include('student.grades.table', ['rows' => $rows, 'components' => $components])
 @endsection

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\PersonLabels;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,6 +10,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Enrollment extends Model
 {
     public const STATUSES = ['ACTIVE', 'DROPPED'];
+
+    public const STATUS_LABELS = [
+        'ACTIVE' => 'Đang học',
+        'DROPPED' => 'Đã hủy',
+    ];
 
     protected $fillable = ['course_offering_id', 'user_id', 'enrolled_by', 'status', 'dropped_at'];
 
@@ -43,6 +49,14 @@ class Enrollment extends Model
     public function isActive(): bool
     {
         return $this->status === 'ACTIVE';
+    }
+
+    /**
+     * Nhãn kèm mã cho mọi bảng đăng ký: "Đang học (ACTIVE)".
+     */
+    public function statusLabel(): string
+    {
+        return PersonLabels::option($this->status, self::STATUS_LABELS);
     }
 
     /**

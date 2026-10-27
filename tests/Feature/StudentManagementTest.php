@@ -140,10 +140,7 @@ class StudentManagementTest extends TestCase
         $offering = $this->offering($this->subject('DB101'), $this->semester(), 'TN02');
         $this->enroll($student, $offering);
 
-        $student->grades()->create([
-            'course_offering_id' => $offering->id,
-            'final_score' => 8.5,
-        ]);
+        $this->grade($student, $offering, 8.5);
 
         $this->actingAs($student)->get('/student/grades')
             ->assertOk()
@@ -298,10 +295,7 @@ class StudentManagementTest extends TestCase
         $student->update(['class_id' => $class->id]);
         $offering = $this->offering($this->subject('WEB101'), $this->semester(), 'TN01');
         $this->enroll($student, $offering);
-        $student->grades()->create([
-            'course_offering_id' => $offering->id,
-            'final_score' => 8.5,
-        ]);
+        $this->grade($student, $offering, 8.5);
         $student->attendances()->create([
             'subject_id' => $offering->subject_id,
             'date' => '2026-10-20',

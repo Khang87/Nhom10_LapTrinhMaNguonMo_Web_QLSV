@@ -83,14 +83,14 @@ class EnrollmentContext
     }
 
     /**
-     * @return array{0: Collection<int, Subject>, 1: Collection<int, object>}
+     * @return array{0: Collection<int, Subject>, 1: Collection<int, object{subject_score: float|null}>}
      */
     private static function scores(User $student): array
     {
         $scores = PrerequisiteRules::scoreMap($student);
 
         $passed = Subject::whereIn('id', $scores
-            ->where('final_score', '>=', EnrollmentPolicy::PASS_SCORE)
+            ->where('subject_score', '>=', EnrollmentPolicy::PASS_SCORE)
             ->keys())->get();
 
         return [$passed, $scores];

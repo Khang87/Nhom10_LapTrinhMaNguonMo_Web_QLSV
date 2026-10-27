@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\Attendance;
-use App\Models\Grade;
 use App\Models\Subject;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -121,11 +120,7 @@ class ExtendedRequirementsTest extends TestCase
         $student = User::factory()->create(['role' => 'student', 'name' => 'Trần Một']);
         $subject = Subject::create(['code' => 'CS1', 'name' => 'Cơ số 1', 'credits' => 3]);
         $offering = $this->offering($subject, $this->semester(), 'TN01');
-        Grade::create([
-            'user_id' => $student->id,
-            'course_offering_id' => $offering->id,
-            'final_score' => 8.5,
-        ]);
+        $this->grade($student, $offering, 8.5);
 
         $response = $this->actingAs($admin)->get('/admin/grades/export');
 
@@ -134,7 +129,7 @@ class ExtendedRequirementsTest extends TestCase
         $csv = $response->getContent();
         $this->assertStringStartsWith("\xEF\xBB\xBF", $csv);
         $this->assertStringContainsString('Trần Một', $csv);
-        $this->assertStringContainsString("CS1\t\"Cơ số 1\"\tTN01\t3\t8,5", $csv);
+        $this->assertStringContainsString("CS1\t\"Cơ số 1\"\tTN01\tHK1-2025-2026\t3\t8,50\t8,50\t8,50\t8,50\tA\t4,00\t\"Đã công bố\"", $csv);
     }
 
     public function test_admin_can_export_attendance_of_a_day_as_csv(): void

@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\Department;
-use App\Models\Grade;
 use App\Models\Major;
 use App\Models\StudyPlan;
 use App\Models\Subject;
@@ -195,11 +194,7 @@ class CatalogTest extends TestCase
 
         $student = User::factory()->create(['role' => 'student']);
         $offering = $this->offering($math, $this->semester(), 'TN01');
-        Grade::create([
-            'user_id' => $student->id,
-            'course_offering_id' => $offering->id,
-            'final_score' => 3.5,
-        ]);
+        $this->grade($student, $offering, 3.5);
 
         $blocking = PrerequisiteRules::blockingPrerequisites($student, $web, collect([$db]));
 

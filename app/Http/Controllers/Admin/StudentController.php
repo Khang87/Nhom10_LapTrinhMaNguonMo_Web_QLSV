@@ -7,6 +7,7 @@ use App\Models\Department;
 use App\Models\Major;
 use App\Models\StudentClass;
 use App\Models\User;
+use App\Support\GradeBook;
 use App\Support\PersonLabels;
 use App\Support\StudentExport;
 use App\Support\StudentImport;
@@ -74,12 +75,14 @@ class StudentController extends Controller
             'offerings.subject',
             'offerings.semester',
             'grades.offering.subject',
+            'grades.enrollment',
             'attendances',
         ]);
 
         return view('admin.students.show', [
             'student' => $student,
             'presentCount' => $student->attendances->where('status', 'present')->count(),
+            'review' => GradeBook::review($student),
         ]);
     }
 

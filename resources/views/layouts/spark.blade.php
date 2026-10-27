@@ -139,9 +139,9 @@
                     <h2 class="sidebar-menu-title" id="spark-teaching-title">Giảng dạy</h2>
                     <ul class="sidebar-menu-list">
                         <li class="sidebar-menu-item">
-                            <a class="sidebar-menu-link {{ request()->routeIs('teacher.offerings.*') ? 'active' : '' }}"
+                            <a class="sidebar-menu-link {{ request()->routeIs('teacher.offerings.*', 'teacher.course-offerings.*') ? 'active' : '' }}"
                                 href="{{ route('teacher.offerings.index') }}"
-                                @if (request()->routeIs('teacher.offerings.*')) aria-current="page" @endif>
+                                @if (request()->routeIs('teacher.offerings.*', 'teacher.course-offerings.*')) aria-current="page" @endif>
                                 <i class="bi bi-mortarboard" aria-hidden="true"></i>
                                 <span>Lớp của tôi</span>
                             </a>
@@ -161,11 +161,19 @@
                             </a>
                         </li>
                         <li class="sidebar-menu-item">
-                            <a class="sidebar-menu-link {{ request()->routeIs('student.grades.*') ? 'active' : '' }}"
+                            <a class="sidebar-menu-link {{ request()->routeIs('student.grades.index') ? 'active' : '' }}"
                                 href="{{ route('student.grades.index') }}"
-                                @if (request()->routeIs('student.grades.*')) aria-current="page" @endif>
+                                @if (request()->routeIs('student.grades.index')) aria-current="page" @endif>
                                 <i class="bi bi-bar-chart-line" aria-hidden="true"></i>
                                 <span>Kết quả học tập</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-menu-item">
+                            <a class="sidebar-menu-link {{ request()->routeIs('student.grades.history') ? 'active' : '' }}"
+                                href="{{ route('student.grades.history') }}"
+                                @if (request()->routeIs('student.grades.history')) aria-current="page" @endif>
+                                <i class="bi bi-clock-history" aria-hidden="true"></i>
+                                <span>Lịch sử học tập</span>
                             </a>
                         </li>
                     </ul>

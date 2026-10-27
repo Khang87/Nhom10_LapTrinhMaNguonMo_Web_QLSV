@@ -55,7 +55,7 @@
                     <div class="card student-stat-card h-100">
                         <div class="card-body">
                             <p class="stat-label">Điểm đã công bố</p>
-                            <p class="student-stat-value">{{ $student->grades_count }}</p>
+                            <p class="student-stat-value">{{ $gradesCount }}</p>
                             <a href="{{ route('student.grades.index') }}">Xem kết quả</a>
                         </div>
                     </div>
@@ -112,33 +112,11 @@
             <a href="{{ route('student.grades.index') }}">Xem tất cả</a>
         </div>
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead>
-                    <tr>
-                        <th scope="col">Mã môn</th>
-                        <th scope="col">Tên môn học</th>
-                        <th scope="col">Nhóm</th>
-                        <th scope="col">Điểm</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($recentGrades as $grade)
-                        <tr>
-                            <td>{{ $grade->subject?->code }}</td>
-                            <td>{{ $grade->subject?->name }}</td>
-                            <td>{{ $grade->offering->group_code }}</td>
-                            <td>{{ number_format((float) $grade->final_score, 2) }}</td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="4" class="text-center py-4">
-                                Chưa có điểm được cập nhật.
-                                <a href="{{ route('student.course-offerings.index') }}">Xem học phần</a>
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+            @include('student.grades.table', [
+                'rows' => $recentGrades,
+                'components' => $components,
+                'emptyNote' => '<a href="'.route('student.course-offerings.index').'">Xem học phần</a>',
+            ])
         </div>
     </section>
 @endsection

@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\Grade;
 use App\Models\StudentClass;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -168,11 +167,7 @@ class IdentityRolesTest extends TestCase
         $admin = User::factory()->create(['role' => 'admin']);
         $student = User::factory()->create(['role' => 'student']);
         $offering = $this->offering($this->subject('WEB101'), $this->semester(), 'TN01');
-        Grade::create([
-            'user_id' => $student->id,
-            'course_offering_id' => $offering->id,
-            'final_score' => 8.5,
-        ]);
+        $this->grade($student, $offering, 8.5);
 
         $this->actingAs($admin)->delete("/admin/accounts/{$student->id}")
             ->assertRedirect()

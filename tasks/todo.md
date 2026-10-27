@@ -397,39 +397,133 @@ Quy ước branch/commit: một commit cho mỗi task, message tiếng Việt th
 
 ## Wave 6 — `grading`
 
-- [ ] 6.1 `GradingScale` + unit test phủ biên
+- [x] 6.1 `GradingScale` + unit test phủ biên
   - Acceptance: CC=8 GK=7 CK=6 ⇒ 6.4 ⇒ C ⇒ 3.0; `final=4.5` ⇒ F; 8.4999 ⇒ B; GPA (3TC/4.0 +
     2TC/3.0) ⇒ 3.6; điểm liệt 4.0.
   - Verify: `php artisan test --filter=GradingScaleTest`.
   - Files: `app/Support/GradingScale.php`, `tests/Unit/GradingScaleTest.php`
+  - Done 2026-10-27: một file duy nhất chứa WEIGHTS 10/20/70, `COMPONENT_LABELS`,
+    `components()`, `subjectScore()`, `toLetterAndFour()`, `bandLabel()`, `gpa()`,
+    `averageTen()`, `classification()`, `progression()`, `isPassing()`; ba hằng số
+    `PASS_SCORE = 5.0`, `FAIL_FLOOR = 4.0`, `AT_RISK_GPA = 2.0`; ngưỡng 80% chuyên cần lấy từ
+    `config('academic.min_attendance_rate')`.
+  - Evidence: 14 unit test xanh, gồm `test_the_three_components_are_weighted_ten_twenty_seventy`
+    (6.4), `test_the_letter_and_four_point_bands_follow_the_approved_table` (8.5/8.4999/5.0/4.99),
+    `test_the_gpa_is_credit_weighted_on_the_four_point_scale` (18/5 = 3.6),
+    `test_the_classification_reads_the_average_but_an_f_caps_it` (9.2 có môn F ⇒ Trung bình),
+    `test_the_scale_never_touches_the_database` (GradingScale là hàm thuần),
+    `test_the_pass_threshold_is_shared_with_the_enrollment_policy`.
+  - Deviation: acceptance gốc chép "final=4.5 ⇒ F" theo ngưỡng 4.9 của bảng quy đổi; bản duyệt
+    phạm vi ghi điểm liệt `<4.0` ⇒ 4.5 chỉ là D. Test
+    `test_a_final_exam_below_the_floor_drops_the_subject_to_f` chốt 3.9 ⇒ F (tổng kết 5.73) và
+    4.5 ⇒ D. `subjectScore()` nhận `?float` cho cột cuối kỳ (spec ghi `float`) vì nhập dần.
 
-- [ ] 6.2 Re-key `grades`: ba cột điểm + `enrollment_id` + `is_published` + `updated_by`
+- [x] 6.2 Re-key `grades`: ba cột điểm + `enrollment_id` + `is_published` + `updated_by`
   - Acceptance: unique `(course_offering_id, user_id)`; 15 dòng cũ thành `final_score`.
   - Verify: `php artisan test --filter=GradingTest`.
   - Files: `database/migrations/*_rebuild_grades_table.php`, `app/Models/Grade.php`
+  - Done 2026-10-27: migration `2026_11_06_000001_split_grades_into_component_scores.php` thêm
+    `enrollment_id` (nullable, cascade), `attendance_score`, `midterm_score` (decimal 4,2),
+    `is_published`, `updated_by` (nullOnDelete) rồi chuyển `final_score` sang nullable; unique
+    `grade_offering_unique` đã có từ `2026_11_04_000004_drop_legacy_registration_and_score.php`.
+    15 dòng cũ được backfill cùng một giá trị vào cả ba cột (trọng số cộng lại 1.0 nên tổng kết
+    trả lại đúng điểm cũ) và đặt `is_published = true` để điểm đã hiển thị không bị ẩn đi.
+    `Grade` có `subjectScore()`, `band()`, `letter()`, `fourScore()`, `isPassing()`,
+    `isPublishable()`, `credits()` và attribute `subject` đọc qua `offering.subject`.
+  - Evidence: chạy trên DB dev `quanly_sinh_vien`; vấn tin kiểm tra
+    `SUM(enrollment_id IS NULL) = 0` và toàn bộ 15 dòng `is_published = 1`.
+    `test_cc8_gk7_ck6_lands_on_6_4_which_is_a_c_and_3_0` xác nhận điểm cũ không tụt sau di cư.
+  - Deviation: tên file migration là `split_grades_into_component_scores` thay vì
+    `rebuild_grades_table` như hint; `enrollment_id` để nullable (dòng cũ nối lại bằng truy vấn
+    join, ưu tiên đăng ký ACTIVE) thay vì bắt buộc ngay.
 
-- [ ] 6.3 Grid nhập điểm cho giảng viên
+- [x] 6.3 Grid nhập điểm cho giảng viên
   - Acceptance: chỉ giảng viên phụ trách lưu được; ô trống ⇒ `null`; điểm tổng kết chỉ đọc;
     lưu một mảng nhiều dòng.
   - Verify: feature test quyền + upsert.
   - Files: `app/Http/Controllers/Teacher/GradeController.php`, `resources/views/teacher/grades/*`
+  - Done 2026-10-27: `Teacher\GradeController::edit|update|publish`; `update` chạy trong
+    `DB::transaction`, chỉ duyệt sinh viên có đăng ký ACTIVE của offering,
+    `Grade::updateOrCreate(['course_offering_id', 'user_id'])` với ba cột `?? null` và ghi
+    `enrollment_id` + `updated_by`. Lưới `teacher/grades/grid.blade.php` sinh cột từ
+    `GradingScale::components()` (nhãn "Chuyên cần (10%)"), ô số `min=0 max=10 step=0.01`, ba
+    cột Tổng kết/Chữ/Hệ 4 chỉ hiển thị (text, không phải ô nhập), nút "Lưu tất cả"
+    (`bi-check-lg`) và nút "Công bố điểm" (`bi-megaphone`) disabled
+    khi sĩ số 0; card thống kê + form publish đặt ngoài `<tbody>`; cột "Thao tác → Nhập điểm" thêm vào
+    `/teacher/course-offerings` và sidebar "Lớp của tôi" highlight cho cả `teacher.course-offerings.*`.
+  - Evidence: `test_a_teacher_opens_the_component_grid_of_their_own_offering`,
+    `test_a_teacher_cannot_open_or_save_the_grid_of_another_teachers_offering` (403 cả GET lẫn POST),
+    `test_a_teacher_saves_all_three_components_for_the_whole_class_in_one_request`,
+    `test_an_empty_cell_clears_the_score_instead_of_keeping_the_old_value`,
+    `test_a_row_with_no_score_yet_shows_a_dash_instead_of_zero`,
+    `test_the_grid_header_reports_capacity_class_average_and_failed_subjects` (dùng `rowsOnly()`),
+    `test_grades_are_only_written_for_students_of_that_offering`,
+    `test_an_out_of_range_score_is_rejected_and_nothing_is_saved` (10.5 ⇒ lỗi `final_score.<id>`,
+    không ghi dòng nào), `test_a_student_cannot_reach_the_teacher_grade_grid` (403).
+    Browser: 200, "Sĩ số: 5", "Trung bình lớp: 7.60", badge "Đã công bố".
+  - Deviation: ô trống là `null` theo đúng spec, nên lỗi validation theo khoá
+    `attendance_score.<user_id>`; cột `nullable` không có trong dữ liệu gửi lên ⇒ controller đọc
+    bằng `?? null` vì `$request->validate()` không trả key vắng mặt.
 
-- [ ] 6.4 Công bố điểm
+- [x] 6.4 Công bố điểm
   - Acceptance: trước publish sinh viên thấy "Chưa công bố"; sau publish thấy đúng điểm.
   - Verify: feature test.
   - Files: `routes/web.php`, `resources/views/student/grades/index.blade.php`
+  - Done 2026-10-27: `POST /teacher/course-offerings/{offering}/grades/publish` đặt
+    `is_published = true` cho cả lớp; từ chối khi còn sinh viên chưa có `final_score`
+    ("Chưa thể công bố: N sinh viên còn thiếu điểm cuối kỳ."). Partial
+    `student/grades/table.blade.php` ẩn mọi con số và in badge "Chưa công bố" khi
+    `!is_published || subjectScore() === null`; dashboard, bảng điểm và lịch sử học tập cùng
+    dùng partial này.
+  - Evidence: `test_publishing_is_refused_while_the_final_exam_score_is_missing`,
+    `test_students_only_see_their_scores_once_the_teacher_publishes_them` (trước: "Chưa công bố",
+    không có "8.50"; sau: có điểm).
+  - Deviation: publish là toàn lớp (all-or-nothing), không có công bố từng dòng; điểm admin nhập
+    tay tại `/admin/grades` được coi là đã công bố ngay (`is_published = true`) vì admin là nơi
+    sửa thay giảng viên.
 
-- [ ] 6.5 Bảng điểm + GPA của sinh viên (hệ 4, hệ 10, xếp loại)
+- [x] 6.5 Bảng điểm + GPA của sinh viên (hệ 4, hệ 10, xếp loại)
   - Acceptance: mỗi môn hiện CC/GK/CK/Tổng kết/Chữ/Hệ 4; đầu trang hiện TB tích luỹ và số tín
     chỉ đã đạt.
   - Verify: feature test với fixture 3 môn đã biết kết quả.
   - Files: `app/Http/Controllers/Student/GradeController.php`
+  - Done 2026-10-27: `Student\GradeController::index|history` (xóa `StudentGradeController`),
+    lớp đọc mới `app/Support/GradeBook.php` (`current`, `history`, `summary`, `review`,
+    `attendanceRate`, `requiredCredits`, `isFailing`); trang `/student/grades` in một dòng
+    "Trung bình tích lũy: hệ 4 = …, hệ 10 = …, tín chỉ đã tích lũy = … TC, xếp loại = …" và
+    "Đang có N môn F chưa học lại."; `/student/grades/history` thêm cột "Trạng thái lớp"
+    (`Enrollment::statusLabel()` → `Đang học (ACTIVE)`); dashboard dùng `GradeBook::current`
+    cho stat "Điểm đã công bố" + 5 dòng gần nhất.
+  - Evidence: `test_the_student_table_shows_components_letter_and_four_point_score`,
+    `test_the_student_page_summarises_gpa_credits_and_classification`,
+    `test_the_history_page_keeps_dropped_classes_and_retakes`; `GradeBook::current()` khớp theo
+    `course_offering_id` nên dòng điểm di cư không biến mất. Browser: `/student/dashboard`,
+    `/student/grades`, `/student/grades/history` đều 200 với dữ liệu thật.
+  - Deviation: GPA/tín chỉ tính trên các môn `is_published` của toàn bộ lịch sử (không chỉ kỳ
+    hiện hành); "tín chỉ đã tích lũy" loại môn F.
 
-- [ ] 6.6 Nút "Xét duyệt" ghi `academic_status` + lý do gợi ý
+- [x] 6.6 Nút "Xét duyệt" ghi `academic_status` + lý do gợi ý
   - Acceptance: lên lớp / cảnh báo học vụ / đủ điều kiện tốt nghiệp theo `progression()`; admin
     xác nhận, hệ thống không tự đổi.
   - Verify: feature test ba nhánh ngưỡng.
   - Files: `app/Http/Controllers/Admin/AcademicStatusController.php`
+  - Done 2026-10-27: `POST /admin/students/{student}/academic-status` validate
+    `Rule::in(PersonLabels::statusCodes())`, ghi `academic_status` +
+    `academic_status_updated_at` (đã thêm vào fillable/casts của `User`), flash "Đã ghi nhận tình
+    trạng … cho …". Card "Xét duyệt học vụ" trong `/admin/students/{id}` hiển thị dòng số liệu,
+    badge "Gợi ý: … (STATUS)", danh sách lý do và select trạng thái + nút "Xét duyệt"
+    (`bi-check-lg`); không có path nào tự đổi trạng thái.
+  - Evidence: `test_the_student_page_suggests_a_review_and_the_admin_confirms_it`,
+    `test_the_review_suggests_graduation_once_the_program_credits_are_reached`,
+    `test_the_review_keeps_the_student_in_study_when_no_rule_fires`,
+    `test_the_review_rejects_a_status_that_is_not_in_the_dictionary` (422),
+    `test_a_teacher_cannot_open_the_academic_review_screen` (403). Browser: sinh viên 4 hiện
+    "Gợi ý: Cảnh báo học vụ (AT_RISK)", lý do "Tỷ lệ chuyên cần 66.7% dưới ngưỡng 80%.",
+    "tín chỉ tích lũy = 8/16 TC".
+  - Deviation: `requiredCredits()` trả `null` (không phải 0) khi sinh viên chưa có lớp hành
+    chính/chương trình — tránh suy ra "đủ tín chỉ tốt nghiệp" từ con số rỗng; tín chỉ khung
+    CTĐT lấy qua `users.class_id → classes.major_id → study_plans → subjects.credits` vì
+    `users` không có `major_id`.
 
 ## Wave 7 — `attendance-schedule`
 

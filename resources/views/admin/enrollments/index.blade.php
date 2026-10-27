@@ -96,7 +96,7 @@
                         <td>{{ $enrollment->offering->semester?->slug ?? '—' }}</td>
                         <td>
                             <span class="badge text-bg-{{ $enrollment->isActive() ? 'success' : 'secondary' }}">
-                                {{ $enrollment->isActive() ? 'Đang học (ACTIVE)' : 'Đã hủy (DROPPED)' }}
+                                {{ $enrollment->statusLabel() }}
                             </span>
                             @if (! $enrollment->isActive() && $enrollment->dropped_at)
                                 <div class="small text-muted">{{ $enrollment->dropped_at->format('d/m/Y H:i') }}</div>

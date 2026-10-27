@@ -39,7 +39,7 @@ class PrerequisiteRules
      * Hợp đồng cho màn hình đăng ký học phần: môn tiên quyết chưa đạt sẽ chặn đăng ký.
      *
      * @param  Collection<Subject>  $passed  những môn sinh viên đã đạt
-     * @param  Collection<int, object>|null  $scores  điểm theo môn, truyền vào khi dựng danh sách để không truy vấn lại
+     * @param  Collection<int, object{subject_score: float|null}>|null  $scores  điểm tổng kết theo môn, truyền vào khi dựng danh sách để không truy vấn lại
      * @return array<int, array{code: string, name: string, required_score: float, actual_score: float|null}>
      */
     public static function blockingPrerequisites(
@@ -61,7 +61,7 @@ class PrerequisiteRules
                     'code' => $prerequisite->code,
                     'name' => $prerequisite->name,
                     'required_score' => $requiredScore,
-                    'actual_score' => $grade === null ? null : (float) $grade->final_score,
+                    'actual_score' => $grade === null ? null : $grade->subject_score,
                 ];
             })
             ->values()
@@ -70,17 +70,37 @@ class PrerequisiteRules
 
     /**
      * Điểm tổng kết đã có của sinh viên, khóa theo id môn. Một truy vấn dùng chung cho
-     * cả danh sách lẫn chi tiết vì nó không phụ thuộc từng lớp học phần.
+     * cả danh sách lẫn chi tiết vì nó không phụ thuộc từng lớp học phần. Học lại nhiều lần
+     * thì giữ lần điểm cao nhất.
      *
-     * @return Collection<int, object>
+     * @return Collection<int, object{subject_id: int, subject_score: float|null}>
      */
     public static function scoreMap(User $student): Collection
     {
         return DB::table('grades')
             ->join('course_offerings', 'course_offerings.id', '=', 'grades.course_offering_id')
             ->where('grades.user_id', $student->id)
-            ->get(['course_offerings.subject_id', 'grades.final_score'])
+            ->get([
+                'course_offerings.subject_id',
+                'grades.attendance_score',
+                'grades.midterm_score',
+                'grades.final_score',
+            ])
+            ->map(fn (object $row) => (object) [
+                'subject_id' => $row->subject_id,
+                'subject_score' => GradingScale::subjectScore(
+                    self::float($row->attendance_score),
+                    self::float($row->midterm_score),
+                    self::float($row->final_score),
+                ),
+            ])
+            ->sortBy('subject_score')
             ->keyBy('subject_id');
+    }
+
+    private static function float(mixed $value): ?float
+    {
+        return $value === null ? null : (float) $value;
     }
 
     /**

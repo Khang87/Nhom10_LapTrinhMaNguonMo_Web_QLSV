@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AcademicStatusController;
 use App\Http\Controllers\Admin\AccountController;
 use App\Http\Controllers\Admin\AttendanceController;
 use App\Http\Controllers\Admin\ClassController;
@@ -16,9 +17,10 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\Student\CourseOfferingController as StudentCourseOfferingController;
 use App\Http\Controllers\Student\EnrollmentController as StudentEnrollmentController;
+use App\Http\Controllers\Student\GradeController as StudentGradeController;
 use App\Http\Controllers\StudentDashboardController;
-use App\Http\Controllers\StudentGradeController;
 use App\Http\Controllers\Teacher\DashboardController as TeacherDashboardController;
+use App\Http\Controllers\Teacher\GradeController as TeacherGradeController;
 use App\Http\Controllers\Teacher\OfferingController as TeacherOfferingController;
 use Illuminate\Support\Facades\Route;
 
@@ -66,6 +68,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/students/import/template', [StudentController::class, 'template'])->name('students.import.template');
         Route::post('/students/import', [StudentController::class, 'import'])->name('students.import.store');
         Route::resource('students', StudentController::class);
+        Route::post('/students/{student}/academic-status', [AcademicStatusController::class, 'update'])->name('students.academic-status.update');
         Route::get('/grades', [GradeController::class, 'index'])->name('grades.index');
         Route::get('/grades/export', [GradeController::class, 'export'])->name('grades.export');
         Route::post('/grades', [GradeController::class, 'store'])->name('grades.store');
@@ -82,6 +85,9 @@ Route::middleware('auth')->group(function () {
     Route::prefix('teacher')->name('teacher.')->middleware('checkRole:teacher')->group(function () {
         Route::get('/dashboard', [TeacherDashboardController::class, 'index'])->name('dashboard');
         Route::get('/my-offerings', [TeacherOfferingController::class, 'index'])->name('offerings.index');
+        Route::get('/course-offerings/{offering}/grades', [TeacherGradeController::class, 'edit'])->name('course-offerings.grades');
+        Route::post('/course-offerings/{offering}/grades', [TeacherGradeController::class, 'update'])->name('course-offerings.grades.update');
+        Route::post('/course-offerings/{offering}/grades/publish', [TeacherGradeController::class, 'publish'])->name('course-offerings.grades.publish');
     });
 
     Route::prefix('student')->name('student.')->middleware('checkRole:student')->group(function () {
@@ -90,5 +96,6 @@ Route::middleware('auth')->group(function () {
         Route::post('/course-offerings/{offering}/enroll', [StudentCourseOfferingController::class, 'enroll'])->name('course-offerings.enroll');
         Route::delete('/enrollments/{enrollment}', [StudentEnrollmentController::class, 'drop'])->name('enrollments.drop');
         Route::get('/grades', [StudentGradeController::class, 'index'])->name('grades.index');
+        Route::get('/grades/history', [StudentGradeController::class, 'history'])->name('grades.history');
     });
 });

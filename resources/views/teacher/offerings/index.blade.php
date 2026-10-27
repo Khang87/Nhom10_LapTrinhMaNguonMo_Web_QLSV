@@ -23,6 +23,7 @@
                     <th scope="col">Phòng</th>
                     <th scope="col">Đã đăng ký / sĩ số</th>
                     <th scope="col">Trạng thái</th>
+                    <th scope="col">Thao tác</th>
                 </tr>
             </thead>
             <tbody>
@@ -45,10 +46,14 @@
                                 {{ $offering->is_open ? 'Mở' : 'Đóng' }}
                             </span>
                         </td>
+                        <td class="text-nowrap">
+                            <a class="btn btn-sm btn-outline-primary"
+                                href="{{ route('teacher.course-offerings.grades', $offering) }}">Nhập điểm</a>
+                        </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="text-center">
+                        <td colspan="8" class="text-center">
                             Chưa có lớp học phần nào được phân công cho bạn.
                         </td>
                     </tr>

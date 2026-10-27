@@ -13,7 +13,7 @@ use App\Models\User;
  */
 class EnrollmentPolicy
 {
-    public const PASS_SCORE = 5.0;
+    public const PASS_SCORE = GradingScale::PASS_SCORE;
 
     public const GATE_CLOSED = 'Cổng đăng ký đã đóng';
 

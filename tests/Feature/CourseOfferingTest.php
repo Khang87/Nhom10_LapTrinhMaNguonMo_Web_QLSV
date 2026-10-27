@@ -499,11 +499,7 @@ class CourseOfferingTest extends TestCase
 
         $withGrades = $this->offering($this->subject('DB101'), $semester, 'TN01');
         $student = User::factory()->create(['role' => 'student']);
-        Grade::create([
-            'user_id' => $student->id,
-            'course_offering_id' => $withGrades->id,
-            'final_score' => 8,
-        ]);
+        $this->grade($student, $withGrades, 8);
 
         foreach ([$withStudents, $withGrades] as $offering) {
             $this->actingAs($admin)->delete('/admin/course-offerings/'.$offering->id)

@@ -53,6 +53,7 @@ class User extends Authenticatable
         'hometown',
         'phone',
         'academic_status',
+        'academic_status_updated_at',
     ];
 
     /**
@@ -76,6 +77,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'dob' => 'date',
+            'academic_status_updated_at' => 'datetime',
         ];
     }
 
