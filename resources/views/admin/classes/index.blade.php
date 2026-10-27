@@ -29,6 +29,7 @@
                 <th scope="col">Tên lớp</th>
                 <th scope="col">Khóa</th>
                 <th scope="col">Khoa</th>
+                <th scope="col">Chuyên ngành</th>
                 <th scope="col">GVCN</th>
                 <th scope="col">Sĩ số</th>
                 <th scope="col">Thao tác</th>
@@ -42,6 +43,7 @@
                     <td class="table-product-name">{{ $class->class_name }}</td>
                     <td>{{ $class->intake_year ?: '—' }}</td>
                     <td>{{ $class->department?->name ?? 'Chưa phân loại' }}</td>
+                    <td class="table-user-sub">{{ $class->major?->name ?? 'Chưa phân chuyên ngành' }}</td>
                     <td><x-person-cell :name="$class->adviser_label" /></td>
                     <td>{{ $class->students_count }}</td>
                     <td class="text-nowrap">
@@ -58,7 +60,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="8" class="text-center py-5">
+                    <td colspan="9" class="text-center py-5">
                         <div class="empty-state-icon bi bi-inbox" aria-hidden="true"></div>
                         <div class="table-user-sub">Chưa có lớp học phù hợp.</div>
                     </td>

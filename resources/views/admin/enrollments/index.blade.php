@@ -81,6 +81,7 @@
                 <th scope="col">Học kỳ</th>
                 <th scope="col">Trạng thái</th>
                 <th scope="col">Người thực hiện</th>
+                <th scope="col">Ngày đăng ký</th>
                 <th scope="col">Thao tác</th>
             </tr>
         </thead>
@@ -103,6 +104,7 @@
                         @endif
                     </td>
                     <td>{{ $enrollment->registeredByLabel() }}</td>
+                    <td class="table-user-sub">{{ $enrollment->created_at->format('d/m/Y H:i') }}</td>
                     <td class="text-nowrap">
                         @if ($enrollment->isActive())
                             <form class="d-inline" method="POST"
@@ -119,7 +121,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="8" class="text-center py-5">
+                    <td colspan="9" class="text-center py-5">
                         <div class="empty-state-icon bi bi-inbox" aria-hidden="true"></div>
                         <div class="table-user-sub">Chưa có đăng ký học phần nào.</div>
                     </td>

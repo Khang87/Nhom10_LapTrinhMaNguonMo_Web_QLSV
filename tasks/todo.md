@@ -199,5 +199,13 @@ và `users` thiếu CCCD, dân tộc, tôn giáo, hộ khẩu, diện ưu tiên�
     khoản chỉ mang hồ sơ của một vai trò.
   - Fix kèm: `update()` đọc `$data['password']` trong khi ô mật khẩu bỏ trống thì key không tồn tại
     ⇒ 500 "Undefined array key". Chuyển sang `$data['password'] ?? null`.
-- [ ] 12.4 Rà các bảng còn mỏng (lớp, môn, học phần, đăng ký, học phí, học kỳ)
+- [x] 12.4 Rà các bảng còn mỏng (lớp, môn, học phần, đăng ký, học phí, học kỳ)
+  - Done 2026-10-27: khoa 4 → 8 cột và chuyên ngành 6 → 9 cột nhờ thêm quan hệ `students()`
+    (hasManyThrough qua lớp) và `teachers()` trên `Department`, đếm qua `withCount`; lớp học thêm
+    cột chuyên ngành (đã eager load từ trước); môn học có STT + số lớp học phần và câu hỏi xác nhận
+    xóa nêu rõ bao nhiêu đăng ký/điểm/điểm danh bị xóa theo (FK là `cascadeOnDelete`); học phí có
+    cột học kỳ; đăng ký học phần có cột ngày đăng ký. Thêm thẻ thống kê bốn ô phía trên danh sách
+    sinh viên và tài khoản, đếm toàn trường nên không đổi khi lọc.
+  - Evidence: `CatalogTest` thêm 1 test đếm chéo quan hệ, `PersonProfileTest` thêm test thẻ thống
+    kê; 275 test toàn bộ xanh.
 - [ ] 12.5 Dataset demo lấy cấu trúc dữ liệu từ DB MaNguon

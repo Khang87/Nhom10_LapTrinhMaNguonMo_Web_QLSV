@@ -253,6 +253,45 @@ class CatalogTest extends TestCase
         }
     }
 
+    public function test_catalog_lists_count_classes_people_and_offerings(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $major = $this->catalog();
+        $department = $major->department;
+
+        $class = $this->adminClass($major);
+        $student = $this->student('Nguyễn Văn An');
+        $student->update(['class_id' => $class->id]);
+        $teacher = $this->teacher('Tô Đình Quy');
+        $teacher->update(['department_id' => $department->id]);
+
+        $subject = $this->subject('WEB101');
+        $subject->update(['major_id' => $major->id]);
+        $this->enroll($student, $this->offering($subject, $this->semester()));
+
+        $this->actingAs($admin)->get('/admin/departments')
+            ->assertOk()
+            ->assertSee('Giảng viên')
+            ->assertSee('Khoa Công nghệ thông tin');
+        $counts = Department::withCount(['majors', 'classes', 'teachers', 'students'])->find($department->id);
+        $this->assertSame(1, (int) $counts->majors_count);
+        $this->assertSame(1, (int) $counts->classes_count);
+        $this->assertSame(1, (int) $counts->teachers_count);
+        $this->assertSame(1, (int) $counts->students_count);
+
+        $this->actingAs($admin)->get('/admin/majors')
+            ->assertOk()
+            ->assertSee('Sinh viên');
+        $counts = Major::withCount(['subjects', 'studyPlans', 'classes', 'students'])->find($major->id);
+        $this->assertSame(1, (int) $counts->classes_count);
+        $this->assertSame(1, (int) $counts->students_count);
+
+        $this->actingAs($admin)->get('/admin/subjects')
+            ->assertOk()
+            ->assertSee('Lớp học phần');
+        $this->assertSame(1, (int) Subject::withCount('offerings')->find($subject->id)->offerings_count);
+    }
+
     private function catalog(): Major
     {
         $department = Department::create(['code' => 'CNTT', 'name' => 'Khoa Công nghệ thông tin']);

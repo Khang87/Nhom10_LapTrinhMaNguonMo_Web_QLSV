@@ -13,7 +13,8 @@ class DepartmentController extends Controller
 {
     public function index(): View
     {
-        $departments = Department::withCount('majors')->orderBy('code')->paginate(10);
+        $departments = Department::withCount(['majors', 'classes', 'teachers', 'students'])
+            ->orderBy('code')->paginate(10);
 
         return view('admin.departments.index', compact('departments'));
     }

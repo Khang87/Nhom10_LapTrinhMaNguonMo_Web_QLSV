@@ -44,7 +44,28 @@ class AccountController extends Controller
             ]);
         }
 
-        return view('admin.accounts.index', compact('accounts', 'search', 'role'));
+        return view('admin.accounts.index', [
+            'accounts' => $accounts,
+            'search' => $search,
+            'role' => $role,
+            'stats' => $this->stats(),
+        ]);
+    }
+
+    /**
+     * @return list<array{label: string, value: int}>
+     */
+    private function stats(): array
+    {
+        $byRole = User::query()->selectRaw('role, count(*) as total')->groupBy('role')->pluck('total', 'role');
+
+        $stats = [['label' => 'Tổng tài khoản', 'value' => (int) $byRole->sum()]];
+
+        foreach (User::ROLE_LABELS as $role => $label) {
+            $stats[] = ['label' => $label, 'value' => (int) $byRole->get($role, 0)];
+        }
+
+        return $stats;
     }
 
     public function create(): View

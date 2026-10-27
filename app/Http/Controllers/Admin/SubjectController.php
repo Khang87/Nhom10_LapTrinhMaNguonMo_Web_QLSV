@@ -20,7 +20,7 @@ class SubjectController extends Controller
         $search = trim((string) $request->query('search'));
         $subjects = Subject::query()
             ->with('major')
-            ->withCount(['prerequisites', 'dependentSubjects', 'concurrents', 'concurrentOf', 'studyPlans'])
+            ->withCount(['prerequisites', 'dependentSubjects', 'concurrents', 'concurrentOf', 'studyPlans', 'offerings'])
             ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search) {
                 $query->where('code', 'like', "%{$search}%")
                     ->orWhere('name', 'like', "%{$search}%");

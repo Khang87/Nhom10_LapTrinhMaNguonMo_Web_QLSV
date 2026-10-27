@@ -56,7 +56,8 @@
                     <td>{{ $offering->group_code }}</td>
                     <td>
                         @if ($offering->teacher)
-                            <x-person-cell :name="$offering->teacher->name" :avatar="$offering->teacher->avatarUrl()" />
+                            <x-person-cell :name="$offering->teacher->name" :avatar="$offering->teacher->avatarUrl()"
+                                :sub="implode(' · ', array_filter([$offering->teacher->teacher_code, $offering->teacher->degree])) ?: null" />
                         @else
                             Chưa phân công
                         @endif

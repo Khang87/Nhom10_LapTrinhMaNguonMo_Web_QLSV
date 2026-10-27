@@ -95,6 +95,14 @@
         </form>
     </div>
 
+    <div class="row g-3 mt-0">
+        @foreach ($stats as $stat)
+            <div class="col-6 col-lg-3">
+                <x-stat-card :label="$stat['label']" :value="$stat['value']" :hint="$stat['hint']" />
+            </div>
+        @endforeach
+    </div>
+
     <p class="fs-xs text-muted-green" id="live-search-status" aria-live="polite">
         {{ $students->total() }} sinh viên.
     </p>

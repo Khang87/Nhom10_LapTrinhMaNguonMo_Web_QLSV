@@ -29,18 +29,23 @@
     <x-data-table>
         <thead>
             <tr>
+                <th scope="col">STT</th>
                 <th scope="col">Mã ngành</th><th scope="col">Tên ngành</th><th scope="col">Khoa</th>
-                <th scope="col">Môn học</th><th scope="col">Khung CTĐT</th><th scope="col">Thao tác</th>
+                <th scope="col">Môn học</th><th scope="col">Khung CTĐT</th>
+                <th scope="col">Lớp</th><th scope="col">Sinh viên</th><th scope="col">Thao tác</th>
             </tr>
         </thead>
         <tbody>
             @forelse ($majors as $major)
                 <tr>
+                    <td>{{ $majors->firstItem() + $loop->index }}</td>
                     <td class="table-order-id">{{ $major->code }}</td>
                     <td class="table-product-name">{{ $major->name }}</td>
                     <td>{{ $major->department?->name ?? '—' }}</td>
                     <td>{{ $major->subjects_count }}</td>
                     <td>{{ $major->study_plans_count }}</td>
+                    <td>{{ $major->classes_count }}</td>
+                    <td>{{ $major->students_count }}</td>
                     <td class="text-nowrap">
                         <a class="btn btn-custom btn-custom-sm btn-custom-outline-primary" href="{{ route('admin.majors.edit', $major) }}">Sửa</a>
                         <form class="d-inline" method="POST" action="{{ route('admin.majors.destroy', $major) }}"
@@ -52,7 +57,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="6" class="text-center py-5">
+                    <td colspan="9" class="text-center py-5">
                         <div class="empty-state-icon bi bi-inbox" aria-hidden="true"></div>
                         <div class="table-user-sub">Chưa có chuyên ngành nào.</div>
                     </td>

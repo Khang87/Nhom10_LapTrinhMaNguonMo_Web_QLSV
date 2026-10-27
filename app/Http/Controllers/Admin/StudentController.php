@@ -44,6 +44,7 @@ class StudentController extends Controller
         return view('admin.students.index', [
             'students' => $students,
             'filters' => $filters,
+            'stats' => $this->stats(),
         ] + $this->filterOptions($filters));
     }
 
@@ -237,6 +238,30 @@ class StudentController extends Controller
             ->when($filters['class_id'] === 'none', fn ($query) => $query->whereNull('class_id'))
             ->when(is_int($filters['class_id']), fn ($query) => $query->where('class_id', $filters['class_id']))
             ->when($filters['academic_status'], fn ($query, $status) => $query->where('academic_status', $status));
+    }
+
+    /**
+     * Bốn thẻ tổng quan phía trên danh sách, đếm toàn trường chứ không theo bộ lọc.
+     *
+     * @return list<array{label: string, value: int, hint: string}>
+     */
+    private function stats(): array
+    {
+        $byStatus = User::query()->where('role', 'student')
+            ->selectRaw('academic_status, count(*) as total')
+            ->groupBy('academic_status')
+            ->pluck('total', 'academic_status');
+
+        return [
+            [
+                'label' => 'Tổng sinh viên',
+                'value' => (int) $byStatus->sum(),
+                'hint' => User::where('role', 'student')->whereNull('class_id')->count().' chưa xếp lớp',
+            ],
+            ['label' => PersonLabels::status('STUDYING'), 'value' => (int) $byStatus->get('STUDYING', 0), 'hint' => 'Đang học bình thường'],
+            ['label' => PersonLabels::status('AT_RISK'), 'value' => (int) $byStatus->get('AT_RISK', 0), 'hint' => 'Cần theo dõi học vụ'],
+            ['label' => PersonLabels::status('GRADUATED'), 'value' => (int) $byStatus->get('GRADUATED', 0), 'hint' => 'Đã ra trường'],
+        ];
     }
 
     /**

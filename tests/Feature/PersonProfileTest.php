@@ -418,6 +418,22 @@ class PersonProfileTest extends TestCase
         $this->assertNames([$noPhone], '/admin/students?search=khongcodt');
     }
 
+    public function test_student_and_account_lists_carry_summary_cards(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $this->student('20250301', 'card1@example.com');
+        $this->student('20250302', 'card2@example.com', null, 'AT_RISK');
+
+        $page = $this->actingAs($admin)->get('/admin/students')->assertOk()->getContent();
+        foreach (['Tổng sinh viên', 'Đang học bình thường', 'Cần theo dõi học vụ', 'Đã ra trường'] as $card) {
+            $this->assertStringContainsString($card, $page, "Thiếu thẻ thống kê {$card}.");
+        }
+
+        $this->actingAs($admin)->get('/admin/accounts')->assertOk()
+            ->assertSee('Tổng tài khoản')
+            ->assertSee('Quản trị viên');
+    }
+
     public function test_account_form_stores_role_profile_and_clears_it_when_role_changes(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

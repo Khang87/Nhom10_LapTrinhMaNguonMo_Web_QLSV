@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class Major extends Model
 {
@@ -28,5 +29,10 @@ class Major extends Model
     public function classes(): HasMany
     {
         return $this->hasMany(StudentClass::class, 'major_id');
+    }
+
+    public function students(): HasManyThrough
+    {
+        return $this->hasManyThrough(User::class, StudentClass::class, 'major_id', 'class_id');
     }
 }

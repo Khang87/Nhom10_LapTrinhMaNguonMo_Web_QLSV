@@ -7,6 +7,14 @@
         </x-slot>
     </x-page-header>
 
+    <div class="row g-3 mb-3">
+        @foreach ($stats as $stat)
+            <div class="col-6 col-lg-3">
+                <x-stat-card :label="$stat['label']" :value="$stat['value']" />
+            </div>
+        @endforeach
+    </div>
+
     <form class="row g-2 mb-3" method="GET" action="{{ route('admin.accounts.index') }}" data-live-search
         data-target="#account-table-body" data-pagination="account-pagination" data-unit="tài khoản"
         aria-label="Tìm tài khoản">

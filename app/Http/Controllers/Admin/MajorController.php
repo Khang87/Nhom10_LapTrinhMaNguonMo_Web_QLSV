@@ -17,7 +17,7 @@ class MajorController extends Controller
         $departmentId = $request->integer('department_id') ?: null;
 
         $majors = Major::with('department')
-            ->withCount(['subjects', 'studyPlans'])
+            ->withCount(['subjects', 'studyPlans', 'classes', 'students'])
             ->when($departmentId, fn ($query) => $query->where('department_id', $departmentId))
             ->orderBy('code')
             ->paginate(10)

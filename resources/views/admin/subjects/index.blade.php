@@ -22,8 +22,10 @@
     <x-data-table>
         <thead>
             <tr>
+                <th scope="col">STT</th>
                 <th scope="col">Mã môn</th><th scope="col">Tên môn</th><th scope="col">Tín chỉ</th><th scope="col">Chuyên ngành</th>
-                <th scope="col">Môn tiên quyết</th><th scope="col">Môn song hành</th><th scope="col">Khung CTĐT</th><th scope="col">Thao tác</th>
+                <th scope="col">Môn tiên quyết</th><th scope="col">Môn song hành</th><th scope="col">Khung CTĐT</th>
+                <th scope="col">Lớp học phần</th><th scope="col">Thao tác</th>
             </tr>
         </thead>
         <tbody>
@@ -34,9 +36,13 @@
                     $confirm = 'Bạn có chắc muốn xóa môn học này?'
                         .($prerequisites > 0 ? " {$prerequisites} quan hệ tiên quyết sẽ bị gỡ theo." : '')
                         .($concurrents > 0 ? " {$concurrents} quan hệ song hành sẽ bị gỡ theo." : '')
-                        .($subject->study_plans_count > 0 ? " {$subject->study_plans_count} dòng khung chương trình sẽ bị xóa." : '');
+                        .($subject->study_plans_count > 0 ? " {$subject->study_plans_count} dòng khung chương trình sẽ bị xóa." : '')
+                        .($subject->offerings_count > 0
+                            ? " {$subject->offerings_count} lớp học phần cùng đăng ký, điểm và điểm danh của chúng cũng bị xóa."
+                            : '');
                 @endphp
                 <tr>
+                    <td>{{ $subjects->firstItem() + $loop->index }}</td>
                     <td class="table-order-id">{{ $subject->code }}</td>
                     <td class="table-product-name">{{ $subject->name }}</td>
                     <td>{{ $subject->credits }}</td>
@@ -44,6 +50,7 @@
                     <td>{{ $prerequisites }}</td>
                     <td>{{ $concurrents }}</td>
                     <td>{{ $subject->study_plans_count }}</td>
+                    <td>{{ $subject->offerings_count }}</td>
                     <td class="text-nowrap">
                         <a class="btn btn-custom btn-custom-sm btn-custom-outline-primary" href="{{ route('admin.subjects.edit', $subject) }}">Sửa</a>
                         <form class="d-inline" method="POST" action="{{ route('admin.subjects.destroy', $subject) }}"
@@ -55,7 +62,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="8" class="text-center py-5">
+                    <td colspan="10" class="text-center py-5">
                         <div class="empty-state-icon bi bi-inbox" aria-hidden="true"></div>
                         <div class="table-user-sub">Chưa có môn học.</div>
                     </td>

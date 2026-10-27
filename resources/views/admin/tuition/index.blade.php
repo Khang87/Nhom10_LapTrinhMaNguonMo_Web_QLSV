@@ -70,6 +70,7 @@
             <tr>
                 <th scope="col">STT</th>
                 <th scope="col">Sinh viên</th>
+                <th scope="col">Học kỳ</th>
                 <th scope="col">Tín chỉ</th>
                 <th scope="col">Số tiền</th>
                 <th scope="col">Nội dung chuyển khoản</th>
@@ -85,6 +86,7 @@
                         <x-person-cell :name="$invoice->student?->name ?? '—'"
                             :sub="$invoice->student?->student_code" :avatar="$invoice->student?->avatarUrl()" />
                     </td>
+                    <td class="table-user-sub">{{ $invoice->semester?->label ?? '—' }}</td>
                     <td class="table-amount">{{ $invoice->credits }}</td>
                     <td class="table-amount">{{ $invoice->amountLabel() }}</td>
                     <td>{{ $invoice->content }}</td>
@@ -125,7 +127,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="7" class="text-center py-5">
+                    <td colspan="8" class="text-center py-5">
                         <div class="empty-state-icon mb-2"><i class="bi bi-wallet2" aria-hidden="true"></i></div>
                         <div class="table-user-sub">
                             Học kỳ này chưa có thông báo học phí nào. Bấm "Phát hành học phí kỳ này" để tạo.
