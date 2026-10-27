@@ -141,6 +141,14 @@
                             </a>
                         </li>
                         <li class="sidebar-menu-item">
+                            <a class="sidebar-menu-link {{ request()->routeIs('admin.reports.*') ? 'active' : '' }}"
+                                href="{{ route('admin.reports.show', 'census') }}"
+                                @if (request()->routeIs('admin.reports.*')) aria-current="page" @endif>
+                                <i class="bi bi-bar-chart-steps" aria-hidden="true"></i>
+                                <span>Thống kê &amp; báo cáo</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-menu-item">
                             <a class="sidebar-menu-link {{ request()->routeIs('admin.accounts.*') ? 'active' : '' }}"
                                 href="{{ route('admin.accounts.index') }}"
                                 @if (request()->routeIs('admin.accounts.*')) aria-current="page" @endif>
@@ -168,6 +176,14 @@
                                 @if (request()->routeIs('teacher.timetable')) aria-current="page" @endif>
                                 <i class="bi bi-calendar-week" aria-hidden="true"></i>
                                 <span>Thời khóa biểu</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-menu-item">
+                            <a class="sidebar-menu-link {{ request()->routeIs('teacher.reports.*') ? 'active' : '' }}"
+                                href="{{ route('teacher.reports.show', 'attendance') }}"
+                                @if (request()->routeIs('teacher.reports.*')) aria-current="page" @endif>
+                                <i class="bi bi-bar-chart-steps" aria-hidden="true"></i>
+                                <span>Báo cáo lớp tôi</span>
                             </a>
                         </li>
                     </ul>

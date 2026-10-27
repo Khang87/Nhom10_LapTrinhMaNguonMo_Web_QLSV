@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Admin\EnrollmentController as AdminEnrollmentController;
 use App\Http\Controllers\Admin\GradeController;
 use App\Http\Controllers\Admin\MajorController;
+use App\Http\Controllers\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\Admin\SemesterController;
 use App\Http\Controllers\Admin\StudentController;
 use App\Http\Controllers\Admin\StudyPlanController;
@@ -28,6 +29,7 @@ use App\Http\Controllers\Teacher\AttendanceController as TeacherAttendanceContro
 use App\Http\Controllers\Teacher\DashboardController as TeacherDashboardController;
 use App\Http\Controllers\Teacher\GradeController as TeacherGradeController;
 use App\Http\Controllers\Teacher\OfferingController as TeacherOfferingController;
+use App\Http\Controllers\Teacher\ReportController as TeacherReportController;
 use App\Http\Controllers\Teacher\TimetableController as TeacherTimetableController;
 use Illuminate\Support\Facades\Route;
 
@@ -94,6 +96,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/enrollments/export', [AdminEnrollmentController::class, 'export'])->name('enrollments.export');
         Route::post('/enrollments', [AdminEnrollmentController::class, 'store'])->name('enrollments.store');
         Route::delete('/enrollments/{enrollment}', [AdminEnrollmentController::class, 'drop'])->name('enrollments.drop');
+        Route::prefix('reports')->name('reports.')->group(function () {
+            Route::redirect('/', '/admin/reports/census');
+            Route::get('/{type}', [AdminReportController::class, 'show'])->name('show');
+            Route::get('/{type}/export', [AdminReportController::class, 'export'])->name('export');
+        });
     });
 
     Route::prefix('teacher')->name('teacher.')->middleware('checkRole:teacher')->group(function () {
@@ -106,6 +113,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/course-offerings/{offering}/attendance', [TeacherAttendanceController::class, 'index'])->name('course-offerings.attendance');
         Route::get('/course-offerings/{offering}/attendance/session/create', [TeacherAttendanceController::class, 'create'])->name('course-offerings.attendance.session.create');
         Route::post('/course-offerings/{offering}/attendance/session', [TeacherAttendanceController::class, 'store'])->name('course-offerings.attendance.session.store');
+        Route::prefix('reports')->name('reports.')->group(function () {
+            Route::redirect('/', '/teacher/reports/census');
+            Route::get('/{type}', [TeacherReportController::class, 'show'])->name('show');
+            Route::get('/{type}/export', [TeacherReportController::class, 'export'])->name('export');
+        });
     });
 
     Route::prefix('student')->name('student.')->middleware('checkRole:student')->group(function () {

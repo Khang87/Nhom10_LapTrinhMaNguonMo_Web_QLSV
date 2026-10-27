@@ -152,6 +152,86 @@ class ReportingTest extends TestCase
         $this->assertNull(Reports::show('unknown', $filter));
     }
 
+    public function test_the_admin_screen_shows_the_report_and_the_three_export_buttons(): void
+    {
+        $fixture = $this->fixture();
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->get(route('admin.reports.show', 'scores').'?semester_id='.$fixture['semester']->id)
+            ->assertOk()
+            ->assertSee('Phổ điểm theo lớp học phần')
+            ->assertSee('Xuất Excel')
+            ->assertSee('Xuất PDF')
+            ->assertSee('6,08')
+            ->assertSee('Thống kê sinh viên')
+            ->assertSee('Xếp hạng GPA');
+    }
+
+    public function test_each_format_downloads_a_real_file_with_the_vietnamese_name_slugged(): void
+    {
+        $fixture = $this->fixture();
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $expected = [
+            'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'pdf' => 'application/pdf',
+            'csv' => 'text/csv; charset=UTF-8',
+        ];
+        $signature = ['xlsx' => 'PK', 'pdf' => '%PDF', 'csv' => "\xEF\xBB\xBF"];
+
+        foreach ($expected as $format => $contentType) {
+            $response = $this->actingAs($admin)->get(
+                route('admin.reports.export', [
+                    'type' => 'census',
+                    'format' => $format,
+                    'semester_id' => $fixture['semester']->id,
+                ])
+            );
+
+            $response->assertOk()->assertHeader('Content-Type', $contentType);
+            $response->assertDownload('phan-bo-sinh-vien-theo-bo-loc-hk1-2025-2026.'.$format);
+            $bytes = $format === 'xlsx' ? $response->streamedContent() : $response->content();
+            $this->assertStringStartsWith($signature[$format], $bytes, "File {$format} không đúng định dạng thật.");
+        }
+    }
+
+    public function test_unknown_report_type_or_format_is_not_a_server_error(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)->get(route('admin.reports.show', 'salary'))->assertNotFound();
+        $this->actingAs($admin)->get(route('admin.reports.export', ['type' => 'census', 'format' => 'docx']))->assertNotFound();
+    }
+
+    public function test_a_teacher_only_ever_sees_the_classes_they_stand(): void
+    {
+        $fixture = $this->fixture();
+        $other = $this->teacher('Giảng viên B');
+        $admin = User::factory()->create(['role' => 'admin']);
+        $student = $fixture['students']['20240001'];
+
+        $this->actingAs($admin)->get(route('teacher.reports.show', 'attendance'))->assertForbidden();
+        $this->actingAs($student)->get(route('admin.reports.show', 'census'))->assertForbidden();
+
+        $mine = $this->actingAs($fixture['teacher'])->get(route('teacher.reports.show', 'attendance'))
+            ->assertOk()
+            ->assertSee('WEB101 - Môn WEB101')
+            ->assertSee('85,7');
+
+        // Báo cáo của người khác không tồn tại trong phạm vi của giảng viên: bảng rỗng, không phải 500.
+        $this->actingAs($other)
+            ->get(route('teacher.reports.show', 'attendance'))
+            ->assertOk()
+            ->assertSee('Bộ lọc hiện tại chưa có dữ liệu.')
+            ->assertDontSee('85,7');
+
+        // Ô lọc khoa/khóa chỉ dành cho admin.
+        $this->actingAs($fixture['teacher'])->get(route('admin.reports.show', 'census'))
+            ->assertForbidden();
+        $mine->assertDontSee('name="department_id"', false);
+    }
+
     /**
      * Bảy sinh viên, hai lớp học phần, điểm và điểm danh đã biết trước:
      * WEB101 (3 TC) có sáu điểm công bố + một dòng chưa công bố, HTT101 (2 TC) có hai điểm.

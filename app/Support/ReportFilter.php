@@ -15,11 +15,13 @@ use Illuminate\Http\Request;
  * cách lọc. Giá trị thừa hoặc sai kiểu bị bỏ qua thay vì báo lỗi vì thanh lọc luôn có ô trống.
  *
  * $offeringIds là phạm vi của giảng viên: họ chỉ thấy số liệu lớp mình phụ trách, không có
- * quyền chọn khoa/khóa.
+ * quyền chọn khoa/khóa. null = không giới hạn (admin), [] = giới hạn vào tập rỗng (giảng viên
+ * chưa được phân công lớp nào) — hai trạng thái này phải khác nhau, nếu không một giảng viên
+ * chưa có lớp sẽ thấy số liệu của toàn trường.
  */
 final class ReportFilter
 {
-    /** @param list<int> $offeringIds */
+    /** @param list<int>|null $offeringIds */
     public function __construct(
         public readonly ?int $semesterId = null,
         public readonly ?int $departmentId = null,
@@ -28,7 +30,7 @@ final class ReportFilter
         public readonly ?int $intakeYear = null,
         public readonly ?string $gender = null,
         public readonly ?string $academicStatus = null,
-        public readonly array $offeringIds = [],
+        public readonly ?array $offeringIds = null,
     ) {}
 
     public static function fromRequest(Request $request, ?int $semesterId = null): self
@@ -93,7 +95,7 @@ final class ReportFilter
     {
         return $this->inSemester(
             Grade::query()
-                ->when($this->offeringIds !== [], fn (Builder $q) => $q->whereIn('course_offering_id', $this->offeringIds))
+                ->when($this->offeringIds !== null, fn (Builder $q) => $q->whereIn('course_offering_id', $this->offeringIds))
                 ->whereHas('user', fn (Builder $u) => $this->constrainUsers($u))
         );
     }
@@ -108,7 +110,7 @@ final class ReportFilter
         return $this->inSemester(
             Enrollment::query()
                 ->where('status', 'ACTIVE')
-                ->when($this->offeringIds !== [], fn (Builder $q) => $q->whereIn('course_offering_id', $this->offeringIds))
+                ->when($this->offeringIds !== null, fn (Builder $q) => $q->whereIn('course_offering_id', $this->offeringIds))
                 ->whereHas('user', fn (Builder $u) => $this->constrainUsers($u))
         );
     }
@@ -118,7 +120,7 @@ final class ReportFilter
     {
         return CourseOffering::query()
             ->when($this->semesterId, fn (Builder $q) => $q->where('semester_id', $this->semesterId))
-            ->when($this->offeringIds !== [], fn (Builder $q) => $q->whereIn('id', $this->offeringIds));
+            ->when($this->offeringIds !== null, fn (Builder $q) => $q->whereIn('id', $this->offeringIds));
     }
 
     /**
@@ -133,7 +135,7 @@ final class ReportFilter
     {
         return $query
             ->where('role', 'student')
-            ->when($this->offeringIds !== [], fn (Builder $q) => $q
+            ->when($this->offeringIds !== null, fn (Builder $q) => $q
                 ->whereHas('enrollments', fn (Builder $e) => $e->whereIn('course_offering_id', $this->offeringIds)))
             ->when($this->gender, fn (Builder $q) => $q->where('gender', $this->gender))
             ->when($this->academicStatus, fn (Builder $q) => $q->where('academic_status', $this->academicStatus))
