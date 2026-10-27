@@ -97,6 +97,30 @@ final class GradingScale
     }
 
     /**
+     * Khoảng điểm cho phổ điểm của nhóm yêu cầu 8. Cận dưới lấy thẳng từ điểm liệt và các dải
+     * chữ, thêm khoảng "dưới điểm liệt", để bảng phổ điểm và cách xếp loại không phải hai bảng
+     * số khác nhau.
+     *
+     * @return list<array{label: string, floor: float, ceiling: float}>
+     */
+    public static function buckets(): array
+    {
+        $edges = array_merge([0.0, self::FAIL_FLOOR], array_column(array_reverse(self::BANDS), 0), [10.0]);
+        $last = count($edges) - 2;
+
+        return collect(array_slice($edges, 0, -1))
+            ->map(fn (float $floor, int $i) => [
+                'label' => $i === 0
+                    ? sprintf('Dưới %.1f', $edges[1])
+                    : sprintf('%.1f–%.1f', $floor, $i === $last ? 10.0 : $edges[$i + 1] - 0.1),
+                'floor' => $floor,
+                'ceiling' => $edges[$i + 1],
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
      * GPA hệ 4 = Σ(hệ 4 × tín chỉ) / Σ(tín chỉ), làm tròn 2 chữ số.
      *
      * @param  iterable<array{four: float|null, credits: int|null}>  $rows
