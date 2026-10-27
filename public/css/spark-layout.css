@@ -30,33 +30,6 @@
     }
 }
 
-.student-profile-avatar {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 5rem;
-    height: 5rem;
-    flex: 0 0 auto;
-    border-radius: 50%;
-    background-color: #f4f6f5;
-    color: var(--brand-forest-medium);
-    font-size: 2.5rem;
-}
-
-.student-stat-card .card-body {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-}
-
-.student-stat-value {
-    margin: 0.25rem 0;
-    font-size: 2rem;
-    font-weight: 700;
-    line-height: 1.2;
-    color: var(--brand-forest-medium);
-}
-
 .student-action-card {
     color: var(--text-main);
 }

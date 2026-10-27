@@ -4,7 +4,11 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield('title', 'Quản lý sinh viên - lớp học')</title>
+    <link rel="icon" href="{{ asset('images/HUIT_logo.png') }}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('vendor/spark-admin/assets/libs/bootstrap-icons/bootstrap-icons.css') }}">
+    <link rel="stylesheet" href="{{ asset('vendor/spark-admin/assets/css/main.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/spark-layout.css') }}">
 </head>
 <body class="bg-light min-vh-100 d-flex flex-column">
     @unless (request()->routeIs('login', 'password.request', 'password.reset'))
@@ -45,14 +49,21 @@
 
     <main class="@yield('main-class', 'container py-4 flex-grow-1')">
         @if (session('success'))
-            <div class="alert alert-success" role="status">{{ session('success') }}</div>
+            <div class="alert-custom alert-custom-success" role="status">
+                <i class="bi bi-check2-circle alert-custom-icon" aria-hidden="true"></i>
+                <span class="alert-custom-content">{{ session('success') }}</span>
+            </div>
         @endif
         @if (session('error'))
-            <div class="alert alert-danger" role="alert">{{ session('error') }}</div>
+            <div class="alert-custom alert-custom-danger" role="alert">
+                <i class="bi bi-exclamation-octagon alert-custom-icon" aria-hidden="true"></i>
+                <span class="alert-custom-content">{{ session('error') }}</span>
+            </div>
         @endif
         @if ($errors->any())
-            <div class="alert alert-danger" role="alert">
-                <ul class="mb-0">
+            <div class="alert-custom alert-custom-danger" role="alert">
+                <i class="bi bi-exclamation-octagon alert-custom-icon" aria-hidden="true"></i>
+                <ul class="alert-custom-content mb-0">
                     @foreach ($errors->all() as $error)
                         <li>{{ $error }}</li>
                     @endforeach

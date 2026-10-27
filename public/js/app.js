@@ -21,7 +21,14 @@ document.addEventListener('click', (event) => {
 
     const isVisible = password.type === 'text';
     password.type = isVisible ? 'password' : 'text';
-    button.textContent = isVisible ? 'Hiện' : 'Ẩn';
+    const icon = button.querySelector('i');
+
+    if (icon) {
+        icon.classList.toggle('bi-eye', isVisible);
+        icon.classList.toggle('bi-eye-slash', !isVisible);
+    } else {
+        button.textContent = isVisible ? 'Hiện' : 'Ẩn';
+    }
     button.setAttribute('aria-label', isVisible ? 'Hiện mật khẩu' : 'Ẩn mật khẩu');
 });
 
