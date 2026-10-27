@@ -140,7 +140,7 @@
                     </p>
                     <div class="progress" role="progressbar" aria-label="Tỷ lệ chuyên cần"
                         aria-valuenow="{{ $attendanceRate }}" aria-valuemin="0" aria-valuemax="100" style="height:12px">
-                        <div class="progress-bar {{ $attendanceRate >= 80 ? 'bg-success' : 'bg-warning' }}"
+                        <div class="progress-bar {{ \App\Support\AttendanceRate::isBelowThreshold($attendanceRate) ? 'bg-warning' : 'bg-success' }}"
                             style="width: {{ $attendanceRate }}%"></div>
                     </div>
                     <div class="fs-xs text-muted-green mt-2">Tỷ lệ = số buổi có mặt / tổng số buổi ghi nhận.</div>

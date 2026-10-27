@@ -570,10 +570,22 @@ Quy ước branch/commit: một commit cho mỗi task, message tiếng Việt th
     liệu cũ không có giảng viên nào ghi nhận, và xóa tài khoản không được xóa luôn lịch sử
     điểm danh.
 
-- [ ] 7.3 `AttendanceRate` + unit test
+- [x] 7.3 `AttendanceRate` + unit test
   - Acceptance: 1 vắng/4 buổi ⇒ 75%; chưa buổi nào ⇒ `null` (UI "Chưa có dữ liệu").
   - Verify: `php artisan test --filter=AttendanceRateTest`.
   - Files: `app/Support/AttendanceRate.php`
+  - Done 2026-10-27: `forEnrollment()` trả `['sessions', 'present', 'rate', 'pending']`
+    (rate = present/sessions×100, round 1, `null` khi chưa có buổi nào), `forStudent()` gộp mọi
+    đăng ký, `warningThreshold()` đọc `config('academic.min_attendance_rate')`,
+    `isBelowThreshold()` chấp `null` = chưa cảnh báo. `GradeBook::attendanceRate()` bị xóa —
+    `review()` gọi thẳng `AttendanceRate::forStudent()`, thanh tiến độ trong
+    `admin/students/show.blade.php` dùng `isBelowThreshold()` thay cho số 80 cứng.
+  - Evidence: 6 test xanh — 3 buổi có mặt + 1 vắng ⇒ `75.0`, chưa buổi nào ⇒ `rate = null`,
+    buổi lớp đã chấm nhưng sinh viên vào trễ chưa có dòng ⇒ `pending = 1` còn tỷ lệ vẫn tính
+    trên buổi đã chấm, buổi không ai được chấm ⇒ không cộng vào `sessions` lẫn `pending`,
+    ngưỡng 80.0 (`79.9` cảnh báo, `80.0` không).
+  - Deviation: `pending` (buổi chưa điểm danh) là khóa thêm ngoài ba khóa của spec vì spec yêu
+    cầu UI đếm riêng "chưa điểm danh (n)".
 
 - [ ] 7.4 Màn hình điểm danh nhanh cho giảng viên
   - Acceptance: mặc định "Có mặt", bỏ check người vắng, lưu một lần; chỉ teacher phụ trách.

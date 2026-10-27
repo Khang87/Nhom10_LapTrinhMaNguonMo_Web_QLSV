@@ -2,7 +2,6 @@
 
 namespace App\Support;
 
-use App\Models\Attendance;
 use App\Models\Enrollment;
 use App\Models\Grade;
 use App\Models\User;
@@ -76,23 +75,11 @@ final class GradeBook
     public static function review(User $student): array
     {
         $context = self::summary(self::history($student));
-        $context['attendance_rate'] = self::attendanceRate($student);
+        $context['attendance_rate'] = AttendanceRate::forStudent($student);
         $context['credits_required'] = self::requiredCredits($student);
         $context['suggestion'] = GradingScale::progression($context);
 
         return $context;
-    }
-
-    /**
-     * Tỷ lệ chuyên cần = số buổi có mặt / tổng số buổi đã ghi nhận, theo thang 100.
-     */
-    public static function attendanceRate(User $student): ?float
-    {
-        $total = $student->attendances()->count();
-
-        return $total === 0
-            ? null
-            : round($student->attendances()->where('attendances.status', Attendance::PRESENT)->count() / $total * 100, 1);
     }
 
     /**
