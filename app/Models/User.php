@@ -49,9 +49,25 @@ class User extends Authenticatable
         'avatar',
         'student_code',
         'teacher_code',
+        'degree',
+        'department_id',
         'dob',
         'gender',
         'hometown',
+        'enrolled_on',
+        'education_level',
+        'training_type',
+        'admission_region',
+        'priority_category',
+        'ethnicity',
+        'religion',
+        'nationality',
+        'birth_place',
+        'permanent_residence',
+        'contact_address',
+        'id_card_number',
+        'id_card_issued_at',
+        'id_card_issued_place',
         'phone',
         'academic_status',
         'academic_status_updated_at',
@@ -78,6 +94,8 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'dob' => 'date',
+            'enrolled_on' => 'date',
+            'id_card_issued_at' => 'date',
             'academic_status_updated_at' => 'datetime',
         ];
     }
@@ -107,6 +125,11 @@ class User extends Authenticatable
     public function studentClass(): BelongsTo
     {
         return $this->belongsTo(StudentClass::class, 'class_id');
+    }
+
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class);
     }
 
     public function avatarUrl(): string

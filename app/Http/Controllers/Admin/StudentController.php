@@ -215,11 +215,12 @@ class StudentController extends Controller
     {
         return User::query()
             ->where('role', 'student')
-            ->with('studentClass')
+            ->with('studentClass.major')
             ->when($filters['search'] !== '', fn ($query) => $query->where(
                 fn (Builder $query) => $query->where('name', 'like', "%{$filters['search']}%")
                     ->orWhere('email', 'like', "%{$filters['search']}%")
-                    ->orWhere('student_code', 'like', "%{$filters['search']}%"),
+                    ->orWhere('student_code', 'like', "%{$filters['search']}%")
+                    ->orWhere('phone', 'like', "%{$filters['search']}%"),
             ))
             ->when($filters['intake_year'], fn ($query, $year) => $query->whereHas(
                 'studentClass',
@@ -306,6 +307,20 @@ class StudentController extends Controller
             'hometown' => ['nullable', 'string', 'max:200'],
             'phone' => ['nullable', 'regex:/^0[0-9]{8,10}$/'],
             'academic_status' => ['nullable', Rule::in(PersonLabels::statusCodes())],
+            'enrolled_on' => ['nullable', 'date'],
+            'education_level' => ['nullable', 'string', 'max:30'],
+            'training_type' => ['nullable', 'string', 'max:30'],
+            'admission_region' => ['nullable', 'string', 'max:20'],
+            'priority_category' => ['nullable', 'string', 'max:30'],
+            'ethnicity' => ['nullable', 'string', 'max:50'],
+            'religion' => ['nullable', 'string', 'max:50'],
+            'nationality' => ['nullable', 'string', 'max:50'],
+            'birth_place' => ['nullable', 'string', 'max:100'],
+            'permanent_residence' => ['nullable', 'string', 'max:200'],
+            'contact_address' => ['nullable', 'string', 'max:200'],
+            'id_card_number' => ['nullable', 'string', 'max:20', 'regex:/^[0-9]{12}$/'],
+            'id_card_issued_at' => ['nullable', 'date'],
+            'id_card_issued_place' => ['nullable', 'string', 'max:100'],
             'avatar' => [
                 'nullable',
                 File::image()
@@ -319,6 +334,7 @@ class StudentController extends Controller
             'phone.regex' => 'Số điện thoại phải bắt đầu bằng 0 và có 10–11 chữ số.',
             'gender.in' => 'Giới tính không hợp lệ.',
             'academic_status.in' => 'Tình trạng học tập không hợp lệ.',
+            'id_card_number.regex' => 'Số CCCD / định danh phải đủ 12 chữ số.',
         ]);
     }
 }

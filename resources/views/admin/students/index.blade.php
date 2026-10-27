@@ -102,11 +102,15 @@
     <x-data-table>
         <thead>
             <tr>
+                <th scope="col">#</th>
                 <th scope="col">Mã SV</th>
                 <th scope="col">Họ tên</th>
-                <th scope="col">Email</th>
+                <th scope="col">Ngày sinh</th>
+                <th scope="col">Giới tính</th>
                 <th scope="col">Lớp</th>
                 <th scope="col">Khóa</th>
+                <th scope="col">Chuyên ngành</th>
+                <th scope="col">Email liên hệ</th>
                 <th scope="col">Tình trạng</th>
                 <th scope="col">Thao tác</th>
             </tr>

@@ -334,6 +334,140 @@ class PersonProfileTest extends TestCase
         $this->assertSame('MALE', $rows[2][4]);
     }
 
+    public function test_extended_profile_fields_save_and_appear_on_detail_page(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)->post('/admin/students', [
+            'name' => 'Phạm Minh Châu',
+            'email' => 'chau@example.com',
+            'password' => '12345678',
+            'student_code' => '20250101',
+            'enrolled_on' => '2025-09-05',
+            'education_level' => 'Đại học',
+            'training_type' => 'Chính quy',
+            'admission_region' => 'KV1',
+            'priority_category' => '06',
+            'ethnicity' => 'Kinh',
+            'religion' => 'Phật giáo',
+            'nationality' => 'Việt Nam',
+            'birth_place' => 'Bệnh viện Đa khoa tỉnh Hải Dương',
+            'permanent_residence' => 'Thôn 4, xã Nam Sách, Hải Dương',
+            'contact_address' => 'Khu phố 3, phường Linh Xuân, TP.HCM',
+            'id_card_number' => '001200011222',
+            'id_card_issued_at' => '2020-01-15',
+            'id_card_issued_place' => 'Cục Cảnh sát quản lý hành chính',
+        ])->assertRedirect(route('admin.students.index'));
+
+        $student = User::where('email', 'chau@example.com')->sole();
+        $this->assertSame('2025-09-05', $student->enrolled_on->toDateString());
+        $this->assertSame('Kinh', $student->ethnicity);
+        $this->assertSame('001200011222', $student->id_card_number);
+        $this->assertSame('2020-01-15', $student->id_card_issued_at->toDateString());
+
+        $this->actingAs($admin)->get(route('admin.students.show', $student))
+            ->assertOk()
+            ->assertSee('Hồ sơ đào tạo')
+            ->assertSee('Cá nhân & liên hệ')
+            ->assertSee('Giấy tờ & diện ưu tiên')
+            ->assertSee('Chính quy')
+            ->assertSee('05/09/2025')
+            ->assertSee('Phật giáo')
+            ->assertSee('Việt Nam')
+            ->assertSee('Thôn 4, xã Nam Sách, Hải Dương')
+            ->assertSee('001200011222')
+            ->assertSee('15/01/2020')
+            ->assertSee('KV1');
+    }
+
+    public function test_id_card_number_must_have_twelve_digits(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)->post('/admin/students', [
+            'name' => 'Sai giấy tờ',
+            'email' => 'saigiayto@example.com',
+            'password' => '12345678',
+            'id_card_number' => '00120001122',
+        ])->assertSessionHasErrors(['id_card_number' => 'Số CCCD / định danh phải đủ 12 chữ số.']);
+
+        $this->assertDatabaseMissing('users', ['email' => 'saigiayto@example.com']);
+    }
+
+    public function test_student_list_shows_extended_columns_and_finds_by_phone(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $khoaCntt = $this->department('CNTT');
+        $ktpm = $this->major($khoaCntt, 'KTPM');
+        $class = $this->class('CTK45A', 2025, $khoaCntt, $ktpm);
+
+        $hasPhone = $this->student('20250201', 'cosodt@example.com', $class);
+        $hasPhone->update(['phone' => '0905113355', 'dob' => '2007-04-19', 'gender' => 'FEMALE']);
+        $noPhone = $this->student('20250202', 'khongcodt@example.com', $class);
+
+        $page = $this->actingAs($admin)->get('/admin/students')->getContent();
+        foreach (['#', 'Mã SV', 'Ngày sinh', 'Giới tính', 'Chuyên ngành', 'Tình trạng'] as $header) {
+            $this->assertStringContainsString("<th scope=\"col\">{$header}</th>", $page);
+        }
+        $this->assertStringContainsString('Ngành KTPM', $page);
+        $this->assertStringContainsString('19/04/2007', $page);
+        $this->assertStringContainsString('Nữ', $page);
+        $this->assertStringContainsString('Chưa có số điện thoại', $page);
+
+        $this->assertNames([$hasPhone], '/admin/students?search=0905113355');
+        $this->assertNames([$noPhone], '/admin/students?search=khongcodt');
+    }
+
+    public function test_account_form_stores_role_profile_and_clears_it_when_role_changes(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $department = $this->department('CNTT');
+        $class = $this->class('CTK45A', 2025, $department);
+
+        $this->actingAs($admin)->post('/admin/accounts', [
+            'name' => 'Trần Quốc Bảo',
+            'email' => 'bao@example.com',
+            'password' => '12345678',
+            'role' => 'teacher',
+            'teacher_code' => 'GV99',
+            'degree' => 'Thạc sĩ',
+            'department_id' => $department->id,
+            'phone' => '0913456789',
+            'dob' => '1988-06-21',
+            'gender' => 'MALE',
+            'class_id' => $class->id,
+            'student_code' => '20250999',
+        ])->assertRedirect(route('admin.accounts.index'));
+
+        $teacher = User::where('email', 'bao@example.com')->sole();
+        $this->assertSame('GV99', $teacher->teacher_code);
+        $this->assertSame('Thạc sĩ', $teacher->degree);
+        $this->assertSame($department->id, $teacher->department_id);
+        $this->assertNull($teacher->class_id, 'Giảng viên không mang hồ sơ sinh viên.');
+        $this->assertNull($teacher->student_code);
+
+        $page = $this->actingAs($admin)->get('/admin/accounts')->getContent();
+        $this->assertStringContainsString('GV99', $page);
+        $this->assertStringContainsString('Thạc sĩ', $page);
+        $this->assertStringContainsString('Khoa CNTT', $page);
+        $this->assertStringContainsString('0913456789', $page);
+
+        $this->actingAs($admin)->put(route('admin.accounts.update', $teacher), [
+            'name' => $teacher->name,
+            'email' => $teacher->email,
+            'role' => 'student',
+            'student_code' => '20250999',
+            'class_id' => $class->id,
+        ])->assertRedirect(route('admin.accounts.index'));
+
+        $teacher->refresh();
+        $this->assertSame('student', $teacher->role);
+        $this->assertNull($teacher->teacher_code);
+        $this->assertNull($teacher->degree);
+        $this->assertNull($teacher->department_id);
+        $this->assertSame('20250999', $teacher->student_code);
+    }
+
     /**
      * @return array<int, array<int, mixed>>
      */

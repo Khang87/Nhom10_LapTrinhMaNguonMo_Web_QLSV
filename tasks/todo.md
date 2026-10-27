@@ -172,3 +172,32 @@
   - Deviation: giảng viên chưa được phân công lớp nào nhận báo cáo rỗng (HTTP 200, dòng
     "Bộ lọc hiện tại chưa có dữ liệu.") thay vì 403, vì phạm vi nằm trong tài khoản chứ không
     nằm trong URL nên không có đối tượng để so quyền.
+
+## Wave 12 — Bảng biểu đầy đủ thông tin (lấy MaNguon làm mẫu)
+
+User: "Các bảng tôi yêu cầu cần đầy đủ thông tin hơn. Nhìn nó sơ sài quá lấy MaNguon làm mẫu."
+Đối chiếu: MaNguon dùng 9–11 cột (STT, mã link chi tiết, họ tên kèm SĐT, 2–3 cột phân loại, pill
+trạng thái, thao tác) và bảng `students` của họ lưu ~34 trường hồ sơ thật; bảng của ta chỉ 5–7 cột
+và `users` thiếu CCCD, dân tộc, tôn giáo, hộ khẩu, diện ưu tiên…
+
+- [x] 12.1 Trường hồ sơ mở rộng trên `users`
+  - Acceptance: thêm được các mục của phiếu lý lịch sinh viên mà không phá dữ liệu đang có.
+  - Done 2026-10-27: migration cộng thêm 15 cột nullable (`degree`, `department_id`, `enrolled_on`,
+    `education_level`, `training_type`, `admission_region`, `priority_category`, `ethnicity`,
+    `religion`, `nationality`, `birth_place`, `permanent_residence`, `contact_address`,
+    `id_card_number` + ngày/nơi cấp). Toàn bộ là `Schema::table` addition nên không mất dữ liệu;
+    đã chạy `php artisan migrate` trên DB dev.
+- [x] 12.2 Màn hình sinh viên dày lên
+  - Done 2026-10-27: danh sách 7 → 11 cột (STT, MSSV link, họ tên kèm SĐT, ngày sinh, giới tính,
+    lớp, khóa, chuyên ngành, email, pill tình trạng, thao tác); tìm kiếm cả số điện thoại; trang
+    chi tiết đổi từ một khối `dl` dài thành thẻ định danh + ba nhóm "Hồ sơ đào tạo" / "Cá nhân &
+    liên hệ" / "Giấy tờ & diện ưu tiên"; form thêm ba nhóm trường mới; CCCD chặn nếu không đủ 12 số.
+- [x] 12.3 Màn hình tài khoản dày lên
+  - Done 2026-10-27: 5 → 9 cột (STT, mã liên kết sửa, họ tên kèm SĐT, vai trò, học vị, đơn vị =
+    lớp+chuyên ngành hoặc khoa, email, pill tình trạng sinh viên, thao tác). Form thêm nhóm "Hồ sơ
+    theo vai trò"; `AccountController` xóa các trường của vai trò cũ khi đổi vai trò để một tài
+    khoản chỉ mang hồ sơ của một vai trò.
+  - Fix kèm: `update()` đọc `$data['password']` trong khi ô mật khẩu bỏ trống thì key không tồn tại
+    ⇒ 500 "Undefined array key". Chuyển sang `$data['password'] ?? null`.
+- [ ] 12.4 Rà các bảng còn mỏng (lớp, môn, học phần, đăng ký, học phí, học kỳ)
+- [ ] 12.5 Dataset demo lấy cấu trúc dữ liệu từ DB MaNguon

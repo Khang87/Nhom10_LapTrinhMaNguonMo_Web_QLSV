@@ -4,6 +4,8 @@
     @php
         $totalSessions = $student->attendances->count();
         $attendanceRate = $review['attendance_rate'];
+        $code = fn (mixed $value): string => $value ? (string) $value : 'Chưa cập nhật';
+        $date = fn (?Illuminate\Support\Carbon $value): string => $value?->format('d/m/Y') ?? 'Chưa cập nhật';
     @endphp
 
     <x-page-header title="Hồ sơ sinh viên">
@@ -16,12 +18,22 @@
     </x-page-header>
 
     <div class="card">
-        <div class="table-user-cell mb-3">
+        <div class="table-user-cell mb-0">
             <img class="table-user-avatar table-user-avatar-lg" alt="Ảnh đại diện của {{ $student->name }}"
                 src="{{ e($student->avatarUrl()) }}">
             <div>
                 <div class="table-user-name">{{ $student->name }}</div>
-                <div class="table-user-sub">{{ $student->student_code ?: 'Chưa cập nhật' }}</div>
+                <div class="table-user-sub">
+                    {{ $code($student->student_code) }}
+                    @if ($student->studentClass)
+                        · {{ $student->studentClass->label() }}
+                    @else
+                        · chưa xếp lớp
+                    @endif
+                    @if ($student->phone)
+                        · {{ $student->phone }}
+                    @endif
+                </div>
                 <x-status-badge tone="{{ $student->academic_status === 'STUDYING' ? 'info' : ($student->academic_status === 'GRADUATED' ? 'success' : 'pending') }}">
                     {{ $student->academic_status_label }} ({{ $student->academic_status }})
                 </x-status-badge>
@@ -31,48 +43,119 @@
                 @endif
             </div>
         </div>
-        <dl class="row mb-0">
-            <dt class="col-sm-3 fs-xs text-muted-green">Họ và tên</dt>
-            <dd class="col-sm-9 mb-2">{{ $student->name }}</dd>
-            <dt class="col-sm-3 fs-xs text-muted-green">Mã sinh viên</dt>
-            <dd class="col-sm-9 mb-2">{{ $student->student_code ?: 'Chưa cập nhật' }}</dd>
-            <dt class="col-sm-3 fs-xs text-muted-green">Email</dt>
-            <dd class="col-sm-9 mb-2">{{ $student->email }}</dd>
-            <dt class="col-sm-3 fs-xs text-muted-green">Số điện thoại</dt>
-            <dd class="col-sm-9 mb-2">{{ $student->phone ?: 'Chưa cập nhật' }}</dd>
-            <dt class="col-sm-3 fs-xs text-muted-green">Ngày sinh</dt>
-            <dd class="col-sm-9 mb-2">{{ $student->dob?->format('d/m/Y') ?: 'Chưa cập nhật' }}</dd>
-            <dt class="col-sm-3 fs-xs text-muted-green">Giới tính</dt>
-            <dd class="col-sm-9 mb-2">{{ $student->gender ? $student->gender_label.' ('.$student->gender.')' : 'Chưa cập nhật' }}</dd>
-            <dt class="col-sm-3 fs-xs text-muted-green">Quê quán</dt>
-            <dd class="col-sm-9 mb-2">{{ $student->hometown ?: 'Chưa cập nhật' }}</dd>
-            <dt class="col-sm-3 fs-xs text-muted-green">Lớp hành chính</dt>
-            <dd class="col-sm-9 mb-2">{{ $student->studentClass?->label() ?? 'Chưa xếp lớp' }}</dd>
-            <dt class="col-sm-3 fs-xs text-muted-green">Khóa tuyển sinh</dt>
-            <dd class="col-sm-9 mb-2">{{ $student->studentClass?->intake_year ?? '—' }}</dd>
-            <dt class="col-sm-3 fs-xs text-muted-green">Khoa</dt>
-            <dd class="col-sm-9 mb-2">
-                {{ $student->studentClass?->department?->name ?? 'Chưa phân loại' }}
-                @if ($student->studentClass?->department)
-                    ({{ $student->studentClass->department->code }})
-                @endif
-            </dd>
-            <dt class="col-sm-3 fs-xs text-muted-green">Chuyên ngành</dt>
-            <dd class="col-sm-9 mb-2">
-                {{ $student->studentClass?->major?->name ?? 'Chưa phân loại' }}
-                @if ($student->studentClass?->major)
-                    ({{ $student->studentClass->major->code }})
-                @endif
-            </dd>
-            <dt class="col-sm-3 fs-xs text-muted-green">Tình trạng học tập</dt>
-            <dd class="col-sm-9 mb-0">
-                {{ $student->academic_status_label }} ({{ $student->academic_status }})
-                @if ($student->academic_status_updated_at)
-                    <span class="fs-xs text-muted-green">· xét duyệt ngày
-                        {{ $student->academic_status_updated_at->format('d/m/Y H:i') }}</span>
-                @endif
-            </dd>
-        </dl>
+    </div>
+
+    <div class="row g-3 mt-0">
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h2 class="card-title">Hồ sơ đào tạo</h2>
+                </div>
+                <dl class="row mb-0">
+                    <dt class="col-5 fs-xs text-muted-green">Mã sinh viên</dt>
+                    <dd class="col-7 mb-2">{{ $code($student->student_code) }}</dd>
+                    <dt class="col-5 fs-xs text-muted-green">Lớp hành chính</dt>
+                    <dd class="col-7 mb-2">{{ $student->studentClass?->class_code ?? 'Chưa xếp lớp' }}</dd>
+                    <dt class="col-5 fs-xs text-muted-green">Tên lớp</dt>
+                    <dd class="col-7 mb-2">{{ $student->studentClass?->class_name ?: 'Chưa cập nhật' }}</dd>
+                    <dt class="col-5 fs-xs text-muted-green">Khóa</dt>
+                    <dd class="col-7 mb-2">
+                        {{ $student->studentClass?->intake_year ? 'Khóa '.$student->studentClass->intake_year : '—' }}
+                    </dd>
+                    <dt class="col-5 fs-xs text-muted-green">Khoa</dt>
+                    <dd class="col-7 mb-2">
+                        @if ($student->studentClass?->department)
+                            {{ $student->studentClass->department->name }}
+                            ({{ $student->studentClass->department->code }})
+                        @else
+                            Chưa phân loại
+                        @endif
+                    </dd>
+                    <dt class="col-5 fs-xs text-muted-green">Chuyên ngành</dt>
+                    <dd class="col-7 mb-2">
+                        @if ($student->studentClass?->major)
+                            {{ $student->studentClass->major->name }}
+                            ({{ $student->studentClass->major->code }})
+                        @else
+                            Chưa phân loại
+                        @endif
+                    </dd>
+                    <dt class="col-5 fs-xs text-muted-green">Bậc đào tạo</dt>
+                    <dd class="col-7 mb-2">{{ $code($student->education_level) }}</dd>
+                    <dt class="col-5 fs-xs text-muted-green">Loại hình</dt>
+                    <dd class="col-7 mb-2">{{ $code($student->training_type) }}</dd>
+                    <dt class="col-5 fs-xs text-muted-green">Ngày nhập học</dt>
+                    <dd class="col-7 mb-2">{{ $date($student->enrolled_on) }}</dd>
+                    <dt class="col-5 fs-xs text-muted-green">Tình trạng</dt>
+                    <dd class="col-7 mb-0">
+                        {{ $student->academic_status_label }}
+                        <span class="fs-xs text-muted-green">({{ $student->academic_status }})</span>
+                    </dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h2 class="card-title">Cá nhân &amp; liên hệ</h2>
+                </div>
+                <dl class="row mb-0">
+                    <dt class="col-5 fs-xs text-muted-green">Họ và tên</dt>
+                    <dd class="col-7 mb-2">{{ $student->name }}</dd>
+                    <dt class="col-5 fs-xs text-muted-green">Ngày sinh</dt>
+                    <dd class="col-7 mb-2">{{ $date($student->dob) }}</dd>
+                    <dt class="col-5 fs-xs text-muted-green">Giới tính</dt>
+                    <dd class="col-7 mb-2">
+                        {{ $student->gender ? $student->gender_label.' ('.$student->gender.')' : 'Chưa cập nhật' }}
+                    </dd>
+                    <dt class="col-5 fs-xs text-muted-green">Dân tộc</dt>
+                    <dd class="col-7 mb-2">{{ $code($student->ethnicity) }}</dd>
+                    <dt class="col-5 fs-xs text-muted-green">Tôn giáo</dt>
+                    <dd class="col-7 mb-2">{{ $code($student->religion) }}</dd>
+                    <dt class="col-5 fs-xs text-muted-green">Quốc tịch</dt>
+                    <dd class="col-7 mb-2">{{ $code($student->nationality) }}</dd>
+                    <dt class="col-5 fs-xs text-muted-green">Email</dt>
+                    <dd class="col-7 mb-2">
+                        <a href="mailto:{{ $student->email }}">{{ $student->email }}</a>
+                    </dd>
+                    <dt class="col-5 fs-xs text-muted-green">Số điện thoại</dt>
+                    <dd class="col-7 mb-2">{{ $code($student->phone) }}</dd>
+                    <dt class="col-12 fs-xs text-muted-green mt-1">Nơi sinh</dt>
+                    <dd class="col-12 mb-2">{{ $code($student->birth_place) }}</dd>
+                    <dt class="col-12 fs-xs text-muted-green">Quê quán</dt>
+                    <dd class="col-12 mb-2">{{ $code($student->hometown) }}</dd>
+                    <dt class="col-12 fs-xs text-muted-green">Hộ khẩu thường trú</dt>
+                    <dd class="col-12 mb-2">{{ $code($student->permanent_residence) }}</dd>
+                    <dt class="col-12 fs-xs text-muted-green">Địa chỉ liên hệ</dt>
+                    <dd class="col-12 mb-0">{{ $code($student->contact_address) }}</dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h2 class="card-title">Giấy tờ &amp; diện ưu tiên</h2>
+                </div>
+                <dl class="row mb-0">
+                    <dt class="col-6 fs-xs text-muted-green">Số CCCD / định danh</dt>
+                    <dd class="col-6 mb-2">{{ $code($student->id_card_number) }}</dd>
+                    <dt class="col-6 fs-xs text-muted-green">Ngày cấp</dt>
+                    <dd class="col-6 mb-2">{{ $date($student->id_card_issued_at) }}</dd>
+                    <dt class="col-6 fs-xs text-muted-green">Nơi cấp</dt>
+                    <dd class="col-6 mb-2">{{ $code($student->id_card_issued_place) }}</dd>
+                    <dt class="col-6 fs-xs text-muted-green">Khu vực tuyển sinh</dt>
+                    <dd class="col-6 mb-2">{{ $code($student->admission_region) }}</dd>
+                    <dt class="col-6 fs-xs text-muted-green">Diện ưu tiên</dt>
+                    <dd class="col-6 mb-0">{{ $code($student->priority_category) }}</dd>
+                </dl>
+                <p class="fs-xs text-muted-green mb-0 mt-2">
+                    Hồ sơ in từ trang này đủ các mục của phiếu lý lịch sinh viên; ô trống nghĩa là
+                    chưa thu thập, không phải dữ liệu sai.
+                </p>
+            </div>
+        </div>
     </div>
 
     <div class="row g-3 mb-2">

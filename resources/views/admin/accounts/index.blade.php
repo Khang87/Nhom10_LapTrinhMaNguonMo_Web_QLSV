@@ -13,7 +13,7 @@
         <div class="col-sm-8 col-md-4">
             <label class="visually-hidden" for="search">Tìm tài khoản</label>
             <input class="form-control form-control-custom" id="search" name="search" value="{{ $search }}"
-                placeholder="Tên hoặc email" autocomplete="off">
+                placeholder="Tên, email, MSSV/Mã GV hoặc số điện thoại" autocomplete="off">
         </div>
         <div class="col-sm-8 col-md-3">
             <label class="visually-hidden" for="role">Lọc theo vai trò</label>
@@ -31,7 +31,17 @@
     </p>
     <x-data-table>
         <thead>
-            <tr><th scope="col">Họ tên</th><th scope="col">Email</th><th scope="col">Vai trò</th><th scope="col">Lớp</th><th scope="col">Thao tác</th></tr>
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">Mã</th>
+                <th scope="col">Họ tên</th>
+                <th scope="col">Vai trò</th>
+                <th scope="col">Học vị</th>
+                <th scope="col">Đơn vị</th>
+                <th scope="col">Email</th>
+                <th scope="col">Tình trạng</th>
+                <th scope="col">Thao tác</th>
+            </tr>
         </thead>
         <tbody id="account-table-body">
             @include('admin.accounts.rows')
