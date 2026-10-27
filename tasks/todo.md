@@ -622,12 +622,43 @@ Quy ước branch/commit: một commit cho mỗi task, message tiếng Việt th
     `title="Lớp học phần của tôi ({{ $n }})"`. Đã sửa ở `teacher/dashboard.blade.php` và
     `teacher/attendance/session.blade.php`, thêm test `teacher_dashboard_lists_the_classes...`.
 
-- [ ] 7.5 Thời khóa biểu tuần cho sinh viên và giảng viên
+- [x] 7.5 Thời khóa biểu tuần cho sinh viên và giảng viên
   - Acceptance: lưới Thứ 2–Thứ 7, đúng 2 ô cho 2 slot; lớp đã `DROPPED` biến mất; phát hiện
     trùng giờ.
   - Verify: feature test render + `TimetableService::conflicts()`.
   - Files: `app/Support/TimetableService.php`, `resources/views/student/timetable.blade.php`,
     `resources/views/teacher/timetable.blade.php`
+  - Done 2026-10-27: `TimetableService` (tĩnh) là nguồn duy nhất của mọi trang lịch — lịch luôn
+    sinh ra từ `lecture_slots`, không có bảng lịch riêng nên không lệch với lịch lên lớp.
+    `forStudent()` lọc `offering.enrollments` `active()` (lớp `DROPPED` tự biến mất),
+    `forTeacher()` lọc `offering.teacher_id`, `forSemester()`/`forOffering()` cho trang admin và
+    trang đăng ký, `grid()` luôn trả 6 khóa `2..7` kể cả ngày trống, `conflicts()`/`overlapping()`
+    so giờ bằng chuỗi `HH:MM:SS` và bắt buộc cùng `week_day`. Ba route mới:
+    `student/timetable`, `teacher/timetable`, `admin/timetable` (+ `admin/timetable/export`) và
+    mục sidebar "Thời khóa biểu" cho cả ba vai trò. Lưới render bằng component
+    `x-timetable-grid` (cột = Thứ 2–Thứ 7, mỗi slot một ô: giờ, môn, nhóm · phòng · giảng viên;
+    giảng viên thêm nút "Điểm danh" nối sang màn hình 7.4). Trang admin chọn học kỳ + lớp học
+    phần và tải CSV `Ngày/Giờ/Mã môn/Môn học/Nhóm/Phòng/Giảng viên/Học kỳ`. Trang đăng ký của
+    sinh viên hiện badge "Trùng giờ N buổi" cho lớp chưa đăng ký nhưng chồng lịch đã có — cảnh
+    báo, không chặn (đúng ý spec).
+  - Evidence: `tests/Feature/TimetableTest.php` 12 test xanh (suite 222 test, 1038 assertions) —
+    lưới đủ 6 ngày với ô trống, 2 slot ⇒ 2 ô, chỉ slot của đăng ký `ACTIVE` (đổi về `ACTIVE` ⇒
+    hiện lại), bộ lọc học kỳ, giảng viên chỉ thấy lớp mình, `conflicts()` chỉ báo cặp chồng thật
+    (sát giờ 09:30→09:30 không phải trùng; cùng giờ khác ngày không phải trùng), sinh viên
+    `DROPPED` biến mất khỏi trang, cảnh báo "cặp trùng giờ", ô lịch giảng viên link tới
+    `/teacher/course-offerings/{id}/attendance`, trang admin chọn lớp chỉ hiện lớp đó, CSV chứa
+    `Thứ 6`/`17:00–19:00` mà không chứa giờ của lớp khác, sinh viên mở trang admin ⇒ 403, và
+    badge "Trùng giờ 1 buổi" trên trang đăng ký (lớp khác ngày cùng giờ không bị đánh dấu).
+    Kiểm tay bằng curl trên DB dev: `/student/timetable` (sinhvien1) hiện đủ 4 ô Thứ 3/4/5/6,
+    `/teacher/timetable` (giangvien1) hiện 3 ô kèm nút "Điểm danh" và không thấy lớp của
+    giảng viên khác, `/admin/timetable` chọn SEC201 ⇒ `export` trả
+    `text/csv; charset=UTF-8` đúng 2 dòng.
+  - Deviation: thêm màn hình + CSV cho quản trị viên (spec chỉ nêu sinh viên và giảng viên) vì
+    admin cần nơi xem lịch mà không có lớp của mình; `?semester_id=` trên cả ba trang (spec mặc
+    định "học kỳ hiện hành", bộ lọc cho phép xem kỳ khác, mặc định vẫn là kỳ đang chạy).
+  - Caveat: `lecture_slots` không có `semester_id` nên lọc theo kỳ phải đi qua
+    `whereRelation('offering', 'semester_id', ...)`; `?offering_id=` của trang admin bị bỏ qua
+    nếu lớp đó không thuộc học kỳ đã chọn (đúng ý "chỉ xem được lớp của kỳ đang xem").
 
 - [ ] 7.6 Gắn tỷ lệ chuyên cần vào `grading` (cảnh báo học vụ)
   - Acceptance: tỷ lệ < 80% xuất hiện trong lý do gợi ý `AT_RISK`.

@@ -114,6 +114,11 @@
                                 </button>
                             </form>
                         @endif
+                        @if ($clashing[$offering->id] > 0)
+                            <div class="mt-1">
+                                <x-status-badge tone="pending">Trùng giờ {{ $clashing[$offering->id] }} buổi</x-status-badge>
+                            </div>
+                        @endif
                     </td>
                 </tr>
             @empty

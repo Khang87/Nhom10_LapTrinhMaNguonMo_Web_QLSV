@@ -8,6 +8,7 @@ use App\Models\Semester;
 use App\Support\EnrollmentContext;
 use App\Support\EnrollmentPolicy;
 use App\Support\EnrollmentRegistrar;
+use App\Support\TimetableService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -37,18 +38,26 @@ class CourseOfferingController extends Controller
             ->get();
 
         $contexts = EnrollmentContext::collect($student, $available);
+        $slotsByOffering = TimetableService::forSemester($semester)->groupBy('course_offering_id');
+        $mySlots = TimetableService::forStudent($student, $semester);
         $blocked = [];
+        $clashing = [];
 
         foreach ($available as $offering) {
             $verdict = EnrollmentPolicy::check($student, $offering, $contexts[$offering->id]);
 
             $blocked[$offering->id] = $verdict['ok'] ? null : EnrollmentPolicy::reasonText($verdict);
+            $clashing[$offering->id] = TimetableService::overlapping(
+                $mySlots,
+                $slotsByOffering->get($offering->id, collect()),
+            )->count();
         }
 
         return view('student.course-offerings.index', [
             'registered' => $registered,
             'available' => $available,
             'blocked' => $blocked,
+            'clashing' => $clashing,
             'currentCredits' => (int) $registered->sum(fn (CourseOffering $offering) => (int) ($offering->subject?->credits ?? 0)),
             'accumulatedCredits' => EnrollmentContext::accumulatedCredits($student),
             'maxCredits' => (int) config('academic.max_credits_per_term'),

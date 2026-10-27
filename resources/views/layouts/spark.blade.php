@@ -125,6 +125,14 @@
                             </a>
                         </li>
                         <li class="sidebar-menu-item">
+                            <a class="sidebar-menu-link {{ request()->routeIs('admin.timetable.*') ? 'active' : '' }}"
+                                href="{{ route('admin.timetable.index') }}"
+                                @if (request()->routeIs('admin.timetable.*')) aria-current="page" @endif>
+                                <i class="bi bi-calendar-week" aria-hidden="true"></i>
+                                <span>Thời khóa biểu</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-menu-item">
                             <a class="sidebar-menu-link {{ request()->routeIs('admin.accounts.*') ? 'active' : '' }}"
                                 href="{{ route('admin.accounts.index') }}"
                                 @if (request()->routeIs('admin.accounts.*')) aria-current="page" @endif>
@@ -146,6 +154,14 @@
                                 <span>Lớp của tôi</span>
                             </a>
                         </li>
+                        <li class="sidebar-menu-item">
+                            <a class="sidebar-menu-link {{ request()->routeIs('teacher.timetable') ? 'active' : '' }}"
+                                href="{{ route('teacher.timetable') }}"
+                                @if (request()->routeIs('teacher.timetable')) aria-current="page" @endif>
+                                <i class="bi bi-calendar-week" aria-hidden="true"></i>
+                                <span>Thời khóa biểu</span>
+                            </a>
+                        </li>
                     </ul>
                 </section>
             @elseif (auth()->user()->role === 'student')
@@ -158,6 +174,14 @@
                                 @if (request()->routeIs('student.course-offerings.*')) aria-current="page" @endif>
                                 <i class="bi bi-journal-plus" aria-hidden="true"></i>
                                 <span>Đăng ký học phần</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-menu-item">
+                            <a class="sidebar-menu-link {{ request()->routeIs('student.timetable') ? 'active' : '' }}"
+                                href="{{ route('student.timetable') }}"
+                                @if (request()->routeIs('student.timetable')) aria-current="page" @endif>
+                                <i class="bi bi-calendar-week" aria-hidden="true"></i>
+                                <span>Thời khóa biểu</span>
                             </a>
                         </li>
                         <li class="sidebar-menu-item">

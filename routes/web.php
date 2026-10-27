@@ -13,16 +13,19 @@ use App\Http\Controllers\Admin\SemesterController;
 use App\Http\Controllers\Admin\StudentController;
 use App\Http\Controllers\Admin\StudyPlanController;
 use App\Http\Controllers\Admin\SubjectController;
+use App\Http\Controllers\Admin\TimetableController as AdminTimetableController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\Student\CourseOfferingController as StudentCourseOfferingController;
 use App\Http\Controllers\Student\EnrollmentController as StudentEnrollmentController;
 use App\Http\Controllers\Student\GradeController as StudentGradeController;
+use App\Http\Controllers\Student\TimetableController as StudentTimetableController;
 use App\Http\Controllers\StudentDashboardController;
 use App\Http\Controllers\Teacher\AttendanceController as TeacherAttendanceController;
 use App\Http\Controllers\Teacher\DashboardController as TeacherDashboardController;
 use App\Http\Controllers\Teacher\GradeController as TeacherGradeController;
 use App\Http\Controllers\Teacher\OfferingController as TeacherOfferingController;
+use App\Http\Controllers\Teacher\TimetableController as TeacherTimetableController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
@@ -76,6 +79,8 @@ Route::middleware('auth')->group(function () {
         Route::delete('/grades/{grade}', [GradeController::class, 'destroy'])->name('grades.destroy');
         Route::get('/attendances', [AttendanceController::class, 'index'])->name('attendances.index');
         Route::get('/attendances/export', [AttendanceController::class, 'export'])->name('attendances.export');
+        Route::get('/timetable', [AdminTimetableController::class, 'index'])->name('timetable.index');
+        Route::get('/timetable/export', [AdminTimetableController::class, 'export'])->name('timetable.export');
         Route::get('/enrollments', [AdminEnrollmentController::class, 'index'])->name('enrollments.index');
         Route::get('/enrollments/export', [AdminEnrollmentController::class, 'export'])->name('enrollments.export');
         Route::post('/enrollments', [AdminEnrollmentController::class, 'store'])->name('enrollments.store');
@@ -85,6 +90,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('teacher')->name('teacher.')->middleware('checkRole:teacher')->group(function () {
         Route::get('/dashboard', [TeacherDashboardController::class, 'index'])->name('dashboard');
         Route::get('/my-offerings', [TeacherOfferingController::class, 'index'])->name('offerings.index');
+        Route::get('/timetable', [TeacherTimetableController::class, 'index'])->name('timetable');
         Route::get('/course-offerings/{offering}/grades', [TeacherGradeController::class, 'edit'])->name('course-offerings.grades');
         Route::post('/course-offerings/{offering}/grades', [TeacherGradeController::class, 'update'])->name('course-offerings.grades.update');
         Route::post('/course-offerings/{offering}/grades/publish', [TeacherGradeController::class, 'publish'])->name('course-offerings.grades.publish');
@@ -100,5 +106,6 @@ Route::middleware('auth')->group(function () {
         Route::delete('/enrollments/{enrollment}', [StudentEnrollmentController::class, 'drop'])->name('enrollments.drop');
         Route::get('/grades', [StudentGradeController::class, 'index'])->name('grades.index');
         Route::get('/grades/history', [StudentGradeController::class, 'history'])->name('grades.history');
+        Route::get('/timetable', [StudentTimetableController::class, 'index'])->name('timetable');
     });
 });
