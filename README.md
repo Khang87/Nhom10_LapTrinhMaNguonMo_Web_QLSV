@@ -10,7 +10,7 @@
 - Student xem các môn học, đăng ký/hủy đăng ký và xem điểm.
 - Admin phát hành học phí theo tín chỉ cho từng học kỳ; sinh viên xem số phải nộp kèm mã QR VietQR và nội dung chuyển khoản. Cần đặt `ACADEMIC_TUITION_PER_CREDIT`, `TUITION_BANK_CODE`, `TUITION_BANK_ACCOUNT` trong `.env`; để trống nghĩa là chưa thu học phí.
 - Tìm kiếm, phân trang danh sách lớp, môn học và sinh viên.
-- Dữ liệu demo có một tài khoản admin, hai lớp, ba môn và năm sinh viên.
+- Dữ liệu demo: một tài khoản admin, 25 giảng viên, 24 sinh viên trên 5 lớp hành chính, 3 khoa - 4 chuyên ngành - 16 môn kèm khung chương trình và hai học kỳ đã có lớp học phần, lịch lên lớp, điểm danh, điểm thành phần.
 
 ## Chạy nhanh trên Windows
 
@@ -82,7 +82,8 @@ Có thể chạy test riêng cho dịch vụ email bằng `npm test` tại `serv
 | Vai trò | Email | Mật khẩu |
 |---|---|---|
 | Admin | `admin@gmail.com` | `12345678` |
-| Student | `sinhvien1@gmail.com` đến `sinhvien5@gmail.com` | `12345678` |
+| Giảng viên | `giangvien1@gmail.com` đến `giangvien25@gmail.com` | `12345678` |
+| Student | `sinhvien1@gmail.com` đến `sinhvien24@gmail.com` | `12345678` |
 
 Các mật khẩu chỉ dành cho môi trường trình diễn local. Hãy đổi chúng nếu triển khai ra môi trường dùng thật.
 

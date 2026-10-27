@@ -90,3 +90,40 @@
   - Kết luận: không xây màn hình mới cho hai ý tưởng này. Trong danh sách ý tưởng, TKB theo tuần,
     mở lớp hàng loạt và học phí là ba thứ còn thiếu phải xây; hai ý tưởng còn lại đã có sẵn từ các
     wave trước.
+
+- [x] 10.4 Seeder dữ liệu mẫu dày phủ mọi màn hình (25 giảng viên, 16 môn)
+  - Acceptance: `php artisan db:seed` chạy hết trên môi trường sạch, dựng đủ dữ liệu cho từng
+    màn hình đã xây, chạy lại không tạo bản sao và không tạo dữ liệu mâu thuẫn quy tắc đăng ký.
+  - Done 2026-10-27: viết lại `database/seeders/DatabaseSeeder.php` theo schema main (bản cũ ghi
+    vào cột `attendances.user_id/subject_id/date` đã bị wave 7 bỏ nên `db:seed` hỏng). Dữ liệu:
+    1 quản trị + 25 giảng viên + 24 sinh viên, 3 khoa - 4 chuyên ngành - 16 môn, 33 dòng khung
+    chương trình, 5 lớp hành chính, hai học kỳ (kỳ trước đã đóng + kỳ hiện hành đang mở cổng),
+    5 lớp kỳ trước + 14 lớp kỳ này, mỗi lớp một lịch lên lớp, 4 buổi điểm danh đã diễn ra, điểm
+    ba cột thành phần. Mật khẩu chỉ băm một lần cho 50 tài khoản.
+    Ba quyết định giữ cho dữ liệu tự thuận: (1) vị trí dòng trong danh sách lớp quyết định
+    (ngày, ca) theo công thức `i % 5 + 2` và `intdiv(i, 5)` nên không hai lớp nào trùng giờ,
+    (2) 20240007 trượt OOP101 nên chỉ đăng ký ADT101 + MOB201 là hai môn không cần tiên quyết,
+    (3) môn song hành SEC201 luôn đăng ký kèm NET101 trong cùng kỳ. Điểm danh lấy lịch do chính
+    seeder tạo (`$slotsByOffering`) chứ không `sole()` trên `course_offering_id`, vì một lớp ngoài
+    đời thực có thể có nhiều lịch.
+    Các lớp không ai đăng ký tồn tại có chủ đích để màn hình chọn lớp hiển thị trạng thái ngoại lệ:
+    AI101 (thiếu tiên quyết), DB101 nhóm 2 (hết chỗ), CLO201 nhóm 2 (chưa mở cổng), BIG201 (chưa
+    phân công giảng viên). Ba sinh viên 20240005/20240003/20240007 nghỉ có chủ đích để tỷ lệ chuyên
+    cần rơi xuống 50%/75%/75%, dưới ngưỡng 80% của màn hình học vụ.
+  - Evidence: `tests/Feature/DemoDataTest.php` 13 test (suite 255 test, 3416 assertions) — đếm danh
+    mục, ba trạng thái người dùng, hai học kỳ đúng một kỳ đang chạy, 19 lớp - 19 lịch,
+    `TimetableService::conflicts()` rỗng, mọi đăng ký ACTIVE của kỳ này qua `EnrollmentPolicy::check`
+    với `already_active = false`, lớp chưa mở/hết chỗ/thiếu tiên quyết không có ai đứng tên,
+    sinh viên đình chỉ - nghỉ học chỉ có DROPPED và không có điểm danh, mọi dòng điểm danh khớp
+    lớp - đăng ký - buổi và buổi rơi đúng thứ của lịch, mọi dòng điểm có `enrollment_id` và không
+    công bố khi thiếu điểm cuối kỳ, `AttendanceRate` 50/75/100, chạy seeder hai lần số dòng bằng
+    nhau, lớp có sẵn lịch thừa vẫn seed được, và 17 màn hình admin/giảng viên/sinh viên trả 200.
+    Kiểm chứng bằng cách đặt lỗi: sửa `lectureDate()` thành `$weekDay % 7` ⇒ test điểm danh đỏ;
+    thêm WEB101 vào danh sách của 20240007 ⇒ test policy đỏ; đổi `$slotsByOffering` thành `sole()`
+    ⇒ test lịch thừa đỏ. Cả ba đã trả lại code và xanh. curl trên DB dev sau `db:seed`: toàn bộ
+    màn hình 200, hồ sơ 20240005 hiện "50,3% dưới ngưỡng 80%".
+  - Deviation: bản Manguon có sẵn dữ liệu mẫu nhưng schema khác nên chỉ tham khảo cách chia vai
+    trò - học kỳ; ở đây dựng lại toàn bộ trên schema main, vẫn chỉ có PRESENT/ABSENT và trọng số
+    10/20/70. DB dev giữ các dòng cũ do seeder trước để lại (9 đăng ký, 4 lịch) nên tỷ lệ chuyên
+    cần hiển thị 50,3% thay vì 50,0%; muốn sạch cần `migrate:fresh --seed` — chưa chạy vì sẽ xóa
+    dữ liệu người dùng gõ tay trên môi trường dev.
