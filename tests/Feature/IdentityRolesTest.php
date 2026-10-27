@@ -197,6 +197,17 @@ class IdentityRolesTest extends TestCase
             ->assertDontSee('/admin/students');
     }
 
+    public function test_teacher_dashboard_lists_the_classes_assigned_to_that_teacher(): void
+    {
+        $teacher = User::factory()->create(['role' => 'teacher']);
+        $this->offering($this->subject('WEB101'), $this->semester(), 'TN01', 0, ['teacher_id' => $teacher->id]);
+
+        $this->actingAs($teacher)->get('/teacher/dashboard')
+            ->assertOk()
+            ->assertSee('Lớp học phần của tôi (1)')
+            ->assertSee('WEB101');
+    }
+
     public function test_forms_keep_javascript_out_of_inline_script_tags(): void
     {
         // CSP script-src 'self' chặn inline script nên JS phải nằm trong public/js/app.js.

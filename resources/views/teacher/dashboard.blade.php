@@ -27,7 +27,7 @@
             </div>
         </div>
     @else
-        <x-data-table :title="'Lớp học phần của tôi ('.$offerings->count().')'">
+        <x-data-table title="Lớp học phần của tôi ({{ $offerings->count() }})">
             <x-slot name="controls">
                 <a class="btn btn-custom btn-custom-sm btn-custom-outline-primary"
                     href="{{ route('teacher.offerings.index') }}">Xem chi tiết</a>
