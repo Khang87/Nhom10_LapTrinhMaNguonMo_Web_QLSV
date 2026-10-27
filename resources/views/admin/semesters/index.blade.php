@@ -37,7 +37,7 @@
                 <tr>
                     <td>{{ $semesters->firstItem() + $loop->index }}</td>
                     <td>{{ $semester->academic_year }}</td>
-                    <td>{{ $semester->term }}</td>
+                    <td>{{ $semester->term_label }}</td>
                     <td class="table-order-id">{{ $semester->slug }}</td>
                     <td>{{ $semester->starts_at->format('d/m/Y') }} – {{ $semester->ends_at->format('d/m/Y') }}</td>
                     <td>

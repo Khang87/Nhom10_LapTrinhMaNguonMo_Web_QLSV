@@ -13,6 +13,9 @@ class Semester extends Model
 {
     use HasFactory;
 
+    /** Học kỳ 3 trong lịch trường là kỳ hè, không phải kỳ ba của năm học. */
+    public const TERM_NAMES = [1 => 'Học kỳ 1', 2 => 'Học kỳ 2', 3 => 'Học kỳ hè'];
+
     protected $fillable = [
         'academic_year',
         'term',
@@ -89,10 +92,13 @@ class Semester extends Model
             && now()->between($this->registration_starts_at, $this->registration_ends_at);
     }
 
+    protected function termLabel(): Attribute
+    {
+        return Attribute::get(fn () => self::TERM_NAMES[(int) $this->term] ?? 'Học kỳ '.$this->term);
+    }
+
     protected function label(): Attribute
     {
-        return Attribute::get(
-            fn () => 'Học kỳ '.$this->term.' năm học '.$this->academic_year,
-        );
+        return Attribute::get(fn () => $this->term_label.' năm học '.$this->academic_year);
     }
 }
