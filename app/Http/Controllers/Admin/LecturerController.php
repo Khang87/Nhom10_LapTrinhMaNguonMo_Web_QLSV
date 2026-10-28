@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Faculty;
 use App\Models\Lecturer;
 use App\Models\Specialization;
+use App\Models\StudentClass;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,7 +19,7 @@ class LecturerController extends Controller
 {
     public function index(Request $request): View
     {
-        $query = Lecturer::with(['faculty', 'specialization', 'headedFaculty']);
+        $query = Lecturer::with(['faculty', 'specialization', 'headedFaculty', 'homeroomClasses']);
 
         if ($request->filled('faculty_id')) {
             $query->where('faculty_id', $request->faculty_id);
@@ -57,10 +58,16 @@ class LecturerController extends Controller
         ));
     }
 
+    public function show(Lecturer $lecturer): RedirectResponse
+    {
+        return redirect()->route('admin.lecturers.edit', $lecturer);
+    }
+
     public function create(Request $request): View
     {
         $faculties = Faculty::orderBy('name')->get();
         $specializations = Specialization::orderBy('name')->get();
+        $studentClasses = StudentClass::with(['specialization', 'lecturer'])->orderBy('class_code')->get();
 
         // Tự động tạo gợi ý mã giảng viên tiếp theo
         $maxId = Lecturer::max('id') ?? 0;
@@ -76,6 +83,7 @@ class LecturerController extends Controller
             'lecturer' => new Lecturer(),
             'faculties' => $faculties,
             'specializations' => $specializations,
+            'studentClasses' => $studentClasses,
             'nextCode' => $nextCode,
             'selectedFacultyId' => $selectedFacultyId,
         ]);
@@ -92,6 +100,8 @@ class LecturerController extends Controller
             'phone' => ['nullable', 'string', 'max:20'],
             'email' => ['required', 'email', 'max:100', 'unique:users,email', 'unique:lecturers,email'],
             'password' => ['nullable', 'string', 'min:6'],
+            'homeroom_class_ids' => ['nullable', 'array'],
+            'homeroom_class_ids.*' => ['exists:classes,id'],
         ]);
 
         $code = $validated['lecturer_code'];
@@ -116,7 +126,7 @@ class LecturerController extends Controller
                 'is_active' => true,
             ]);
 
-            Lecturer::create([
+            $lecturer = Lecturer::create([
                 'user_id' => $user->id,
                 'lecturer_code' => $code,
                 'full_name' => $validated['full_name'],
@@ -127,6 +137,10 @@ class LecturerController extends Controller
                 'phone' => $validated['phone'] ?? null,
                 'email' => $validated['email'],
             ]);
+
+            if (!empty($validated['homeroom_class_ids'])) {
+                StudentClass::whereIn('id', $validated['homeroom_class_ids'])->update(['lecturer_id' => $lecturer->id]);
+            }
         });
 
         if ($request->filled('from_faculty')) {
@@ -142,8 +156,9 @@ class LecturerController extends Controller
     {
         $faculties = Faculty::orderBy('name')->get();
         $specializations = Specialization::orderBy('name')->get();
+        $studentClasses = StudentClass::with(['specialization', 'lecturer'])->orderBy('class_code')->get();
 
-        return view('admin.lecturers.edit', compact('lecturer', 'faculties', 'specializations'));
+        return view('admin.lecturers.edit', compact('lecturer', 'faculties', 'specializations', 'studentClasses'));
     }
 
     public function update(Request $request, Lecturer $lecturer): RedirectResponse
@@ -161,6 +176,8 @@ class LecturerController extends Controller
                 Rule::unique('users', 'email')->ignore($lecturer->user_id),
             ],
             'password' => ['nullable', 'string', 'min:6'],
+            'homeroom_class_ids' => ['nullable', 'array'],
+            'homeroom_class_ids.*' => ['exists:classes,id'],
         ]);
 
         $faculty = Faculty::findOrFail($validated['faculty_id']);
@@ -198,6 +215,16 @@ class LecturerController extends Controller
                 'phone' => $validated['phone'] ?? null,
                 'email' => $validated['email'],
             ]);
+
+            // Cập nhật các lớp danh nghĩa (CVHT)
+            $selectedClassIds = $validated['homeroom_class_ids'] ?? [];
+            StudentClass::where('lecturer_id', $lecturer->id)
+                ->whereNotIn('id', $selectedClassIds)
+                ->update(['lecturer_id' => null]);
+
+            if (!empty($selectedClassIds)) {
+                StudentClass::whereIn('id', $selectedClassIds)->update(['lecturer_id' => $lecturer->id]);
+            }
         });
 
         $msg = "Đã cập nhật thông tin giảng viên [{$lecturer->full_name}] thành công.";

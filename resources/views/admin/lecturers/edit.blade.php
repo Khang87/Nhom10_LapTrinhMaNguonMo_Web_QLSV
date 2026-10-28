@@ -140,6 +140,60 @@
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
+
+                    @php
+                        $currentClassIds = old('homeroom_class_ids', $lecturer->homeroomClasses->pluck('id')->toArray());
+                    @endphp
+                    <div class="col-12">
+                        <label class="form-label small fw-semibold d-flex align-items-center justify-content-between">
+                            <span>Phân công Lớp danh nghĩa (Cố vấn học tập - CVHT)</span>
+                            <span class="text-muted fw-normal" style="font-size: 0.8rem;">Có thể chọn nhiều lớp</span>
+                        </label>
+                        <div class="card bg-light border p-3 rounded-3" style="max-height: 260px; overflow-y: auto;">
+                            @if($studentClasses->isEmpty())
+                                <p class="text-muted small mb-0">Chưa có lớp sinh hoạt nào trong hệ thống.</p>
+                            @else
+                                <div class="row g-2">
+                                    @foreach($studentClasses as $cls)
+                                        @php
+                                            $isAssignedToCurrent = in_array($cls->id, $currentClassIds);
+                                            $isAssignedToOther = $cls->lecturer_id && $cls->lecturer_id != $lecturer->id;
+                                        @endphp
+                                        <div class="col-md-6">
+                                            <div class="form-check p-2 bg-white rounded border {{ $isAssignedToCurrent ? 'border-primary bg-primary-subtle' : 'border-light-subtle' }} h-100">
+                                                <input class="form-check-input ms-0 me-2" type="checkbox" 
+                                                       name="homeroom_class_ids[]" value="{{ $cls->id }}" 
+                                                       id="class_check_{{ $cls->id }}"
+                                                       {{ $isAssignedToCurrent ? 'checked' : '' }}>
+                                                <label class="form-check-label small d-block" for="class_check_{{ $cls->id }}">
+                                                    <div class="d-flex align-items-center justify-content-between">
+                                                        <span class="fw-bold font-monospace text-dark">{{ $cls->class_code }}</span>
+                                                        @if($isAssignedToCurrent)
+                                                            <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.7rem;">
+                                                                <i class="bi bi-check2"></i> Đang phụ trách
+                                                            </span>
+                                                        @endif
+                                                    </div>
+                                                    <div class="text-secondary text-truncate" style="font-size: 0.8rem;">{{ $cls->class_name }}</div>
+                                                    @if($cls->specialization)
+                                                        <div class="text-muted" style="font-size: 0.75rem;">
+                                                            <i class="bi bi-tag me-1"></i>{{ $cls->specialization->name }}
+                                                        </div>
+                                                    @endif
+                                                    @if($isAssignedToOther)
+                                                        <div class="text-warning-emphasis" style="font-size: 0.75rem;">
+                                                            <i class="bi bi-info-circle me-1"></i>Đang do: {{ $cls->lecturer?->full_name }} phụ trách
+                                                        </div>
+                                                    @endif
+                                                </label>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endif
+                        </div>
+                        <div class="form-text small">Giảng viên được chọn sẽ có quyền quản lý, theo dõi tình hình học tập của lớp sinh hoạt này tại phân hệ <strong>Cố vấn học tập (CVHT)</strong>.</div>
+                    </div>
                 </div>
 
                 <div class="d-flex align-items-center justify-content-end gap-2 mt-4 pt-3 border-top">

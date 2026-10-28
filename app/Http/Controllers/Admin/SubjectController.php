@@ -58,6 +58,21 @@ class SubjectController extends Controller
         ));
     }
 
+    public function create(): RedirectResponse
+    {
+        return redirect()->route('admin.subjects.index');
+    }
+
+    public function show($subject = null): RedirectResponse
+    {
+        return redirect()->route('admin.subjects.index');
+    }
+
+    public function edit($subject = null): RedirectResponse
+    {
+        return redirect()->route('admin.subjects.index');
+    }
+
     /**
      * Thêm học phần vào kỳ của chuyên ngành
      */
@@ -97,13 +112,14 @@ class SubjectController extends Controller
 
         $spec = Specialization::findOrFail($validated['specialization_id']);
 
-        $exists = CurriculumFramework::where('specialization_id', $spec->id)
+        $existingItem = CurriculumFramework::with('course')
+            ->where('specialization_id', $spec->id)
             ->where('course_id', $courseId)
-            ->where('semester_order', $validated['semester_order'])
-            ->exists();
+            ->first();
 
-        if ($exists) {
-            return back()->with('error', 'Học phần này đã có trong Kỳ ' . $validated['semester_order'] . ' của ' . $spec->name . '.');
+        if ($existingItem) {
+            $cName = $existingItem->course?->course_name ?? 'Học phần này';
+            return back()->with('error', "Học phần [{$cName}] đã có trong Chương trình khung của ngành (đang được xếp ở Học kỳ {$existingItem->semester_order}). Không thể thêm trùng lặp giữa các kỳ!");
         }
 
         CurriculumFramework::create([

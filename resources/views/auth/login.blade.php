@@ -6,41 +6,32 @@
 @section('content')
     @vite('resources/css/app.css')
     <div class="login-page min-vh-100 d-flex justify-content-center align-items-center px-3 py-4">
-        <section class="card login-card w-100" aria-labelledby="login-title" style="max-width: 440px;">
+        <section class="card login-card w-100" aria-labelledby="login-title">
             <div class="card-body p-4 p-sm-5">
                 <header class="text-center mb-4">
                     <img class="login-logo d-block mx-auto mb-3" src="{{ asset('images/HUIT_logo.png') }}"
-                        alt="Logo Trường Đại học Công Thương TP. Hồ Chí Minh" width="64" height="64">
-                    <h1 class="h4 fw-bold mb-1" id="login-title">Cổng thông tin Đào tạo</h1>
-                    <p class="text-secondary small mb-0">Hệ thống quản lý sinh viên & giảng viên</p>
+                        alt="Logo Trường Đại học Công Thương TP. Hồ Chí Minh">
+                    <h1 class="h3 mb-2" id="login-title">Quản lý sinh viên</h1>
+                    <p class="text-secondary mb-0">Hệ thống quản lý sinh viên và lớp học</p>
                 </header>
-
-                @if ($errors->any())
-                    <div class="alert alert-danger alert-dismissible fade show small mb-3 py-2 px-3" role="alert">
-                        <i class="bi bi-exclamation-circle me-1"></i>
-                        {{ $errors->first() }}
-                    </div>
-                @endif
-
                 <form method="POST" action="{{ route('login.store') }}">
                     @csrf
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold" for="email">Tài khoản đăng nhập</label>
-                        <input class="form-control @error('email') is-invalid @enderror" id="email" name="email" type="text"
-                            value="{{ old('email') }}" placeholder="Email hoặc Mã sinh viên (MSSV)"
+                        <label class="form-label" for="email">Email</label>
+                        <input class="form-control" id="email" name="email" type="text"
+                            value="{{ old('email') }}" placeholder="Nhập email của bạn"
                             autocomplete="username" required autofocus>
-                
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold" for="password">Mật khẩu</label>
+                        <label class="form-label" for="password">Mật khẩu</label>
                         <div class="input-group">
-                            <input class="form-control @error('password') is-invalid @enderror" id="password" name="password" type="password"
+                            <input class="form-control" id="password" name="password" type="password"
                                 placeholder="Nhập mật khẩu" autocomplete="current-password" required>
                             <button class="btn btn-outline-secondary" type="button"
                                 data-password-toggle aria-label="Hiện mật khẩu">Hiện</button>
                         </div>
                     </div>
-                    <button class="btn btn-primary w-100 mt-2 py-2 fw-medium" type="submit">Đăng nhập</button>
+                    <button class="btn btn-primary w-100 mt-3" type="submit">Đăng nhập</button>
                 </form>
                 <footer class="text-center text-secondary small mt-4">
                     © {{ date('Y') }} HUIT. All rights reserved.

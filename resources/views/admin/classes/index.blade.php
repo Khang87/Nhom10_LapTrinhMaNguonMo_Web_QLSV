@@ -53,8 +53,8 @@
                             </a>
                         </li>
                         @if ($selectedFaculty)
-                            <li class="breadcrumb-item {{ !$selectedSpecId ? 'active fw-bold text-dark' : '' }}">
-                                @if ($selectedSpecId)
+                            <li class="breadcrumb-item {{ !$selectedCohort ? 'active fw-bold text-dark' : '' }}">
+                                @if ($selectedCohort)
                                     <a href="{{ route('admin.classes.index', ['faculty_id' => $selectedFaculty->id]) }}" class="text-decoration-none text-secondary">
                                         {{ $selectedFaculty->name }}
                                     </a>
@@ -63,25 +63,25 @@
                                 @endif
                             </li>
                         @endif
-                        @if ($selectedSpecialization)
-                            <li class="breadcrumb-item {{ !$selectedCohort ? 'active fw-bold text-dark' : '' }}">
-                                @if ($selectedCohort)
-                                    <a href="{{ route('admin.classes.index', ['faculty_id' => $selectedFacultyId, 'specialization_id' => $selectedSpecialization->id]) }}" class="text-decoration-none text-secondary">
-                                        Ngành {{ $selectedSpecialization->name }}
-                                    </a>
-                                @else
-                                    Ngành {{ $selectedSpecialization->name }}
-                                @endif
-                            </li>
-                        @endif
                         @if ($selectedCohort)
-                            <li class="breadcrumb-item {{ !$selectedClass ? 'active fw-bold text-dark' : '' }}">
-                                @if ($selectedClass)
-                                    <a href="{{ route('admin.classes.index', ['faculty_id' => $selectedFacultyId, 'specialization_id' => $selectedSpecId, 'cohort' => $selectedCohort]) }}" class="text-decoration-none text-secondary">
+                            <li class="breadcrumb-item {{ !$selectedSpecialization ? 'active fw-bold text-dark' : '' }}">
+                                @if ($selectedSpecialization)
+                                    <a href="{{ route('admin.classes.index', ['faculty_id' => $selectedFacultyId, 'cohort' => $selectedCohort]) }}" class="text-decoration-none text-secondary">
                                         Khóa {{ $selectedCohort }}
                                     </a>
                                 @else
                                     Khóa {{ $selectedCohort }}
+                                @endif
+                            </li>
+                        @endif
+                        @if ($selectedSpecialization)
+                            <li class="breadcrumb-item {{ !$selectedClass ? 'active fw-bold text-dark' : '' }}">
+                                @if ($selectedClass)
+                                    <a href="{{ route('admin.classes.index', ['faculty_id' => $selectedFacultyId, 'cohort' => $selectedCohort, 'specialization_id' => $selectedSpecialization->id]) }}" class="text-decoration-none text-secondary">
+                                        Ngành {{ $selectedSpecialization->name }}
+                                    </a>
+                                @else
+                                    Ngành {{ $selectedSpecialization->name }}
                                 @endif
                             </li>
                         @endif
@@ -104,11 +104,11 @@
                         @if ($selectedFacultyId)
                             <input type="hidden" name="faculty_id" value="{{ $selectedFacultyId }}">
                         @endif
-                        @if ($selectedSpecId)
-                            <input type="hidden" name="specialization_id" value="{{ $selectedSpecId }}">
-                        @endif
                         @if ($selectedCohort)
                             <input type="hidden" name="cohort" value="{{ $selectedCohort }}">
+                        @endif
+                        @if ($selectedSpecId)
+                            <input type="hidden" name="specialization_id" value="{{ $selectedSpecId }}">
                         @endif
                         @if ($selectedClass)
                             <input type="hidden" name="class_id" value="{{ $selectedClass->id }}">
@@ -345,16 +345,16 @@
             @endif
         </div>
 
-    {{-- LEVEL 4: KHI ĐÃ CHỌN KHOA, CHUYÊN NGÀNH VÀ KHÓA TUYỂN SINH -> HIỆN CÁC LỚP DANH NGHĨA --}}
+    {{-- LEVEL 4: KHI ĐÃ CHỌN KHOA, KHÓA VÀ CHUYÊN NGÀNH -> HIỆN CÁC LỚP DANH NGHĨA --}}
     @elseif ($selectedCohort && $selectedSpecId)
         <div class="card border shadow-sm rounded-3 bg-white mb-4">
             <div class="card-header bg-white py-3 px-3 px-md-4 border-bottom d-flex flex-wrap align-items-center justify-content-between gap-3">
                 <div class="d-flex align-items-center gap-2 flex-wrap">
-                    <a href="{{ route('admin.classes.index', array_filter(['faculty_id' => $selectedFacultyId, 'specialization_id' => $selectedSpecId])) }}" 
+                    <a href="{{ route('admin.classes.index', array_filter(['faculty_id' => $selectedFacultyId, 'cohort' => $selectedCohort])) }}" 
                        class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1.5 shadow-sm" 
-                       title="Quay lại danh sách các Khóa tuyển sinh">
+                       title="Quay lại danh sách các Chuyên ngành">
                         <i class="bi bi-arrow-left"></i>
-                        <span>Quay lại các Khóa</span>
+                        <span>Quay lại các Chuyên ngành</span>
                     </a>
                     <span class="text-secondary small d-none d-md-inline">|</span>
                     <strong class="text-dark fs-6">
@@ -363,7 +363,7 @@
                             $y = (int) $selectedCohort;
                             $k = $y >= 2010 ? ($y - 2009) : null;
                         @endphp
-                        {{ $k ? "(Niên khóa K{$k})" : '' }}
+                        {{ $k ? "- Niên khóa K{$k}" : '' }}
                     </strong>
                     <span class="badge bg-dark text-white font-monospace small">
                         Ngành: {{ $selectedSpecialization->name ?? '' }}
@@ -447,10 +447,10 @@
                                 <!-- Thanh thao tác ở chân thẻ -->
                                 <div class="card-footer bg-white border-top p-2.5 pt-2">
                                     <div class="d-flex align-items-center gap-1.5">
-                                        <a href="{{ route('admin.classes.index', array_filter(['faculty_id' => $selectedFacultyId, 'specialization_id' => $selectedSpecId, 'cohort' => $selectedCohort, 'class_id' => $cls->id])) }}" 
+                                        <a href="{{ route('admin.classes.index', array_filter(['faculty_id' => $selectedFacultyId, 'cohort' => $selectedCohort, 'specialization_id' => $selectedSpecId, 'class_id' => $cls->id])) }}" 
                                            class="btn btn-sm btn-dark flex-grow-1 d-inline-flex align-items-center justify-content-center gap-1.5 shadow-sm py-1.5">
                                             <i class="bi bi-people"></i>
-                                            <span>Xem sinh viên ({{ $cls->students_count }})</span>
+                                            <span>Xem sinh viên</span>
                                             <i class="bi bi-arrow-right ms-auto"></i>
                                         </a>
 
@@ -487,76 +487,76 @@
             </div>
         </div>
 
-    {{-- LEVEL 3: KHI ĐÃ CHỌN KHOA VÀ CHUYÊN NGÀNH -> HIỆN DANH SÁCH CÁC KHÓA TUYỂN SINH --}}
-    @elseif ($selectedSpecId)
+    {{-- LEVEL 3: KHI ĐÃ CHỌN KHOA VÀ KHÓA -> HIỆN DANH SÁCH CÁC CHUYÊN NGÀNH --}}
+    @elseif ($selectedFacultyId && $selectedCohort)
         <div class="card border shadow-sm rounded-3 bg-white mb-4">
             <div class="card-header bg-white py-3 px-3 px-md-4 border-bottom d-flex flex-wrap align-items-center justify-content-between gap-3">
                 <div class="d-flex align-items-center gap-2 flex-wrap">
                     <a href="{{ route('admin.classes.index', array_filter(['faculty_id' => $selectedFacultyId])) }}" 
                        class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1.5 shadow-sm" 
-                       title="Quay lại danh sách các Chuyên ngành">
+                       title="Quay lại danh sách các Khóa tuyển sinh">
                         <i class="bi bi-arrow-left"></i>
-                        <span>Quay lại các Chuyên ngành ({{ $selectedFaculty->name ?? 'Khoa' }})</span>
+                        <span>Quay lại các Khóa</span>
                     </a>
                     <span class="text-secondary small d-none d-md-inline">|</span>
                     <strong class="text-dark fs-6">
-                        Chuyên ngành: {{ $selectedSpecialization->name ?? '' }}
+                        Khóa {{ $selectedCohort }}
+                        @php
+                            $y = (int) $selectedCohort;
+                            $k = $y >= 2010 ? ($y - 2009) : null;
+                        @endphp
+                        {{ $k ? "- Niên khóa K{$k}" : '' }}
                     </strong>
-                    <span class="badge bg-light text-dark border font-monospace">
-                        [{{ $selectedSpecialization->code ?? '' }}]
-                    </span>
                     <span class="badge bg-dark text-white font-monospace small">
                         Khoa: {{ $selectedFaculty->name ?? '' }}
                     </span>
-                </div>
-
-                <div class="d-flex align-items-center gap-2">
-                    <button type="button" class="btn btn-sm btn-dark d-inline-flex align-items-center gap-1 shadow-sm"
-                            data-bs-toggle="modal" data-bs-target="#addCohortModal">
-                        <i class="bi bi-plus-lg"></i>
-                        <span>Thêm Khóa tuyển sinh mới</span>
-                    </button>
+                    <span class="badge bg-light text-dark border font-monospace">
+                        {{ $cohortSpecsSummary->count() }} Chuyên ngành
+                    </span>
                 </div>
             </div>
 
             <div class="card-body p-3 p-md-4">
                 <div class="row g-3 row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xxl-4">
-                    @forelse ($specCohortsSummary as $cohortItem)
+                    @forelse ($cohortSpecsSummary as $specItem)
                         <div class="col">
                             <div class="card border rounded-3 h-100 bg-white shadow-sm hover-shadow transition-all d-flex flex-column justify-content-between" style="border-color: #e5e7eb !important;">
                                 <div class="card-body p-4 d-flex flex-column justify-content-between">
                                     <div>
-                                        <!-- Header thẻ Khóa -->
-                                        <div class="d-flex align-items-center justify-content-between mb-3">
-                                            <span class="badge bg-dark text-white px-3 py-1.5 fs-6">
-                                                Khóa {{ $cohortItem['cohort_year'] }}
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <span class="badge bg-dark text-white px-2.5 py-1 font-monospace">
+                                                {{ $specItem->code }}
                                             </span>
                                             <span class="badge bg-light text-secondary border small">
-                                                {{ $cohortItem['k_label'] }}
+                                                Chuyên ngành
                                             </span>
                                         </div>
 
-                                        <!-- 2 Khối thống kê chỉ số số lớp và số sinh viên -->
+                                        <h5 class="fw-bold text-dark mb-3 mt-1" title="{{ $specItem->name }}">
+                                            {{ $specItem->name }}
+                                        </h5>
+
+                                        <!-- Thống kê lớp và sinh viên của chuyên ngành trong khóa -->
                                         <div class="row g-2 text-center my-3">
                                             <div class="col-6">
                                                 <div class="p-2.5 bg-light rounded-2 border">
-                                                    <div class="fs-4 fw-bold text-dark">{{ $cohortItem['classes_count'] }}</div>
+                                                    <div class="fs-4 fw-bold text-dark">{{ $specItem->classes_count }}</div>
                                                     <div class="small text-secondary" style="font-size: 0.78rem;">Lớp danh nghĩa</div>
                                                 </div>
                                             </div>
                                             <div class="col-6">
                                                 <div class="p-2.5 bg-light rounded-2 border">
-                                                    <div class="fs-4 fw-bold text-dark">{{ $cohortItem['students_count'] }}</div>
+                                                    <div class="fs-4 fw-bold text-dark">{{ $specItem->students_count }}</div>
                                                     <div class="small text-secondary" style="font-size: 0.78rem;">Sinh viên</div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <!-- Nút chọn Khóa -->
-                                    <a href="{{ route('admin.classes.index', ['faculty_id' => $selectedFacultyId, 'specialization_id' => $selectedSpecId, 'cohort' => $cohortItem['cohort_year']]) }}" 
+                                    <!-- Nút chọn chuyên ngành để ra các lớp thuộc chuyên ngành đó -->
+                                    <a href="{{ route('admin.classes.index', ['faculty_id' => $selectedFacultyId, 'cohort' => $selectedCohort, 'specialization_id' => $specItem->id]) }}" 
                                        class="btn btn-dark btn-sm w-100 mt-2 d-inline-flex align-items-center justify-content-center gap-1.5 shadow-sm py-2">
-                                        <span>Xem các lớp Khóa {{ $cohortItem['cohort_year'] }}</span>
+                                        <span>Xem các lớp ngành này</span>
                                         <i class="bi bi-arrow-right"></i>
                                     </a>
                                 </div>
@@ -565,14 +565,14 @@
                     @empty
                         <div class="col-12 text-center py-5 text-muted small">
                             <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary opacity-50"></i>
-                            Chưa có dữ liệu khóa tuyển sinh nào cho chuyên ngành này.
+                            Khoa này hiện chưa có chuyên ngành đào tạo nào.
                         </div>
                     @endforelse
                 </div>
             </div>
         </div>
 
-    {{-- LEVEL 2: KHI ĐÃ CHỌN KHOA -> HIỆN DANH SÁCH CHUYÊN NGÀNH THUỘC KHOA ĐÓ --}}
+    {{-- LEVEL 2: KHI ĐÃ CHỌN KHOA -> HIỆN DANH SÁCH CÁC KHÓA (COHORTS) THUỘC KHOA ĐÓ --}}
     @elseif ($selectedFacultyId)
         <div class="card border shadow-sm rounded-3 bg-white mb-4">
             <div class="card-header bg-white py-3 px-3 px-md-4 border-bottom d-flex flex-wrap align-items-center justify-content-between gap-3">
@@ -591,52 +591,63 @@
                         [{{ $selectedFaculty->code }}]
                     </span>
                     <span class="badge bg-dark text-white font-monospace">
-                        {{ $facultySpecs->count() }} Chuyên ngành đào tạo
+                        {{ count($facultyCohortsSummary) }} Khóa tuyển sinh
                     </span>
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm btn-dark d-inline-flex align-items-center gap-1 shadow-sm"
+                            data-bs-toggle="modal" data-bs-target="#addCohortModal">
+                        <i class="bi bi-plus-lg"></i>
+                        <span>Thêm Khóa tuyển sinh mới</span>
+                    </button>
                 </div>
             </div>
 
             <div class="card-body p-3 p-md-4">
                 <div class="row g-3 row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xxl-4">
-                    @forelse ($facultySpecs as $specItem)
+                    @forelse ($facultyCohortsSummary as $cohortItem)
                         <div class="col">
                             <div class="card border rounded-3 h-100 bg-white shadow-sm hover-shadow transition-all d-flex flex-column justify-content-between" style="border-color: #e5e7eb !important;">
                                 <div class="card-body p-4 d-flex flex-column justify-content-between">
                                     <div>
-                                        <div class="d-flex align-items-center justify-content-between mb-2">
-                                            <span class="badge bg-dark text-white px-2.5 py-1 font-monospace">
-                                                {{ $specItem->code }}
+                                        <!-- Header thẻ Khóa -->
+                                        <div class="d-flex align-items-center justify-content-between mb-3">
+                                            <span class="badge bg-dark text-white px-3 py-1.5 fs-6">
+                                                Khóa {{ $cohortItem['cohort_year'] }}
                                             </span>
                                             <span class="badge bg-light text-secondary border small">
-                                                Chuyên ngành
+                                                {{ $cohortItem['k_label'] }}
                                             </span>
                                         </div>
 
-                                        <h5 class="fw-bold text-dark mb-3 mt-1" title="{{ $specItem->name }}">
-                                            {{ $specItem->name }}
-                                        </h5>
-
-                                        <!-- Thống kê lớp và sinh viên của chuyên ngành -->
+                                        <!-- 3 Khối thống kê chỉ số: Chuyên ngành, Lớp danh nghĩa, Sinh viên -->
                                         <div class="row g-2 text-center my-3">
-                                            <div class="col-6">
-                                                <div class="p-2.5 bg-light rounded-2 border">
-                                                    <div class="fs-4 fw-bold text-dark">{{ $specItem->classes_count }}</div>
-                                                    <div class="small text-secondary" style="font-size: 0.78rem;">Lớp danh nghĩa</div>
+                                            <div class="col-4">
+                                                <div class="p-2 bg-light rounded-2 border">
+                                                    <div class="fs-5 fw-bold text-dark">{{ $cohortItem['specializations_count'] }}</div>
+                                                    <div class="small text-secondary" style="font-size: 0.72rem;">Chuyên ngành</div>
                                                 </div>
                                             </div>
-                                            <div class="col-6">
-                                                <div class="p-2.5 bg-light rounded-2 border">
-                                                    <div class="fs-4 fw-bold text-dark">{{ $specItem->students_count }}</div>
-                                                    <div class="small text-secondary" style="font-size: 0.78rem;">Sinh viên</div>
+                                            <div class="col-4">
+                                                <div class="p-2 bg-light rounded-2 border">
+                                                    <div class="fs-5 fw-bold text-dark">{{ $cohortItem['classes_count'] }}</div>
+                                                    <div class="small text-secondary" style="font-size: 0.72rem;">Lớp học</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-4">
+                                                <div class="p-2 bg-light rounded-2 border">
+                                                    <div class="fs-5 fw-bold text-dark">{{ $cohortItem['students_count'] }}</div>
+                                                    <div class="small text-secondary" style="font-size: 0.72rem;">Sinh viên</div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <!-- Nút chọn chuyên ngành -->
-                                    <a href="{{ route('admin.classes.index', ['faculty_id' => $selectedFacultyId, 'specialization_id' => $specItem->id]) }}" 
+                                    <!-- Nút chọn Khóa để ra các chuyên ngành của khóa đó -->
+                                    <a href="{{ route('admin.classes.index', ['faculty_id' => $selectedFacultyId, 'cohort' => $cohortItem['cohort_year']]) }}" 
                                        class="btn btn-dark btn-sm w-100 mt-2 d-inline-flex align-items-center justify-content-center gap-1.5 shadow-sm py-2">
-                                        <span>Chọn Chuyên ngành này</span>
+                                        <span>Xem Chuyên ngành Khóa {{ $cohortItem['cohort_year'] }}</span>
                                         <i class="bi bi-arrow-right"></i>
                                     </a>
                                 </div>
@@ -645,7 +656,7 @@
                     @empty
                         <div class="col-12 text-center py-5 text-muted small">
                             <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary opacity-50"></i>
-                            Khoa này hiện chưa có chuyên ngành đào tạo nào.
+                            Khoa này hiện chưa có dữ liệu khóa tuyển sinh nào.
                         </div>
                     @endforelse
                 </div>
@@ -711,7 +722,7 @@
                                     <!-- Nút chọn Khoa -->
                                     <a href="{{ route('admin.classes.index', ['faculty_id' => $facItem['id']]) }}" 
                                        class="btn btn-dark btn-sm w-100 mt-2 d-inline-flex align-items-center justify-content-center gap-1.5 shadow-sm py-2">
-                                        <span>Vào xem Khoa này</span>
+                                        <span>Xem các Khóa tuyển sinh</span>
                                         <i class="bi bi-arrow-right"></i>
                                     </a>
                                 </div>

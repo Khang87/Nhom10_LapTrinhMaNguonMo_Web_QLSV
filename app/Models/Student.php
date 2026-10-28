@@ -55,4 +55,14 @@ class Student extends Model
     {
         return $this->belongsTo(StudentClass::class, 'class_code', 'class_code');
     }
+
+    public function gradeAppeals(): HasMany
+    {
+        return $this->hasMany(GradeAppeal::class);
+    }
+
+    public function getAcademicAdvisorAttribute(): ?Lecturer
+    {
+        return $this->studentClass?->lecturer;
+    }
 }

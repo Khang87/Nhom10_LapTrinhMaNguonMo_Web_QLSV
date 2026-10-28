@@ -330,9 +330,12 @@ class DatabaseSeeder extends Seeder
             );
         }
 
+        require_once __DIR__ . '/SpecializationSeeder.php';
+        $this->call(SpecializationSeeder::class);
+
         // 7. Chương trình khung (Curriculum Framework: Kỳ 1 -> Kỳ 8)
         $curriculumMap = [
-            1 => ['DS101' => true, 'SE101' => true, 'MATH101' => true, 'ENG101' => false],
+            1 => ['DS101' => true, 'SE101' => true, 'MATH101' => true],
             2 => ['DB101' => true, 'NET101' => true, 'LAW101' => false],
             3 => ['WEB101' => true, 'NOSQL101' => false, 'MKT101' => false],
             4 => ['OPEN101' => true, 'IOT101' => false, 'ENG101' => true],
@@ -1562,7 +1565,7 @@ class DatabaseSeeder extends Seeder
             );
         }
 
-        require_once __DIR__ . '/SpecializationSeeder.php';
-        $this->call(SpecializationSeeder::class);
+        // Gọi Seeder dữ liệu phân cấp học vụ và điểm số đa dạng
+        $this->call(ComprehensiveAcademicSeeder::class);
     }
 }

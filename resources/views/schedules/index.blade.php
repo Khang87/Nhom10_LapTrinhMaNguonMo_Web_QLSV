@@ -148,6 +148,13 @@
                                                     <i class="bi bi-person"></i> GV: {{ $item->lecturer_name }}
                                                 </div>
 
+                                                {{-- Dòng 6: Thời gian bắt đầu - kết thúc học phần --}}
+                                                @if ($item->section)
+                                                    <div class="card-date-range small text-secondary mt-1 pt-1 border-top" style="font-size: 11px;">
+                                                        <i class="bi bi-calendar-range me-0.5"></i> {{ $item->section->getDateRangeText() }}
+                                                    </div>
+                                                @endif
+
                                                 {{-- Bổ sung: Nút link Online hoặc Lý do tạm ngưng --}}
                                                 @if ($item->schedule_type === 'ONLINE')
                                                     <div class="mt-2 pt-1 border-top border-primary-subtle">

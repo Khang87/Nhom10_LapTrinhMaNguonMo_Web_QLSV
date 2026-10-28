@@ -43,4 +43,14 @@ class Lecturer extends Model
     {
         return $this->hasOne(Faculty::class, 'dean_id');
     }
+
+    public function homeroomClasses(): HasMany
+    {
+        return $this->hasMany(StudentClass::class, 'lecturer_id');
+    }
+
+    public function scheduleChangeRequests(): HasMany
+    {
+        return $this->hasMany(ScheduleChangeRequest::class);
+    }
 }

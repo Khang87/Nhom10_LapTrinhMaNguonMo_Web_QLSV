@@ -21,14 +21,14 @@ class ClassController extends Controller
 {
     /**
      * Quản lý Lớp học Danh nghĩa theo phân cấp:
-     * Khoa -> Chuyên ngành -> Khóa tuyển sinh -> Lớp danh nghĩa -> Sinh viên
+     * Khoa -> Khóa tuyển sinh -> Chuyên ngành -> Lớp danh nghĩa -> Sinh viên
      */
     public function index(Request $request): View
     {
         $search = trim((string) $request->query('search', ''));
         $selectedFacultyId = $request->query('faculty_id');
-        $selectedSpecId = $request->query('specialization_id');
         $selectedCohort = $request->query('cohort');
+        $selectedSpecId = $request->query('specialization_id');
         $selectedClassId = $request->query('class_id');
 
         // Tự động phân giải các cấp cha nếu được cung cấp cấp con
@@ -66,24 +66,72 @@ class ClassController extends Controller
             $classesCount = StudentClass::whereHas('specialization', fn ($q) => $q->where('faculty_id', $f->id))->count();
             $studentsCount = Student::whereHas('specialization', fn ($q) => $q->where('faculty_id', $f->id))->count();
 
+            $cohortsCount = StudentClass::whereHas('specialization', fn ($q) => $q->where('faculty_id', $f->id))
+                ->whereNotNull('cohort_year')
+                ->distinct('cohort_year')
+                ->count('cohort_year');
+
             $facultiesSummary[] = [
                 'id' => $f->id,
                 'code' => $f->code,
                 'name' => $f->name,
+                'cohorts_count' => $cohortsCount > 0 ? $cohortsCount : 4,
                 'specializations_count' => $specCount,
                 'classes_count' => $classesCount,
                 'students_count' => $studentsCount,
             ];
         }
 
-        // 2. DỮ LIỆU LEVEL 2: DANH SÁCH CHUYÊN NGÀNH THUỘC KHOA ĐÃ CHỌN
-        $facultySpecs = collect();
+        // Danh sách tất cả các Khóa tuyển sinh
+        $allCohorts = array_values(array_unique(array_merge(
+            Cohort::pluck('cohort_year')->toArray(),
+            StudentClass::whereNotNull('cohort_year')->pluck('cohort_year')->toArray(),
+            Student::whereNotNull('cohort_year')->pluck('cohort_year')->toArray(),
+            ['2024', '2023', '2022', '2021']
+        )));
+        rsort($allCohorts);
+
+        // 2. DỮ LIỆU LEVEL 2: KHI ĐÃ CHỌN KHOA -> HIỆN DANH SÁCH CÁC KHÓA (COHORTS) THUỘC KHOA
+        $facultyCohortsSummary = [];
         if ($selectedFacultyId) {
+            foreach ($allCohorts as $ch) {
+                $year = (int) $ch;
+                $kNum = $year >= 2010 ? ($year - 2009) : null;
+
+                $clsCount = StudentClass::whereHas('specialization', fn ($q) => $q->where('faculty_id', $selectedFacultyId))
+                    ->where('cohort_year', $ch)
+                    ->count();
+
+                $stuCount = Student::whereHas('specialization', fn ($q) => $q->where('faculty_id', $selectedFacultyId))
+                    ->where('cohort_year', $ch)
+                    ->count();
+
+                $specsCount = Specialization::where('faculty_id', $selectedFacultyId)
+                    ->whereHas('classes', fn ($q) => $q->where('cohort_year', $ch))
+                    ->count();
+
+                if ($specsCount === 0) {
+                    $specsCount = Specialization::where('faculty_id', $selectedFacultyId)->count();
+                }
+
+                $facultyCohortsSummary[] = [
+                    'cohort_year' => $ch,
+                    'k_label' => $kNum ? "Niên khóa K{$kNum}" : "Khóa {$ch}",
+                    'specializations_count' => $specsCount,
+                    'classes_count' => $clsCount,
+                    'students_count' => $stuCount,
+                ];
+            }
+        }
+
+        // 3. DỮ LIỆU LEVEL 3: KHI ĐÃ CHỌN KHOA VÀ KHÓA -> HIỆN DANH SÁCH CÁC CHUYÊN NGÀNH
+        $cohortSpecsSummary = collect();
+        if ($selectedFacultyId && $selectedCohort) {
             $specs = Specialization::where('faculty_id', $selectedFacultyId)->orderBy('name')->get();
             foreach ($specs as $s) {
-                $clsCount = StudentClass::where('specialization_id', $s->id)->count();
-                $stuCount = Student::where('specialization_id', $s->id)->count();
-                $facultySpecs->push((object) [
+                $clsCount = StudentClass::where('specialization_id', $s->id)->where('cohort_year', $selectedCohort)->count();
+                $stuCount = Student::where('specialization_id', $s->id)->where('cohort_year', $selectedCohort)->count();
+                $cohortSpecsSummary->push((object) [
                     'id' => $s->id,
                     'code' => $s->code,
                     'name' => $s->name,
@@ -93,33 +141,11 @@ class ClassController extends Controller
             }
         }
 
-        // 3. DỮ LIỆU LEVEL 3: DANH SÁCH KHÓA TUYỂN SINH CỦA CHUYÊN NGÀNH ĐÃ CHỌN
-        $allCohorts = array_values(array_unique(array_merge(
-            Cohort::pluck('cohort_year')->toArray(),
-            StudentClass::whereNotNull('cohort_year')->pluck('cohort_year')->toArray(),
-            Student::whereNotNull('cohort_year')->pluck('cohort_year')->toArray(),
-            ['2026', '2023']
-        )));
-        rsort($allCohorts);
+        // Tương thích biến cũ
+        $facultySpecs = $cohortSpecsSummary;
+        $specCohortsSummary = $facultyCohortsSummary;
 
-        $specCohortsSummary = [];
-        if ($selectedSpecId) {
-            foreach ($allCohorts as $ch) {
-                $year = (int) $ch;
-                $kNum = $year >= 2010 ? ($year - 2009) : null;
-                $clsCount = StudentClass::where('specialization_id', $selectedSpecId)->where('cohort_year', $ch)->count();
-                $stuCount = Student::where('specialization_id', $selectedSpecId)->where('cohort_year', $ch)->count();
-
-                $specCohortsSummary[] = [
-                    'cohort_year' => $ch,
-                    'k_label' => $kNum ? "Niên khóa K{$kNum}" : "Khóa {$ch}",
-                    'classes_count' => $clsCount,
-                    'students_count' => $stuCount,
-                ];
-            }
-        }
-
-        // 4. DỮ LIỆU LEVEL 4: DANH SÁCH LỚP DANH NGHĨA
+        // 4. DỮ LIỆU LEVEL 4: KHI ĐÃ CHỌN KHOA, KHÓA VÀ CHUYÊN NGÀNH -> HIỆN CÁC LỚP DANH NGHĨA
         $classesQuery = StudentClass::with(['lecturer', 'specialization.faculty'])
             ->when($selectedCohort, fn ($q) => $q->where('cohort_year', $selectedCohort))
             ->when($selectedSpecId, fn ($q) => $q->where('specialization_id', $selectedSpecId))
@@ -170,11 +196,13 @@ class ClassController extends Controller
         return view('admin.classes.index', compact(
             'selectedFacultyId',
             'selectedFaculty',
+            'selectedCohort',
             'selectedSpecId',
             'selectedSpecialization',
-            'selectedCohort',
             'selectedClass',
             'facultiesSummary',
+            'facultyCohortsSummary',
+            'cohortSpecsSummary',
             'facultySpecs',
             'specCohortsSummary',
             'allCohorts',

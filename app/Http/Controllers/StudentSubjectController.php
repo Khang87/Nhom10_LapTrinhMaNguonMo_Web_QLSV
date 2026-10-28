@@ -64,62 +64,110 @@ class StudentSubjectController extends Controller
         $allOpenSections = collect();
 
         if ($student) {
-            // Lấy toàn bộ lớp học phần mở trong kỳ theo chuyên ngành của SV (gộp chung cả môn theo khung & môn add thêm)
-            // Loại trừ các môn sinh viên ĐÃ ĐĂNG KÝ trong kỳ này
+            $studentSpecName = $student->specialization?->name ?: $student->specialization_name;
+            $studentSpecId = $student->specialization_id;
+
+            // Lấy danh sách ID các môn học trong chương trình khung của sinh viên
+            $curriculumCourseIds = \App\Models\CurriculumFramework::where('specialization_id', $studentSpecId)
+                ->pluck('course_id')
+                ->filter()
+                ->unique()
+                ->toArray();
+
+            // Lấy toàn bộ lớp học phần mở trong kỳ theo đúng chuyên ngành của SV:
+            // 1. specialization_name của lớp trùng với chuyên ngành của SV
+            // 2. Hoặc lớp mở chung (specialization_name IS NULL hoặc rỗng) VÀ môn học đó nằm trong khung chương trình của SV
+            // TUYỆT ĐỐI KHÔNG nạp lớp thuộc chuyên ngành khác!
             $allOpenSections = CourseSection::with(['course', 'lecturer'])
                 ->withCount('enrollments')
                 ->where('semester_code', $selectedSemesterCode)
-                ->where(function ($q) use ($student) {
-                    $q->where('specialization_name', $student->specialization_name)
-                      ->orWhereNull('specialization_name')
-                      ->orWhere('specialization_name', '');
-                })
                 ->whereNotIn('course_id', $enrolledCourseIds)
+                ->where(function ($q) use ($studentSpecName, $curriculumCourseIds) {
+                    $hasCondition = false;
+                    if (!empty($studentSpecName)) {
+                        $q->where('specialization_name', $studentSpecName);
+                        $hasCondition = true;
+                    }
+                    if (!empty($curriculumCourseIds)) {
+                        $method = $hasCondition ? 'orWhere' : 'where';
+                        $q->$method(function ($sub) use ($curriculumCourseIds) {
+                            $sub->where(function ($emptySpec) {
+                                $emptySpec->whereNull('specialization_name')
+                                          ->orWhere('specialization_name', '');
+                            })->whereIn('course_id', $curriculumCourseIds);
+                        });
+                    } elseif (!$hasCondition) {
+                        $q->whereNull('specialization_name')->orWhere('specialization_name', '');
+                    }
+                })
                 ->orderBy('day_of_week')
                 ->orderBy('start_period')
                 ->get();
 
-            // Nếu không có lớp theo chuyên ngành riêng, nạp tất cả lớp trong kỳ chưa đăng ký
-            if ($allOpenSections->isEmpty()) {
-                $allOpenSections = CourseSection::with(['course', 'lecturer'])
-                    ->withCount('enrollments')
-                    ->where('semester_code', $selectedSemesterCode)
-                    ->whereNotIn('course_id', $enrolledCourseIds)
-                    ->orderBy('day_of_week')
-                    ->orderBy('start_period')
-                    ->get();
-            }
-
-            // Lấy lịch sử học tập của SV ở các kỳ trước (các môn đã có điểm)
+            // Lấy toàn bộ lịch sử các môn sinh viên đã học ở các kỳ trước
             $pastEnrollments = Enrollment::with('section.course')
                 ->where('student_id', $student->id)
                 ->whereHas('section', fn($q) => $q->where('semester_code', '!=', $selectedSemesterCode))
                 ->get();
 
-            // Môn đã từng RỚT ở các kỳ trước (Điểm 10 < 5.0 hoặc Điểm F)
-            $failedCourseIds = $pastEnrollments->filter(function ($e) {
-                return (float)$e->total_score_10 < 5.0 || $e->letter_grade === 'F';
-            })->pluck('section.course_id')->filter()->unique()->toArray();
+            // Phân tích trạng thái môn học của sinh viên dựa trên lịch sử điểm số thực tế
+            $passedCourseIds = [];
+            $failedCourseIds = [];
 
-            // Môn đã từng HỌC XONG VÀ ĐẠT ở các kỳ trước (Điểm 10 >= 5.0)
-            $passedCourseIds = $pastEnrollments->filter(function ($e) {
-                return (float)$e->total_score_10 >= 5.0 && $e->letter_grade !== 'F';
-            })->pluck('section.course_id')->filter()->unique()->toArray();
+            $historyByCourse = $pastEnrollments->groupBy(fn($e) => $e->section?->course_id);
 
-            // Phân loại:
-            // Tab 1: Học lại -> Lọc các lớp mở của các môn sinh viên đã rớt
+            foreach ($historyByCourse as $courseId => $records) {
+                if (!$courseId) continue;
+
+                // 1. Kiểm tra xem môn này sinh viên ĐÃ TỪNG HỌC XONG VÀ ĐẠT chưa
+                $hasPassed = $records->contains(function ($e) {
+                    $hasGrade = !is_null($e->total_score_10) || !empty($e->letter_grade) || !is_null($e->is_passed);
+                    if (!$hasGrade) {
+                        return false; // Chưa có điểm -> Chưa đạt
+                    }
+                    return $e->isPassed() 
+                        || $e->is_passed === true 
+                        || (!is_null($e->total_score_10) && (float)$e->total_score_10 >= 4.0 && $e->letter_grade !== 'F');
+                });
+
+                if ($hasPassed) {
+                    $passedCourseIds[] = $courseId;
+                    continue;
+                }
+
+                // 2. Kiểm tra xem môn này sinh viên ĐÃ HỌC XONG NHƯNG BỊ ĐÁNH RỚT chưa
+                // QUAN TRỌNG: Môn chưa có điểm (null) TUYỆT ĐỐI KHÔNG tính là rớt!
+                $hasFailed = $records->contains(function ($e) {
+                    $hasGrade = !is_null($e->total_score_10) || !empty($e->letter_grade) || !is_null($e->is_passed);
+                    if (!$hasGrade) {
+                        return false; // Chưa có điểm -> KHÔNG ĐƯỢC tính là rớt
+                    }
+                    return $e->is_passed === false 
+                        || $e->letter_grade === 'F' 
+                        || (!is_null($e->total_score_10) && (float)$e->total_score_10 < 4.0);
+                });
+
+                if ($hasFailed) {
+                    $failedCourseIds[] = $courseId;
+                }
+            }
+
+            // PHÂN LOẠI 3 TAB ĐĂNG KÝ HỌC PHẦN THEO ĐÚNG ĐỊNH NGHĨA CHUẨN:
+            // Tab 1: Học lại -> Thể hiện các học phần sinh viên ĐÃ HỌC XONG nhưng BỊ ĐÁNH RỚT, có lớp mở trong kỳ
             $retakeSections = $allOpenSections->filter(function ($sec) use ($failedCourseIds) {
                 return in_array($sec->course_id, $failedCourseIds);
             })->values();
 
-            // Tab 2: Học cải thiện -> Lọc các lớp mở của các môn sinh viên đã học xong
+            // Tab 2: Học cải thiện -> Thể hiện các môn sinh viên ĐÃ HỌC XONG VÀ ĐẠT ĐIỂM, có lớp mở trong kỳ
             $improvementSections = $allOpenSections->filter(function ($sec) use ($passedCourseIds) {
                 return in_array($sec->course_id, $passedCourseIds);
             })->values();
 
-            // Tab 3: Học mới (Lần đầu) -> Các môn chưa từng có điểm rớt hoặc đạt
-            $firstTimeSections = $allOpenSections->reject(function ($sec) use ($failedCourseIds, $passedCourseIds) {
-                return in_array($sec->course_id, $failedCourseIds) || in_array($sec->course_id, $passedCourseIds);
+            // Tab 3: Học mới -> Hiện các môn được mở lớp dựa theo chương trình khung (các môn SV chưa đạt và không bị rớt)
+            $firstTimeSections = $allOpenSections->filter(function ($sec) use ($failedCourseIds, $passedCourseIds, $curriculumCourseIds) {
+                return !in_array($sec->course_id, $failedCourseIds) 
+                    && !in_array($sec->course_id, $passedCourseIds)
+                    && (empty($curriculumCourseIds) || in_array($sec->course_id, $curriculumCourseIds));
             })->values();
 
             // Gộp theo từng Môn học (Course), mỗi môn cung cấp tối đa 3 option thời gian/ca học
@@ -136,6 +184,10 @@ class StudentSubjectController extends Controller
             $retakeCourses = $groupIntoCourses($retakeSections);
             $improvementCourses = $groupIntoCourses($improvementSections);
         }
+
+        $curriculumOrderMap = !empty($studentSpecId)
+            ? \App\Models\CurriculumFramework::where('specialization_id', $studentSpecId)->pluck('semester_order', 'course_id')->toArray()
+            : [];
 
         // Hỗ trợ legacy subjects
         $registeredSubjects = $user->subjects()->orderBy('code')->get();
@@ -158,6 +210,7 @@ class StudentSubjectController extends Controller
             'firstTimeCourses',
             'retakeCourses',
             'improvementCourses',
+            'curriculumOrderMap',
             'registeredSubjects',
             'openSubjects'
         ));
@@ -207,6 +260,13 @@ class StudentSubjectController extends Controller
         if ($semester && !$semester->isRegistrationActive()) {
             return redirect()->route('student.subjects.index', $redirectParams)
                 ->with('error', "❌ KHÔNG THỂ ĐĂNG KÝ: Đợt đăng ký học phần cho [{$semester->semester_name}] hiện đang đóng hoặc đã hết thời hạn.");
+        }
+
+        // 1.1 Kiểm tra chuyên ngành: Nếu lớp học phần mở riêng cho chuyên ngành khác -> Chặn không cho đăng ký
+        $studentSpecName = $student->specialization?->name ?: $student->specialization_name;
+        if (!empty($section->specialization_name) && !empty($studentSpecName) && strcasecmp(trim($section->specialization_name), trim($studentSpecName)) !== 0) {
+            return redirect()->route('student.subjects.index', $redirectParams)
+                ->with('error', "❌ KHÔNG THỂ ĐĂNG KÝ: Lớp học phần [{$section->section_code}] được mở dành riêng cho chuyên ngành [{$section->specialization_name}]. Bạn thuộc chuyên ngành [{$studentSpecName}].");
         }
 
         // 2. Lấy loại đăng ký: FIRST_TIME (Học mới), RETAKE (Học lại), IMPROVEMENT (Học cải thiện)

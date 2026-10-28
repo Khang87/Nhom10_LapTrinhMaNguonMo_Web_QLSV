@@ -56,6 +56,11 @@ class SpecializationController extends Controller
         ));
     }
 
+    public function show(Specialization $specialization): RedirectResponse
+    {
+        return redirect()->route('admin.specializations.curriculum', $specialization);
+    }
+
     public function create(): View
     {
         $faculties = \App\Models\Faculty::orderBy('name')->get();
@@ -152,13 +157,14 @@ class SpecializationController extends Controller
             'is_mandatory' => ['required', 'boolean'],
         ]);
 
-        $exists = CurriculumFramework::where('specialization_id', $specialization->id)
+        $existingItem = CurriculumFramework::with('course')
+            ->where('specialization_id', $specialization->id)
             ->where('course_id', $validated['course_id'])
-            ->where('semester_order', $validated['semester_order'])
-            ->exists();
+            ->first();
 
-        if ($exists) {
-            return back()->with('error', 'Học phần này đã tồn tại trong kỳ ' . $validated['semester_order'] . ' của chuyên ngành.');
+        if ($existingItem) {
+            $cName = $existingItem->course?->course_name ?? 'Học phần này';
+            return back()->with('error', "Học phần [{$cName}] đã có trong Chương trình khung của ngành (đang ở Kỳ {$existingItem->semester_order}). Không thể thêm trùng lặp giữa các kỳ!");
         }
 
         CurriculumFramework::create([

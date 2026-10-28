@@ -38,4 +38,14 @@ class Specialization extends Model
     {
         return $this->hasMany(CurriculumFramework::class);
     }
+
+    public function classes(): HasMany
+    {
+        return $this->hasMany(StudentClass::class, 'specialization_id');
+    }
+
+    public function studentClasses(): HasMany
+    {
+        return $this->hasMany(StudentClass::class, 'specialization_id');
+    }
 }

@@ -144,6 +144,7 @@
                         <th style="width: 120px;">Học vị</th>
                         <th>Khoa phụ trách</th>
                         <th>Chuyên ngành</th>
+                        <th style="min-width: 150px;">Lớp danh nghĩa (CVHT)</th>
                         <th>Liên hệ</th>
                         <th class="text-center pe-3" style="width: 140px;">Thao tác</th>
                     </tr>
@@ -179,6 +180,19 @@
                                 <span class="text-secondary small">{{ $lec->specialization?->name ?: '—' }}</span>
                             </td>
                             <td>
+                                @if ($lec->homeroomClasses->isNotEmpty())
+                                    <div class="d-flex flex-wrap gap-1">
+                                        @foreach ($lec->homeroomClasses as $cls)
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace" title="{{ $cls->class_name }}">
+                                                <i class="bi bi-people-fill me-1"></i>{{ $cls->class_code }}
+                                            </span>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <span class="text-muted small fst-italic">Chưa phân công</span>
+                                @endif
+                            </td>
+                            <td>
                                 <div class="small text-secondary">
                                     @if($lec->email)
                                         <div><i class="bi bi-envelope"></i> {{ $lec->email }}</div>
@@ -212,7 +226,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center py-5 text-muted">
+                            <td colspan="9" class="text-center py-5 text-muted">
                                 <div class="py-3">
                                     <i class="bi bi-people fs-2 d-block mb-2 text-secondary opacity-50"></i>
                                     Không tìm thấy giảng viên nào phù hợp với bộ lọc.

@@ -41,7 +41,7 @@
                     <select name="specialization_id" class="form-select form-select-sm" onchange="this.form.submit()">
                         @foreach ($specializations as $spec)
                             <option value="{{ $spec->id }}" {{ $activeSpec && $activeSpec->id == $spec->id ? 'selected' : '' }}>
-                                [{{ $spec->code }}] {{ $spec->name }} ({{ $spec->faculty?->name ?? ($spec->faculty_name ?: 'Khoa quản lý') }})
+                                [{{ $spec->code }}] {{ $spec->name }} - {{ $spec->faculty?->name ?? ($spec->faculty_name ?: 'Khoa quản lý') }}
                             </option>
                         @endforeach
                     </select>
@@ -105,9 +105,6 @@
                                     id="tab-sem-{{ $sem }}" data-bs-toggle="pill" data-bs-target="#pane-sem-{{ $sem }}" 
                                     type="button" role="tab" aria-selected="{{ $isCurrentActive ? 'true' : 'false' }}">
                                 <span>Kỳ {{ $sem }}</span>
-                                <span class="badge {{ $isCurrentActive ? 'bg-light text-dark' : 'bg-light text-secondary border' }} ms-1">
-                                    {{ $semItems->count() }}
-                                </span>
                             </button>
                         </li>
                     @endfor

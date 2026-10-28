@@ -95,17 +95,27 @@ class AttendanceController extends Controller
                 : 'absent';
             $note = $notes[$studentId] ?? null;
 
-            SectionAttendance::updateOrCreate(
-                [
+            // Sử dụng whereDate để so sánh ngày chính xác tuyệt đối trong SQLite (tránh lỗi UNIQUE constraint)
+            $existing = SectionAttendance::where('section_id', $section->id)
+                ->where('student_id', $studentId)
+                ->whereDate('attendance_date', $attendanceDate)
+                ->first();
+
+            if ($existing) {
+                $existing->update([
+                    'status' => $status,
+                    'note' => $note,
+                    'attendance_date' => $attendanceDate,
+                ]);
+            } else {
+                SectionAttendance::create([
                     'section_id' => $section->id,
                     'student_id' => $studentId,
                     'attendance_date' => $attendanceDate,
-                ],
-                [
                     'status' => $status,
                     'note' => $note,
-                ]
-            );
+                ]);
+            }
         }
 
         return redirect()->route('lecturer.attendances.take', [

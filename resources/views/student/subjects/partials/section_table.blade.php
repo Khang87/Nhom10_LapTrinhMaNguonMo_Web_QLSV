@@ -8,13 +8,13 @@
 
 <div class="table-responsive">
     <table class="table table-hover align-middle mb-0">
-        <thead class="table-light">
-            <tr class="text-secondary small">
-                <th class="text-center" style="width: 50px;">STT</th>
-                <th style="width: 260px;">Môn học & Tín chỉ</th>
-                <th>Các Option Thời gian & Giảng viên (Tối đa 3 Option)</th>
+        <thead class="table-light text-secondary small">
+            <tr>
+                <th class="ps-3 text-center" style="width: 50px;">#</th>
+                <th style="width: 250px;">Học phần & Tín chỉ</th>
+                <th>Các Ca học / Lớp học phần mở (Tối đa 3 Ca học)</th>
                 <th class="text-end" style="width: 130px;">Học phí</th>
-                <th class="text-center" style="width: 130px;">Thao tác</th>
+                <th class="text-center pe-3" style="width: 130px;">Thao tác</th>
             </tr>
         </thead>
         <tbody>
@@ -26,12 +26,17 @@
                     $allFull = $options->every(fn($opt) => ($opt->enrollments_count ?? 0) >= $opt->max_capacity);
                 @endphp
                 <tr class="subject-row">
-                    <td class="text-center text-muted fw-bold align-top pt-3">{{ $index + 1 }}</td>
+                    <td class="ps-3 text-center text-muted small align-top pt-3">{{ $index + 1 }}</td>
                     <td class="align-top pt-3">
-                        <div class="fw-bold text-dark subject-name fs-6">{{ $course->course_name }}</div>
-                        <div class="d-flex align-items-center gap-2 mt-1">
-                            <span class="badge bg-light text-primary border font-monospace">{{ $course->course_code }}</span>
-                            <span class="badge bg-light text-dark border">{{ $course->credits }} tín chỉ</span>
+                        <div class="fw-semibold text-dark subject-name">{{ $course->course_name }}</div>
+                        <div class="d-flex flex-wrap align-items-center gap-1.5 mt-1">
+                            <span class="badge bg-light text-dark border font-monospace">{{ $course->course_code }}</span>
+                            <span class="badge bg-light text-dark border">{{ $course->credits }} TC</span>
+                            @if (isset($curriculumOrderMap[$course->id]))
+                                <span class="badge bg-light text-primary border border-primary-subtle" title="Môn thuộc học kỳ theo chương trình khung đào tạo">
+                                    Kỳ {{ $curriculumOrderMap[$course->id] }} khung
+                                </span>
+                            @endif
                         </div>
                     </td>
                     <td>
@@ -54,7 +59,7 @@
                                         };
                                         $optFull = ($opt->enrollments_count ?? 0) >= $opt->max_capacity;
                                     @endphp
-                                    <label class="form-check border rounded p-2 d-flex flex-wrap align-items-center justify-content-between mb-0 transition-all {{ $optFull ? 'bg-light text-muted opacity-75' : 'bg-white hover-shadow' }}" 
+                                    <label class="border rounded-3 p-2.5 d-flex flex-wrap align-items-center justify-content-between mb-0 transition-all {{ $optFull ? 'bg-light text-muted opacity-75' : 'bg-white' }}" 
                                            style="cursor: {{ $optFull ? 'not-allowed' : 'pointer' }};"
                                            for="opt_{{ $opt->id }}">
                                         <div class="d-flex align-items-center gap-2">
@@ -67,54 +72,58 @@
                                                    {{ $optFull ? 'disabled' : '' }} 
                                                    required>
                                             <div>
-                                                <span class="badge bg-light text-dark border me-1">
-                                                    Option {{ $optIdx + 1 }} (Lớp {{ $opt->section_code }})
+                                                <span class="badge bg-light text-dark border me-1 font-monospace">
+                                                    {{ $opt->section_code }}
                                                 </span>
-                                                <strong class="text-dark">
-                                                    <i class="bi bi-calendar-event text-primary me-1"></i>{{ $optDay }} (Tiết {{ $opt->start_period }} - {{ $opt->end_period }})
+                                                <strong class="text-dark small">
+                                                    <i class="bi bi-calendar-event me-1"></i>{{ $optDay }} (Tiết {{ $opt->start_period }} - {{ $opt->end_period }})
                                                 </strong>
                                                 <span class="text-secondary small ms-2">
-                                                    <i class="bi bi-geo-alt me-1 text-danger"></i>{{ $opt->room_name }}
+                                                    <i class="bi bi-geo-alt me-0.5"></i>{{ $opt->room_name }}
                                                 </span>
+                                                <div class="text-secondary small mt-0.5" style="font-size: 11px;">
+                                                    <i class="bi bi-calendar-range me-1"></i>Thời gian: {{ $opt->getDateRangeText() }}
+                                                </div>
                                             </div>
                                         </div>
                                         <div class="d-flex align-items-center gap-2 mt-1 mt-md-0">
-                                            <span class="small text-dark fw-medium">
-                                                <i class="bi bi-person-badge text-success me-1"></i>{{ $opt->lecturer->full_name ?? 'Chưa phân công' }}
+                                            <span class="small text-secondary">
+                                                <i class="bi bi-person-badge me-0.5"></i>{{ $opt->lecturer->full_name ?? 'Chưa phân công' }}
                                             </span>
-                                            <span class="badge {{ $optFull ? 'bg-danger' : 'bg-light text-dark border' }}">
-                                                Sĩ số: {{ $opt->enrollments_count ?? 0 }} / {{ $opt->max_capacity }}
+                                            <span class="badge bg-light text-dark border small">
+                                                {{ $opt->enrollments_count ?? 0 }} / {{ $opt->max_capacity }}
                                             </span>
                                             @if ($optFull)
-                                                <span class="badge bg-danger">Hết chỗ</span>
+                                                <span class="badge bg-light text-danger border border-danger-subtle small">Hết chỗ</span>
                                             @endif
                                         </div>
                                     </label>
                                 @endforeach
                             </div>
-                        </td>
-                        <td class="text-end fw-semibold text-secondary align-top pt-3">
-                            {{ number_format($fee, 0, ',', '.') }} đ
-                        </td>
-                        <td class="text-center align-top pt-3">
-                            @if (!($isRegistrationActive ?? true))
-                                <button type="button" class="btn btn-sm btn-secondary w-100" disabled title="Đợt đăng ký cho học kỳ này hiện đang đóng">
-                                    <i class="bi bi-lock me-1"></i>Đã đóng đợt
-                                </button>
-                            @elseif ($allFull)
-                                <button type="button" class="btn btn-sm btn-secondary w-100" disabled>Hết chỗ</button>
-                            @else
-                                <button type="submit" class="btn btn-sm btn-dark w-100">
-                                    <i class="bi bi-check-lg me-1"></i>Đăng ký
-                                </button>
-                            @endif
+                    </td>
+                    <td class="text-end fw-semibold text-dark small align-top pt-3">
+                        {{ number_format($fee, 0, ',', '.') }} đ
+                    </td>
+                    <td class="text-center pe-3 align-top pt-3">
+                        @if (!($isRegistrationActive ?? true))
+                            <button type="button" class="btn btn-sm btn-light border text-secondary w-100 py-1.5" disabled title="Đợt đăng ký cho học kỳ này hiện đang đóng">
+                                <i class="bi bi-lock me-1"></i>Đã đóng
+                            </button>
+                        @elseif ($allFull)
+                            <button type="button" class="btn btn-sm btn-light border text-danger w-100 py-1.5" disabled>Hết chỗ</button>
+                        @else
+                            <button type="submit" class="btn btn-sm btn-dark w-100 py-1.5 d-inline-flex align-items-center justify-content-center gap-1">
+                                <i class="bi bi-check-lg"></i>
+                                <span>Đăng ký</span>
+                            </button>
+                        @endif
                         </form>
                     </td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="5" class="text-center py-4 text-muted">
-                        <i class="bi bi-check2-circle fs-3 d-block mb-2 text-secondary"></i>
+                    <td colspan="5" class="text-center py-4 text-secondary small">
+                        <i class="bi bi-inbox fs-3 d-block mb-2 text-secondary opacity-50"></i>
                         {{ $emptyMessage ?? 'Hiện không có lớp học phần nào để đăng ký.' }}
                     </td>
                 </tr>

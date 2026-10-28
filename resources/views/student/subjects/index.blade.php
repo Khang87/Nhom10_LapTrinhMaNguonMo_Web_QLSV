@@ -1,213 +1,141 @@
 @extends('layouts.spark')
 
-@section('title', 'Đăng ký học phần - Cổng Thông tin HUIT')
+@section('title', 'Đăng ký môn học - HUIT')
 
 @section('content')
-<div class="registration-container pb-4">
-    {{-- Header Banner & Bộ chọn Học kỳ --}}
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-body p-4">
-            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
-                <div class="d-flex align-items-center">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center me-3" 
-                         style="width: 52px; height: 52px; background-color: #e8f4fd; color: #1da1f2;">
-                        <i class="bi bi-journal-plus fs-3"></i>
-                    </div>
-                    <div>
-                        <h1 class="h4 mb-1 fw-bold" style="color: #0f2942;">Đăng ký học phần trực tuyến</h1>
-                        <p class="text-secondary small mb-0">
-                            Sinh viên: <strong class="text-dark">{{ $student->full_name ?? auth()->user()->name }}</strong> (MSSV: {{ $student->student_code ?? auth()->user()->username }}) 
-                            &bull; Ngành: <strong class="text-dark">{{ $student->major_name ?? 'Công nghệ thông tin' }}</strong> 
-                            &bull; Chuyên ngành: <span class="badge bg-primary">{{ $student->specialization_name ?? 'Công nghệ phần mềm' }}</span>
-                        </p>
-                    </div>
-                </div>
-
-                {{-- BỘ CHỌN HỌC KỲ THEO TIẾN ĐỘ TỪ NĂM 1 ĐẾN HIỆN TẠI --}}
-                <div class="d-flex align-items-center gap-2">
-                    <form method="GET" action="{{ route('student.subjects.index', [], false) }}" id="semesterForm" class="d-flex align-items-center gap-2">
-                        <label for="semesterSelect" class="form-label mb-0 small text-secondary fw-semibold text-nowrap">
-                            <i class="bi bi-calendar3 me-1"></i>Học kỳ:
-                        </label>
-                        <select id="semesterSelect" name="semester" class="form-select form-select-sm fw-bold border-primary" onchange="onSemesterChange(this.value)" style="min-width: 230px;">
-                            @foreach ($availableSemesters as $sem)
-                                <option value="{{ $sem->semester_code }}" {{ $selectedSemesterCode === $sem->semester_code ? 'selected' : '' }}>
-                                    {{ $sem->semester_name }} {{ $sem->order_index == 4 ? '(Hiện tại)' : '' }}
-                                </option>
-                            @endforeach
-                        </select>
-                        <button type="submit" class="btn btn-primary btn-sm px-2 text-nowrap" style="background-color: #1da1f2; border-color: #1da1f2;" title="Tải dữ liệu học kỳ">
-                            <i class="bi bi-arrow-clockwise me-1"></i>Xem
-                        </button>
-                    </form>
-                    <a href="{{ route('student.schedule.index', [], false) }}" class="btn btn-outline-primary btn-sm" title="Xem thời khóa biểu">
-                        <i class="bi bi-calendar-week"></i> TKB
-                    </a>
-                    <a href="{{ route('student.tuition.index', [], false) }}" class="btn btn-outline-success btn-sm" title="Tra cứu học phí và thanh toán QR">
-                        <i class="bi bi-qr-code"></i> Học phí
-                    </a>
-                </div>
-            </div>
+<div class="container-fluid px-0">
+    <!-- Header -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <h1 class="h4 fw-bold text-dark mb-1">Đăng ký môn học trực tuyến</h1>
+            <p class="text-secondary small mb-0">
+                Sinh viên: <strong class="text-dark">{{ $student->full_name ?? auth()->user()->name }}</strong> (MSSV: {{ $student->student_code ?? auth()->user()->username }})
+                • Lớp: <strong class="text-dark">{{ $student->class_code ?? '14DHTH04' }}</strong>
+                • Chuyên ngành: <strong class="text-dark">{{ $student->specialization?->name ?? ($student->specialization_name ?: 'Công nghệ phần mềm') }}</strong>
+            </p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <a href="{{ route('student.schedule.index') }}" class="btn btn-outline-dark btn-sm d-inline-flex align-items-center gap-1.5" title="Xem thời khóa biểu">
+                <i class="bi bi-calendar-week"></i>
+                <span>Thời khóa biểu</span>
+            </a>
+            <a href="{{ route('student.tuition.index') }}" class="btn btn-outline-dark btn-sm d-inline-flex align-items-center gap-1.5" title="Tra cứu công nợ & thanh toán học phí">
+                <i class="bi bi-receipt"></i>
+                <span>Công nợ & Học phí</span>
+            </a>
         </div>
     </div>
 
-    {{-- FLOATING TOAST POPUP (Tự động biến mất sau 3 giây khi Đăng ký hoặc Hủy thành công) --}}
-    @if (session('success') || session('error'))
-        <div id="huitToast" class="toast-popup-container" style="position: fixed; top: 24px; right: 24px; z-index: 99999; min-width: 320px; max-width: 460px; pointer-events: auto;">
-            <div class="card border-0 shadow-lg {{ session('success') ? 'border-start border-4 border-success' : 'border-start border-4 border-danger' }}" style="border-radius: 12px; overflow: hidden; animation: slideInRight 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
-                <div class="card-body p-3 d-flex align-items-start gap-3 bg-white">
-                    <div class="fs-3 {{ session('success') ? 'text-success' : 'text-danger' }} lh-1 mt-1">
-                        <i class="bi {{ session('success') ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill' }}"></i>
-                    </div>
-                    <div class="flex-grow-1">
-                        <div class="fw-bold fs-6 {{ session('success') ? 'text-success' : 'text-danger' }} mb-1">
-                            {{ session('success') ? 'Thành công!' : 'Thông báo lỗi' }}
-                        </div>
-                        <div class="text-dark small lh-sm">
-                            {{ session('success') ?? session('error') }}
-                        </div>
-                    </div>
-                    <button type="button" class="btn-close btn-sm" onclick="dismissHuitToast()" aria-label="Close"></button>
-                </div>
-                <div class="toast-progress-bar" style="height: 3px; background: {{ session('success') ? '#198754' : '#dc3545' }}; animation: shrinkWidth 3s linear forwards;"></div>
-            </div>
-        </div>
-
-        <style>
-            @keyframes slideInRight {
-                from { transform: translateX(110%); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-            }
-            @keyframes fadeOutRight {
-                from { transform: translateX(0); opacity: 1; }
-                to { transform: translateX(110%); opacity: 0; }
-            }
-            @keyframes shrinkWidth {
-                from { width: 100%; }
-                to { width: 0%; }
-            }
-            .toast-fading {
-                animation: fadeOutRight 0.35s ease-in forwards !important;
-            }
-        </style>
-
-        <script>
-            function dismissHuitToast() {
-                const toast = document.getElementById('huitToast');
-                if (toast) {
-                    toast.classList.add('toast-fading');
-                    setTimeout(() => toast.remove(), 350);
-                }
-            }
-            setTimeout(dismissHuitToast, 3000);
-        </script>
-    @endif
-
     {{-- Alert Messages In-page --}}
     @if (session('success'))
-        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm d-flex align-items-center mb-4" role="alert">
-            <i class="bi bi-check-circle-fill fs-4 me-2 text-success"></i>
-            <div>{{ session('success') }}</div>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <div class="alert alert-light border d-flex align-items-center gap-2 mb-4" role="alert">
+            <i class="bi bi-check2-circle text-dark"></i>
+            <div class="text-dark small">{{ session('success') }}</div>
+            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
 
     @if (session('error'))
-        <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm d-flex align-items-center mb-4" role="alert">
-            <i class="bi bi-exclamation-triangle-fill fs-4 me-2 text-danger"></i>
-            <div>{{ session('error') }}</div>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <div class="alert alert-light border d-flex align-items-center gap-2 mb-4" role="alert">
+            <i class="bi bi-exclamation-circle text-dark"></i>
+            <div class="text-dark small">{{ session('error') }}</div>
+            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
 
-    {{-- BANNER TRẠNG THÁI ĐỢT ĐĂNG KÝ HỌC PHẦN CỦA KỲ ĐƯỢC CHỌN --}}
-    @if ($isRegistrationActive)
-        <div class="alert alert-success border-0 shadow-sm p-3 mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
-            <div class="d-flex align-items-center">
-                <div class="spinner-grow spinner-grow-sm text-success me-2" role="status"></div>
-                <div>
-                    <h6 class="mb-0 fw-bold text-success">
-                        <i class="bi bi-check-circle-fill me-1"></i>ĐỢT ĐĂNG KÝ HỌC PHẦN ĐANG MỞ (Trước 2 tháng so với ngày bắt đầu học kỳ)
-                    </h6>
-                    <small class="text-secondary">
-                        Áp dụng cho: <strong>{{ $selectedSemester->semester_name }}</strong> &bull; Hạn chót: <strong>{{ $selectedSemester->registration_end_date->format('H:i - d/m/Y') }}</strong>
-                    </small>
+    {{-- BỘ CHỌN HỌC KỲ VÀ TRẠNG THÁI ĐỢT ĐĂNG KÝ (THIẾT KẾ GIỐNG PHÂN HỆ ADMIN) --}}
+    <div class="card border shadow-sm rounded-3 bg-white mb-4">
+        <div class="card-body p-3 p-md-4">
+            <form method="GET" action="{{ route('student.subjects.index') }}" id="semesterForm" class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div class="d-flex flex-wrap align-items-center gap-3 flex-grow-1" style="max-width: 650px;">
+                    <label for="semesterSelect" class="form-label mb-0 small text-dark fw-bold text-nowrap d-flex align-items-center gap-1.5">
+                        <span class="badge bg-dark text-white rounded-circle px-2 py-1" style="font-size: 0.75rem;">1</span>
+                        <span>Đợt Học kỳ áp dụng:</span>
+                    </label>
+                    <div class="input-group input-group-sm flex-grow-1" style="max-width: 420px;">
+                        <select id="semesterSelect" name="semester" class="form-select py-2" onchange="this.form.submit()">
+                            @foreach ($availableSemesters as $sem)
+                                <option value="{{ $sem->semester_code }}" {{ $selectedSemesterCode === $sem->semester_code ? 'selected' : '' }}>
+                                    {{ $sem->semester_name }} {{ $sem->isRegistrationActive() ? '(Đang mở ĐK)' : '(Đã đóng)' }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <button type="submit" class="btn btn-dark d-inline-flex align-items-center gap-1.5 px-3 py-2 text-nowrap fw-medium shadow-none" id="btnFilterSemester" title="Nhấn để tải danh sách môn học theo học kỳ">
+                            <i class="bi bi-funnel-fill"></i>
+                            <span>Lọc</span>
+                        </button>
+                    </div>
                 </div>
-            </div>
-            <div class="d-flex align-items-center gap-2">
-                <span class="badge bg-success fs-6 px-3 py-2">
-                    <i class="bi bi-stopwatch me-1"></i>{{ $selectedSemester->remaining_time }}
-                </span>
-            </div>
-        </div>
-    @else
-        <div class="alert alert-warning border-0 shadow-sm p-3 mb-4 d-flex align-items-center gap-3">
-            <i class="bi bi-lock-fill fs-3 text-warning"></i>
-            <div>
-                <h6 class="mb-0 fw-bold text-dark">
-                    ĐỢT ĐĂNG KÝ HỌC PHẦN CHO HỌC KỲ NÀY HIỆN ĐANG ĐÓNG
-                </h6>
-                <small class="text-muted">
-                    Thời gian đăng ký môn học cho <strong>{{ $selectedSemester->semester_name ?? $selectedSemesterCode }}</strong> đã kết thúc (hoặc chưa tới hạn mở). Bạn chỉ có thể xem danh sách lớp học phần đã đăng ký, hệ thống khóa thao tác Đăng ký mới và Hủy môn.
-                </small>
-            </div>
-        </div>
-    @endif
 
-    {{-- Thống kê tổng quan nhanh --}}
+                <div class="d-flex align-items-center gap-2">
+                    @if ($isRegistrationActive)
+                        <span class="badge bg-light text-success border border-success-subtle px-3 py-2">
+                            <i class="bi bi-check-circle-fill me-1"></i>Đang mở đăng ký (Còn {{ $selectedSemester->remaining_time ?? 'thời hạn' }})
+                        </span>
+                    @else
+                        <span class="badge bg-light text-danger border border-danger-subtle px-3 py-2">
+                            <i class="bi bi-lock-fill me-1"></i>Đã đóng đợt đăng ký
+                        </span>
+                    @endif
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {{-- 3 THẺ KPI TỔNG QUAN HỌC KỲ --}}
     @php
         $totalCredits = $enrollments->sum(fn($e) => $e->section->course->credits ?? 0);
         $totalTuition = $enrollments->sum(fn($e) => ($e->section->course->credits ?? 0) * ($e->section->course->tuition_fee_per_credit ?? 550000));
     @endphp
     <div class="row g-3 mb-4">
         <div class="col-12 col-md-4">
-            <div class="card border-0 shadow-sm p-3 border-start border-4 border-primary bg-white">
-                <div class="text-secondary small fw-medium">Số học phần đã đăng ký ({{ $selectedSemester->semester_name ?? '' }})</div>
-                <div class="h3 fw-bold mb-0 text-primary">{{ $enrollments->count() }} <span class="fs-6 fw-normal text-muted">lớp</span></div>
+            <div class="p-3 rounded-3 bg-light border h-100">
+                <div class="text-secondary small fw-medium">Lớp học phần đã đăng ký ({{ $selectedSemester->semester_name ?? '' }})</div>
+                <div class="fs-4 fw-bold text-dark mt-1">{{ $enrollments->count() }} <span class="fs-6 fw-normal text-secondary">lớp</span></div>
             </div>
         </div>
         <div class="col-12 col-md-4">
-            <div class="card border-0 shadow-sm p-3 border-start border-4 border-info bg-white">
+            <div class="p-3 rounded-3 bg-light border h-100">
                 <div class="text-secondary small fw-medium">Tổng số tín chỉ đăng ký kỳ này</div>
-                <div class="h3 fw-bold mb-0 text-info">{{ $totalCredits }} <span class="fs-6 fw-normal text-muted">tín chỉ</span></div>
+                <div class="fs-4 fw-bold text-dark mt-1">{{ $totalCredits }} <span class="fs-6 fw-normal text-secondary">tín chỉ</span></div>
             </div>
         </div>
         <div class="col-12 col-md-4">
-            <div class="card border-0 shadow-sm p-3 border-start border-4 border-success bg-white">
-                <div class="text-secondary small fw-medium">Học phí tạm tính</div>
-                <div class="h3 fw-bold mb-0 text-success">{{ number_format($totalTuition, 0, ',', '.') }} <span class="fs-6 fw-normal text-muted">VNĐ</span></div>
+            <div class="p-3 rounded-3 bg-light border h-100">
+                <div class="text-secondary small fw-medium">Học phí tạm tính kỳ này</div>
+                <div class="fs-4 fw-bold text-dark mt-1">{{ number_format($totalTuition, 0, ',', '.') }} <span class="fs-6 fw-normal text-secondary">VNĐ</span></div>
             </div>
         </div>
     </div>
 
-    {{-- PHẦN 1: DANH SÁCH MÔN HỌC ĐÃ ĐĂNG KÝ CỦA KỲ ĐƯỢC CHỌN --}}
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
-            <div class="d-flex align-items-center">
-                <i class="bi bi-bookmark-check-fill text-success fs-5 me-2"></i>
-                <h2 class="h5 mb-0 fw-bold" style="color: #0f2942;">
-                    Danh sách học phần đã đăng ký - {{ $selectedSemester->semester_name ?? $selectedSemesterCode }}
-                </h2>
+    {{-- KHỐI 1: DANH SÁCH MÔN HỌC ĐÃ ĐĂNG KÝ CỦA KỲ ĐƯỢC CHỌN --}}
+    <div class="card border shadow-sm rounded-3 bg-white mb-4 overflow-hidden">
+        <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-dark text-white rounded-circle px-2 py-1" style="font-size: 0.75rem;">✓</span>
+                <strong class="text-dark fs-6">
+                    Học phần đã đăng ký — {{ $selectedSemester->semester_name ?? $selectedSemesterCode }}
+                </strong>
             </div>
             <span class="badge bg-light text-dark border">
-                Tổng cộng: {{ $enrollments->count() }} học phần
+                Tổng cộng: {{ $enrollments->count() }} học phần ({{ $totalCredits }} TC)
             </span>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
-                        <tr class="text-secondary small">
-                            <th class="text-center" style="width: 50px;">STT</th>
-                            <th>Mã LHP</th>
+                    <thead class="table-light text-secondary small">
+                        <tr>
+                            <th class="ps-3 text-center" style="width: 50px;">#</th>
+                            <th style="width: 130px;">Mã LHP</th>
                             <th>Tên môn học</th>
-                            <th class="text-center">Số TC</th>
-                            <th>Lịch học tuần</th>
-                            <th>Phòng học</th>
-                            <th>Giảng viên</th>
-                            <th class="text-center">Loại đăng ký</th>
-                            <th class="text-end">Học phí</th>
-                            <th class="text-center" style="width: 120px;">Thao tác</th>
+                            <th class="text-center" style="width: 70px;">Số TC</th>
+                            <th style="width: 170px;">Lịch học tuần</th>
+                            <th style="width: 140px;">Phòng học</th>
+                            <th style="width: 180px;">Giảng viên</th>
+                            <th class="text-center" style="width: 120px;">Loại đăng ký</th>
+                            <th class="text-end" style="width: 130px;">Học phí</th>
+                            <th class="text-center pe-3" style="width: 110px;">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -226,56 +154,71 @@
                                 $fee = ($sec->course->credits ?? 0) * ($sec->course->tuition_fee_per_credit ?? 550000);
                             @endphp
                             <tr>
-                                <td class="text-center text-muted fw-bold">{{ $index + 1 }}</td>
-                                <td class="fw-semibold text-primary font-monospace">{{ $sec->section_code }}</td>
+                                <td class="ps-3 text-center text-muted small">{{ $index + 1 }}</td>
                                 <td>
-                                    <div class="fw-bold text-dark">{{ $sec->course->course_name }}</div>
-                                    <span class="text-muted small font-monospace">{{ $sec->course->course_code }}</span>
-                                </td>
-                                <td class="text-center fw-bold">{{ $sec->course->credits }}</td>
-                                <td>
-                                    <span class="badge bg-light text-primary border">
-                                        <i class="bi bi-calendar-event me-1"></i>{{ $dayStr }}
+                                    <span class="badge bg-light text-dark border font-monospace">
+                                        {{ $sec->section_code }}
                                     </span>
-                                    <span class="small text-muted ms-1">Tiết {{ $sec->start_period }} - {{ $sec->end_period }}</span>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold text-dark">{{ $sec->course->course_name }}</div>
+                                    <div class="d-flex flex-wrap align-items-center gap-1.5 mt-0.5">
+                                        <span class="text-secondary small font-monospace">{{ $sec->course->course_code }}</span>
+                                        @if (isset($curriculumOrderMap[$sec->course_id]))
+                                            <span class="badge bg-light text-primary border border-primary-subtle" style="font-size: 10px;">
+                                                Kỳ {{ $curriculumOrderMap[$sec->course_id] }} khung
+                                            </span>
+                                        @endif
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-light text-dark border">{{ $sec->course->credits }}</span>
+                                </td>
+                                <td>
+                                    <div class="small fw-semibold text-dark">{{ $dayStr }}</div>
+                                    <div class="text-secondary small">Tiết {{ $sec->start_period }} - {{ $sec->end_period }}</div>
+                                    <div class="text-secondary small mt-0.5" style="font-size: 11px;">
+                                        <i class="bi bi-calendar-range me-0.5"></i>{{ $sec->getDateRangeText() }}
+                                    </div>
                                 </td>
                                 <td>
                                     <span class="small text-secondary">{{ $sec->room_name }}</span>
                                 </td>
                                 <td>
-                                    <span class="small fw-medium">{{ $sec->lecturer->full_name ?? 'Chưa phân công' }}</span>
+                                    <span class="small fw-medium text-dark">{{ $sec->lecturer->full_name ?? 'Chưa phân công' }}</span>
                                 </td>
                                 <td class="text-center">
                                     @if ($enrollment->registration_type === 'RETAKE')
-                                        <span class="badge bg-danger">
-                                            <i class="bi bi-arrow-repeat me-1"></i>Học lại
+                                        <span class="badge bg-light text-danger border border-danger-subtle small px-2 py-1">
+                                            Học lại
                                         </span>
                                     @elseif ($enrollment->registration_type === 'IMPROVEMENT')
-                                        <span class="badge bg-warning text-dark">
-                                            <i class="bi bi-arrow-up-circle me-1"></i>Học cải thiện
+                                        <span class="badge bg-light text-warning border border-warning-subtle small px-2 py-1">
+                                            Học cải thiện
                                         </span>
                                     @else
-                                        <span class="badge bg-primary">
-                                            <i class="bi bi-check2-circle me-1"></i>Học mới
+                                        <span class="badge bg-light text-dark border small px-2 py-1">
+                                            Học mới
                                         </span>
                                     @endif
                                 </td>
-                                <td class="text-end fw-semibold text-dark">
+                                <td class="text-end fw-semibold text-dark small">
                                     {{ number_format($fee, 0, ',', '.') }} đ
                                 </td>
-                                <td class="text-center">
+                                <td class="text-center pe-3">
                                     @if ($isRegistrationActive)
                                         <form method="POST" action="{{ route('student.subjects.unregister', $enrollment->id, false) }}"
                                               onsubmit="return confirm('Bạn có chắc chắn muốn hủy đăng ký môn [{{ $sec->course->course_name }}]?');">
                                             @csrf
                                             @method('DELETE')
                                             <input type="hidden" name="semester" value="{{ $selectedSemesterCode }}">
-                                            <button class="btn btn-sm btn-outline-danger" type="submit" title="Hủy học phần này">
-                                                <i class="bi bi-trash3 me-1"></i>Hủy
+                                            <button class="btn btn-sm btn-outline-danger py-1 px-2.5 d-inline-flex align-items-center gap-1" type="submit" title="Hủy học phần này">
+                                                <i class="bi bi-trash3"></i>
+                                                <span>Hủy</span>
                                             </button>
                                         </form>
                                     @else
-                                        <span class="badge bg-secondary" title="Đã khóa khi hết hạn đợt đăng ký">
+                                        <span class="badge bg-light text-secondary border small" title="Đã khóa khi hết hạn đợt đăng ký">
                                             <i class="bi bi-lock me-1"></i>Đã khóa
                                         </span>
                                     @endif
@@ -283,8 +226,8 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="10" class="text-center py-4 text-muted">
-                                    <i class="bi bi-inbox fs-2 d-block mb-2 text-secondary"></i>
+                                <td colspan="10" class="text-center py-4 text-secondary small">
+                                    <i class="bi bi-inbox fs-3 d-block mb-2 text-secondary opacity-50"></i>
                                     Bạn chưa đăng ký lớp học phần nào trong học kỳ này.
                                 </td>
                             </tr>
@@ -295,40 +238,42 @@
         </div>
     </div>
 
-    {{-- PHẦN 2: LỚP HỌC PHẦN TRONG HỌC KỲ ĐƯỢC CHỌN (GỒM 3 TAB: HỌC MỚI, HỌC LẠI, HỌC CẢI THIỆN) --}}
-    <div class="card border-0 shadow-sm">
+    {{-- KHỐI 2: ĐĂNG KÝ HỌC PHẦN MỞ (GỒM 3 TABS: HỌC MỚI, HỌC LẠI, HỌC CẢI THIỆN) --}}
+    <div class="card border shadow-sm rounded-3 bg-white overflow-hidden">
         <div class="card-header bg-white py-3 border-bottom">
             <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
                 <div>
-                    <h2 class="h5 mb-1 fw-bold" style="color: #0f2942;">
-                        <i class="bi bi-grid-3x3-gap-fill text-primary me-2"></i>Đăng ký học phần theo Chuyên ngành: {{ $student->specialization_name ?? 'Công nghệ phần mềm' }} - {{ $selectedSemester->semester_name ?? $selectedSemesterCode }}
-                    </h2>
-                    <small class="text-muted">Tất cả lớp học phần theo chương trình khung & các lớp mở thêm đều được gộp chung tại đây.</small>
+                    <strong class="text-dark fs-6">
+                        Đăng ký học phần theo Chuyên ngành — {{ $selectedSemester->semester_name ?? $selectedSemesterCode }}
+                    </strong>
+                    <div class="text-secondary small mt-0.5">
+                        Chọn ca học và giảng viên phù hợp cho các môn trong chương trình khung hoặc môn học lại, cải thiện
+                    </div>
                 </div>
                 <div class="input-group input-group-sm" style="width: 250px;">
-                    <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
-                    <input type="text" id="subjectFilter" class="form-control border-start-0" placeholder="Lọc nhanh môn học..." onkeyup="filterSectionsTable()">
+                    <span class="input-group-text bg-light border"><i class="bi bi-search text-secondary"></i></span>
+                    <input type="text" id="subjectFilter" class="form-control" placeholder="Lọc nhanh môn học..." onkeyup="filterSectionsTable()">
                 </div>
             </div>
 
-            {{-- BỘ CHỌN 3 LOẠI ĐĂNG KÝ ĐƯỢC ĐƯA LÊN TRÊN ĐẦU (NAV TABS: HỌC MỚI, HỌC LẠI, HỌC CẢI THIỆN) --}}
-            <ul class="nav nav-pills nav-fill bg-light p-1 rounded border" id="regTypeTabs" role="tablist">
+            {{-- 3 TABS ĐĂNG KÝ THEO PHONG CÁCH ADMIN SPARK UI --}}
+            <ul class="nav nav-pills nav-fill bg-light p-1 rounded-3 border gap-1" id="regTypeTabs" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active fw-bold py-2" id="tab-first-time" data-bs-toggle="pill" data-bs-target="#content-first-time" type="button" role="tab">
-                        <i class="bi bi-star-fill text-primary me-1"></i> Học mới 
-                        <span class="badge bg-primary ms-1">{{ $firstTimeCourses->count() }}</span>
+                    <button class="nav-link active py-2 fw-medium bg-dark text-white" id="tab-first-time" data-bs-toggle="pill" data-bs-target="#content-first-time" type="button" role="tab">
+                        <i class="bi bi-book me-1"></i> Học mới 
+                        <span class="badge bg-light text-dark ms-1">{{ $firstTimeCourses->count() }}</span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link fw-bold py-2" id="tab-retake" data-bs-toggle="pill" data-bs-target="#content-retake" type="button" role="tab">
-                        <i class="bi bi-arrow-repeat text-danger me-1"></i> Học lại 
-                        <span class="badge bg-danger ms-1">{{ $retakeCourses->count() }}</span>
+                    <button class="nav-link py-2 fw-medium text-dark bg-transparent" id="tab-retake" data-bs-toggle="pill" data-bs-target="#content-retake" type="button" role="tab">
+                        <i class="bi bi-arrow-repeat me-1"></i> Học lại 
+                        <span class="badge bg-light text-dark border ms-1">{{ $retakeCourses->count() }}</span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link fw-bold py-2" id="tab-improvement" data-bs-toggle="pill" data-bs-target="#content-improvement" type="button" role="tab">
-                        <i class="bi bi-arrow-up-circle-fill text-warning me-1"></i> Học cải thiện 
-                        <span class="badge bg-warning text-dark ms-1">{{ $improvementCourses->count() }}</span>
+                    <button class="nav-link py-2 fw-medium text-dark bg-transparent" id="tab-improvement" data-bs-toggle="pill" data-bs-target="#content-improvement" type="button" role="tab">
+                        <i class="bi bi-arrow-up-circle me-1"></i> Học cải thiện 
+                        <span class="badge bg-light text-dark border ms-1">{{ $improvementCourses->count() }}</span>
                     </button>
                 </li>
             </ul>
@@ -350,10 +295,10 @@
 
                 {{-- TAB 2: HỌC LẠI --}}
                 <div class="tab-pane fade" id="content-retake" role="tabpanel">
-                    <div class="alert alert-danger mx-3 mt-3 mb-0 py-2 small d-flex align-items-center">
-                        <i class="bi bi-info-circle-fill fs-5 me-2 text-danger"></i>
-                        <div>
-                            <strong>Diện Học lại:</strong> Danh sách hiển thị các môn bạn <strong>đã từng bị rớt (Điểm &lt; 5.0 hoặc Điểm F)</strong> ở các học kỳ trước, kèm tối đa 3 option thời gian để bạn lựa chọn lịch học phù hợp.
+                    <div class="alert alert-light border mx-3 mt-3 mb-0 py-2 small d-flex align-items-center gap-2">
+                        <i class="bi bi-info-circle text-dark"></i>
+                        <div class="text-dark">
+                            <strong>Diện Học lại:</strong> Danh sách hiển thị các môn bạn <strong>đã từng bị rớt (Điểm &lt; 4.0 hoặc Điểm F)</strong> ở các học kỳ trước để bạn đăng ký học lại nhằm hoàn thành tiến độ đào tạo.
                         </div>
                     </div>
                     @include('student.subjects.partials.section_table', [
@@ -361,17 +306,17 @@
                         'sections' => $retakeSections,
                         'regType' => 'RETAKE',
                         'regTypeLabel' => 'Học lại',
-                        'emptyMessage' => 'Chúc mừng! Bạn không có môn học nào bị rớt cần phải học lại.',
+                        'emptyMessage' => 'Tuyệt vời! Bạn không có môn học nào bị rớt cần phải học lại.',
                         'isRegistrationActive' => $isRegistrationActive,
                     ])
                 </div>
 
                 {{-- TAB 3: HỌC CẢI THIỆN --}}
                 <div class="tab-pane fade" id="content-improvement" role="tabpanel">
-                    <div class="alert alert-warning mx-3 mt-3 mb-0 py-2 small d-flex align-items-center">
-                        <i class="bi bi-info-circle-fill fs-5 me-2 text-warning"></i>
-                        <div>
-                            <strong>Diện Học cải thiện:</strong> Danh sách hiển thị các môn bạn <strong>đã học xong và đạt điểm</strong> ở các học kỳ trước, bạn có thể đăng ký học lại để cải thiện nâng cao điểm GPA tích lũy.
+                    <div class="alert alert-light border mx-3 mt-3 mb-0 py-2 small d-flex align-items-center gap-2">
+                        <i class="bi bi-info-circle text-dark"></i>
+                        <div class="text-dark">
+                            <strong>Diện Học cải thiện:</strong> Danh sách hiển thị các môn bạn <strong>đã học xong và đạt điểm</strong> ở các học kỳ trước, bạn có thể đăng ký học lại để nâng cao điểm GPA tích lũy.
                         </div>
                     </div>
                     @include('student.subjects.partials.section_table', [
@@ -389,13 +334,6 @@
 </div>
 
 <script>
-function onSemesterChange(semesterCode) {
-    if (!semesterCode) return;
-    const url = new URL(window.location.href);
-    url.searchParams.set('semester', semesterCode);
-    window.location.href = url.pathname + '?' + url.searchParams.toString();
-}
-
 function filterSectionsTable() {
     const input = document.getElementById('subjectFilter');
     const filter = input.value.toLowerCase();
@@ -406,5 +344,17 @@ function filterSectionsTable() {
         row.style.display = text.includes(filter) ? '' : 'none';
     });
 }
+
+// Xử lý chuyển đổi active class đơn sắc cho 3 tab
+document.querySelectorAll('#regTypeTabs button').forEach(button => {
+    button.addEventListener('shown.bs.tab', event => {
+        document.querySelectorAll('#regTypeTabs button').forEach(btn => {
+            btn.classList.remove('bg-dark', 'text-white');
+            btn.classList.add('text-dark', 'bg-transparent');
+        });
+        event.target.classList.remove('text-dark', 'bg-transparent');
+        event.target.classList.add('bg-dark', 'text-white');
+    });
+});
 </script>
 @endsection

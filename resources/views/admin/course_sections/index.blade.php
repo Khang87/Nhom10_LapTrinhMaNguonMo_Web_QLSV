@@ -244,12 +244,12 @@
                     <a href="{{ route('admin.course-sections.index', array_merge(request()->query(), ['view_scope' => 'current'])) }}" 
                        class="btn {{ $viewScope === 'current' ? 'btn-dark' : 'btn-outline-secondary' }}"
                        title="Chỉ hiển thị các lớp của môn thuộc Học kỳ {{ $selectedSemesterOrder }}">
-                        Kỳ {{ $selectedSemesterOrder }} ({{ $totalSectionsInCurrentFramework }})
+                        Kỳ {{ $selectedSemesterOrder }}
                     </a>
                     <a href="{{ route('admin.course-sections.index', array_merge(request()->query(), ['view_scope' => 'all'])) }}" 
                        class="btn {{ $viewScope === 'all' ? 'btn-dark' : 'btn-outline-secondary' }}"
                        title="Hiển thị tất cả lớp học phần trong đợt này">
-                        Tất cả các kỳ ({{ $totalSectionsInSemester }})
+                        Tất cả các kỳ
                     </a>
                 </div>
 

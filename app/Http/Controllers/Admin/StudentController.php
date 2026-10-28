@@ -325,6 +325,10 @@ class StudentController extends Controller
 
             $section = CourseSection::where('course_id', $course->id)
                 ->where('semester_code', $semCode)
+                ->where(function ($q) use ($specialization) {
+                    $q->where('specialization_name', $specialization->name)
+                      ->orWhereNull('specialization_name');
+                })
                 ->first();
 
             if (!$section) {

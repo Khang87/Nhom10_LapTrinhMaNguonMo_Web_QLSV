@@ -96,6 +96,21 @@
                                 <th class="text-secondary">Khóa học:</th>
                                 <td>{{ $student->cohort_year ?? 2023 }}</td>
                             </tr>
+                            @php
+                                $advisor = $student?->academic_advisor;
+                            @endphp
+                            @if ($advisor)
+                                <tr class="border-top">
+                                    <th class="text-secondary align-top pt-2">Cố vấn học tập:</th>
+                                    <td class="pt-2">
+                                        <div class="fw-bold text-dark">{{ $advisor->full_name }}</div>
+                                        <div class="small text-secondary mt-0.5">
+                                            <i class="bi bi-envelope me-1"></i>{{ $advisor->email }}
+                                            @if ($advisor->phone) • <i class="bi bi-telephone me-1"></i>{{ $advisor->phone }} @endif
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endif
                         </tbody>
                     </table>
                 </div>
@@ -105,10 +120,13 @@
         {{-- Cột 2: Thông tin cá nhân & Chỉnh sửa liên hệ --}}
         <div class="col-lg-6">
             <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-light border-0 py-3">
+                <div class="card-header bg-light border-0 py-3 d-flex align-items-center justify-content-between">
                     <h3 class="h6 mb-0 fw-bold text-primary">
                         <i class="bi bi-person-lines-fill me-2"></i>THÔNG TIN CÁ NHÂN
                     </h3>
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editPersonalModal">
+                        <i class="bi bi-pencil-square me-1"></i> Chỉnh sửa cá nhân
+                    </button>
                 </div>
                 <div class="card-body p-4">
                     <table class="table table-sm table-borderless info-table mb-4">
@@ -160,7 +178,7 @@
 
                     {{-- Form cập nhật liên hệ --}}
                     <h4 class="h6 fw-bold mb-3 text-dark">
-                        <i class="bi bi-pencil-square text-primary"></i> Cập nhật thông tin liên hệ
+                        <i class="bi bi-telephone-outbound text-primary me-1"></i> Cập nhật thông tin liên hệ
                     </h4>
                     <form method="POST" action="{{ route('student.profile.updateContact') }}">
                         @csrf
@@ -184,6 +202,88 @@
                     </form>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+{{-- MODAL CHỈNH SỬA THÔNG TIN CÁ NHÂN --}}
+<div class="modal fade" id="editPersonalModal" tabindex="-1" aria-labelledby="editPersonalModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light border-0 py-3">
+                <h5 class="modal-title h6 fw-bold text-dark" id="editPersonalModalLabel">
+                    <i class="bi bi-person-gear text-primary me-2"></i>Chỉnh sửa thông tin cá nhân sinh viên
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ route('student.profile.updatePersonal') }}">
+                @csrf
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Ngày sinh</label>
+                            <input type="date" class="form-control form-control-sm" name="dob" 
+                                value="{{ old('dob', $student->dob ? $student->dob->format('Y-m-d') : '') }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Giới tính</label>
+                            <select class="form-select form-select-sm" name="gender">
+                                <option value="Nam" {{ old('gender', $student->gender) === 'Nam' ? 'selected' : '' }}>Nam</option>
+                                <option value="Nữ" {{ old('gender', $student->gender) === 'Nữ' ? 'selected' : '' }}>Nữ</option>
+                                <option value="Khác" {{ old('gender', $student->gender) === 'Khác' ? 'selected' : '' }}>Khác</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Dân tộc</label>
+                            <input type="text" class="form-control form-control-sm" name="ethnicity" 
+                                value="{{ old('ethnicity', $student->ethnicity ?? 'Kinh') }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Tôn giáo</label>
+                            <input type="text" class="form-control form-control-sm" name="religion" 
+                                value="{{ old('religion', $student->religion ?? 'Không') }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Quốc tịch</label>
+                            <input type="text" class="form-control form-control-sm" name="nationality" 
+                                value="{{ old('nationality', $student->nationality ?? 'Việt Nam') }}">
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Số CCCD / Định danh</label>
+                            <input type="text" class="form-control form-control-sm" name="cccd_number" 
+                                value="{{ old('cccd_number', $student->cccd_number) }}" placeholder="12 chữ số CCCD">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Ngày cấp CCCD</label>
+                            <input type="date" class="form-control form-control-sm" name="cccd_issue_date" 
+                                value="{{ old('cccd_issue_date', $student->cccd_issue_date ? $student->cccd_issue_date->format('Y-m-d') : '') }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Nơi cấp CCCD</label>
+                            <input type="text" class="form-control form-control-sm" name="cccd_issue_place" 
+                                value="{{ old('cccd_issue_place', $student->cccd_issue_place) }}" placeholder="Cục CSQLHC về TTXH hoặc Tỉnh/TP">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Nơi sinh (Tỉnh/Thành phố)</label>
+                            <input type="text" class="form-control form-control-sm" name="birth_place" 
+                                value="{{ old('birth_place', $student->birth_place) }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Hộ khẩu thường trú</label>
+                            <input type="text" class="form-control form-control-sm" name="permanent_residence" 
+                                value="{{ old('permanent_residence', $student->permanent_residence) }}">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0 py-2">
+                    <button type="button" class="btn btn-sm btn-light border" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-sm btn-primary">
+                        <i class="bi bi-save me-1"></i> Lưu thay đổi
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

@@ -4,6 +4,12 @@
 
 @section('content')
 <div class="container-fluid px-0">
+    @php
+        $isLocked = $section->isGradeLocked();
+        $isApproved = ($section->grade_status === 'APPROVED');
+        $isSubmitted = ($section->grade_status === 'SUBMITTED');
+    @endphp
+
     <!-- Header -->
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
         <div>
@@ -14,20 +20,44 @@
                 </a>
                 <span class="badge bg-light text-dark border font-monospace">{{ $section->section_code }}</span>
                 <span class="badge bg-light text-secondary border">{{ $section->semester_code }}</span>
+                @if ($isApproved)
+                    <span class="badge bg-success text-white">
+                        <i class="bi bi-check-circle-fill me-1"></i>PĐT Đã phê duyệt chính thức
+                    </span>
+                @elseif ($isSubmitted)
+                    <span class="badge bg-primary text-white">
+                        <i class="bi bi-lock-fill me-1"></i>Đã nộp về PĐT (Đang khóa)
+                    </span>
+                @else
+                    <span class="badge bg-light text-secondary border">
+                        <i class="bi bi-pencil me-1"></i>Đang nhập nháp
+                    </span>
+                @endif
             </div>
             <h1 class="h3 fw-bold text-dark mb-1">
                 {{ $section->course?->course_name }} ({{ $section->course?->course_code }})
             </h1>
             <p class="text-secondary small mb-0">
-                Nhập và chỉnh sửa điểm cho sinh viên theo thang điểm 10. Điểm lưu sẽ được tự động đồng bộ sang hồ sơ sinh viên và phân hệ Quản trị viên.
+                Nhập và nộp điểm theo thang điểm 10. Sau khi bấm nộp về Phòng Đào tạo, bảng điểm sẽ được khóa bảo vệ dữ liệu.
             </p>
         </div>
 
         <div class="d-flex align-items-center gap-2">
-            <button type="submit" form="gradeForm" class="btn btn-dark btn-sm d-inline-flex align-items-center gap-1.5 px-3 py-2 shadow-sm">
-                <i class="bi bi-check-lg"></i>
-                <span class="fw-semibold">Lưu bảng điểm</span>
-            </button>
+            @if (!$isLocked)
+                <button type="submit" form="gradeForm" class="btn btn-outline-dark btn-sm d-inline-flex align-items-center gap-1.5 px-3 py-2">
+                    <i class="bi bi-floppy"></i>
+                    <span>Lưu nháp</span>
+                </button>
+                <button type="button" class="btn btn-dark btn-sm d-inline-flex align-items-center gap-1.5 px-3 py-2 shadow-sm"
+                        data-bs-toggle="modal" data-bs-target="#submitGradeModal">
+                    <i class="bi bi-send-check"></i>
+                    <span class="fw-semibold">Nộp bảng điểm về PĐT</span>
+                </button>
+            @else
+                <div class="badge bg-light text-dark border px-3 py-2 font-monospace">
+                    <i class="bi bi-lock-fill text-secondary me-1"></i>BẢNG ĐIỂM ĐÃ KHÓA
+                </div>
+            @endif
         </div>
     </div>
 
@@ -38,6 +68,72 @@
             <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
+
+    @if (session('error'))
+        <div class="alert alert-light border border-danger-subtle shadow-sm rounded-3 d-flex align-items-center gap-2 mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill text-danger fs-5"></i>
+            <div class="text-dark small">{{ session('error') }}</div>
+            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
+    @if ($isLocked)
+        <div class="alert alert-light border border-primary-subtle rounded-3 p-3 mb-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-info-circle-fill text-primary fs-5"></i>
+                <div class="small">
+                    <strong>Bảng điểm đang ở chế độ CHỈ XEM:</strong> 
+                    @if ($isApproved)
+                        Đã được Phòng Đào tạo phê duyệt vào ngày {{ $section->grade_approved_at ? $section->grade_approved_at->format('d/m/Y H:i') : '' }}.
+                    @else
+                        Đã nộp về Phòng Đào tạo vào ngày {{ $section->grade_submitted_at ? $section->grade_submitted_at->format('d/m/Y H:i') : '' }} và đang chờ duyệt.
+                    @endif
+                    Nếu cần điều chỉnh, Thầy/Cô vui lòng liên hệ Ban Quản trị để mở khóa.
+                </div>
+            </div>
+            <span class="badge bg-light text-dark border">Chỉ đọc</span>
+        </div>
+    @endif
+
+    <!-- KHỐI THỐNG KÊ PHỔ ĐIỂM CỦA LỚP HỌC PHẦN -->
+    <div class="row g-2 mb-4">
+        <div class="col-6 col-md-2">
+            <div class="p-2.5 rounded-3 bg-light border text-center">
+                <span class="text-secondary small" style="font-size: 0.75rem;">Điểm A (Giỏi/XS)</span>
+                <div class="fs-5 fw-bold text-success mt-0.5">{{ $gradeDistribution['A'] }} SV</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-2">
+            <div class="p-2.5 rounded-3 bg-light border text-center">
+                <span class="text-secondary small" style="font-size: 0.75rem;">Điểm B (Khá)</span>
+                <div class="fs-5 fw-bold text-primary mt-0.5">{{ $gradeDistribution['B'] }} SV</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-2">
+            <div class="p-2.5 rounded-3 bg-light border text-center">
+                <span class="text-secondary small" style="font-size: 0.75rem;">Điểm C (Trung bình)</span>
+                <div class="fs-5 fw-bold text-dark mt-0.5">{{ $gradeDistribution['C'] }} SV</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-2">
+            <div class="p-2.5 rounded-3 bg-light border text-center">
+                <span class="text-secondary small" style="font-size: 0.75rem;">Điểm D (TB Yếu)</span>
+                <div class="fs-5 fw-bold text-warning mt-0.5">{{ $gradeDistribution['D'] }} SV</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-2">
+            <div class="p-2.5 rounded-3 bg-light border text-center">
+                <span class="text-secondary small" style="font-size: 0.75rem;">Điểm F (Rớt môn)</span>
+                <div class="fs-5 fw-bold text-danger mt-0.5">{{ $gradeDistribution['F'] }} SV</div>
+            </div>
+        </div>
+        <div class="col-12 col-md-2">
+            <div class="p-2.5 rounded-3 bg-light border text-center">
+                <span class="text-secondary small" style="font-size: 0.75rem;">Tỷ lệ Đạt môn</span>
+                <div class="fs-5 fw-bold text-dark mt-0.5">{{ $passRate }}%</div>
+            </div>
+        </div>
+    </div>
 
     <!-- Card Bảng điểm -->
     <div class="card border shadow-sm rounded-3 bg-white mb-4">
@@ -100,7 +196,8 @@
                                            id="qt-{{ $index }}"
                                            data-row="{{ $index }}"
                                            value="{{ $enr->process_score !== null ? $enr->process_score : '' }}"
-                                           placeholder="0.0">
+                                           placeholder="0.0"
+                                           {{ $isLocked ? 'disabled' : '' }}>
                                 </td>
 
                                 <!-- Điểm Giữa kỳ (20%) -->
@@ -111,7 +208,8 @@
                                            id="gk-{{ $index }}"
                                            data-row="{{ $index }}"
                                            value="{{ $enr->midterm_score !== null ? $enr->midterm_score : '' }}"
-                                           placeholder="0.0">
+                                           placeholder="0.0"
+                                           {{ $isLocked ? 'disabled' : '' }}>
                                 </td>
 
                                 <!-- Điểm Cuối kỳ (60%) -->
@@ -122,7 +220,8 @@
                                            id="ck-{{ $index }}"
                                            data-row="{{ $index }}"
                                            value="{{ $enr->final_score !== null ? $enr->final_score : '' }}"
-                                           placeholder="0.0">
+                                           placeholder="0.0"
+                                           {{ $isLocked ? 'disabled' : '' }}>
                                 </td>
 
                                 <!-- Tổng kết thang 10 -->
@@ -146,100 +245,114 @@
                                     @endif
                                 </td>
 
-                                <!-- Kết quả Đạt / Rớt -->
-                                <td class="pe-3" id="status-{{ $index }}">
+                                <!-- Trạng thái Đạt / Không đạt -->
+                                <td class="pe-3" id="res-{{ $index }}">
                                     @if ($enr->total_score_10 !== null)
-                                        @if ($enr->isPassed())
-                                            <span class="badge bg-light text-success border border-success-subtle small">✓ Đạt</span>
+                                        @if ($enr->total_score_10 >= 4.0)
+                                            <span class="badge bg-light text-success border border-success-subtle">Đạt</span>
                                         @else
-                                            <span class="badge bg-light text-danger border border-danger-subtle small">✗ Rớt</span>
+                                            <span class="badge bg-light text-danger border border-danger-subtle">Không đạt</span>
                                         @endif
                                     @else
-                                        <span class="badge bg-light text-secondary border small">Chưa đủ điểm</span>
+                                        <span class="text-muted small">Chưa tổng kết</span>
                                     @endif
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="11" class="text-center py-5 text-muted small">
-                                    <i class="bi bi-people fs-2 d-block mb-2 text-secondary opacity-50"></i>
-                                    Chưa có sinh viên nào đăng ký lớp học phần này.
+                                <td colspan="11" class="text-center py-4 text-secondary small">
+                                    Chưa có sinh viên đăng ký lớp học phần này.
                                 </td>
                             </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
-
-            <div class="card-footer bg-white py-3 border-top d-flex align-items-center justify-content-between">
-                <span class="text-secondary small">
-                    <i class="bi bi-info-circle me-1"></i>Hệ thống tự động tính điểm theo quy chế học vụ HUIT. Nhớ nhấn "Lưu bảng điểm" sau khi hoàn tất nhập liệu.
-                </span>
-                <button type="submit" class="btn btn-dark btn-sm d-inline-flex align-items-center gap-1.5 px-4 py-2 shadow-sm">
-                    <i class="bi bi-check-lg"></i>
-                    <span class="fw-semibold">Lưu bảng điểm</span>
-                </button>
-            </div>
         </form>
     </div>
 </div>
 
+<!-- Modal Xác nhận nộp bảng điểm -->
+@if (!$isLocked)
+    <div class="modal fade" id="submitGradeModal" tabindex="-1" aria-labelledby="submitGradeModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <form method="POST" action="{{ route('lecturer.grades.submit', $section) }}">
+                    @csrf
+                    <div class="modal-header border-bottom">
+                        <h5 class="modal-title fw-bold text-dark" id="submitGradeModalLabel">
+                            <i class="bi bi-send-check text-primary me-1"></i>Xác nhận nộp bảng điểm
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div class="alert alert-light border border-warning-subtle rounded-3 small text-dark mb-3">
+                            <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>
+                            <strong>Lưu ý quan trọng:</strong> Sau khi nộp về Phòng Đào tạo, bảng điểm sẽ được <strong>khóa lại</strong> và chuyển sang trạng thái chờ duyệt. Thầy/Cô sẽ không thể tự ý sửa đổi điểm trừ khi Quản trị viên mở khóa.
+                        </div>
+                        <p class="small text-secondary mb-3">
+                            Lớp học phần: <strong>{{ $section->section_code }} — {{ $section->course?->course_name }}</strong>
+                            <br>
+                            Số lượng sinh viên: <strong>{{ $section->enrollments->count() }} sinh viên</strong>
+                        </p>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-dark">Ghi chú gửi Phòng Đào tạo (nếu có):</label>
+                            <textarea name="note" class="form-control form-control-sm" rows="3" placeholder="Ví dụ: Đã hoàn tất chấm điểm giữa kỳ và thi kết thúc môn..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top bg-light">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Hủy bỏ</button>
+                        <button type="submit" class="btn btn-sm btn-dark px-3">
+                            <i class="bi bi-check-lg me-1"></i>Xác nhận nộp & Khóa bảng điểm
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+@endif
+
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const inputs = document.querySelectorAll('.score-input');
-    inputs.forEach(input => {
-        input.addEventListener('input', function() {
-            const rowIndex = this.dataset.row;
-            updateRowCalculation(rowIndex);
+document.addEventListener('DOMContentLoaded', function () {
+    @if (!$isLocked)
+        const inputs = document.querySelectorAll('.score-input');
+        inputs.forEach(input => {
+            input.addEventListener('input', function () {
+                const row = this.getAttribute('data-row');
+                calculateRow(row);
+            });
         });
-    });
 
-    function updateRowCalculation(idx) {
-        const qtVal = parseFloat(document.getElementById('qt-' + idx).value);
-        const gkVal = parseFloat(document.getElementById('gk-' + idx).value);
-        const ckVal = parseFloat(document.getElementById('ck-' + idx).value);
+        function calculateRow(row) {
+            const qtInput = document.getElementById(`qt-${row}`);
+            const gkInput = document.getElementById(`gk-${row}`);
+            const ckInput = document.getElementById(`ck-${row}`);
 
-        const tot10El = document.getElementById('tot10-' + idx);
-        const tot4El = document.getElementById('tot4-' + idx);
-        const letEl = document.getElementById('let-' + idx);
-        const statusEl = document.getElementById('status-' + idx);
+            const qt = parseFloat(qtInput ? qtInput.value : 0);
+            const gk = parseFloat(gkInput ? gkInput.value : 0);
+            const ck = parseFloat(ckInput ? ckInput.value : 0);
 
-        if (isNaN(qtVal) || isNaN(gkVal) || isNaN(ckVal)) {
-            tot10El.innerText = '-';
-            tot4El.innerText = '-';
-            letEl.innerHTML = '<span class="text-muted">-</span>';
-            statusEl.innerHTML = '<span class="badge bg-light text-secondary border small">Chưa đủ điểm</span>';
-            return;
+            if (!isNaN(qt) && !isNaN(gk) && !isNaN(ck) && ckInput.value !== '') {
+                const tot10 = Math.round((qt * 0.2 + gk * 0.2 + ck * 0.6) * 10) / 10;
+                document.getElementById(`tot10-${row}`).textContent = tot10.toFixed(1);
+
+                let tot4 = 0, letter = 'F', isPass = false;
+                if (tot10 >= 8.5) { tot4 = 4.0; letter = 'A'; isPass = true; }
+                else if (tot10 >= 8.0) { tot4 = 3.5; letter = 'B+'; isPass = true; }
+                else if (tot10 >= 7.0) { tot4 = 3.0; letter = 'B'; isPass = true; }
+                else if (tot10 >= 6.5) { tot4 = 2.5; letter = 'C+'; isPass = true; }
+                else if (tot10 >= 5.5) { tot4 = 2.0; letter = 'C'; isPass = true; }
+                else if (tot10 >= 5.0) { tot4 = 1.5; letter = 'D+'; isPass = true; }
+                else if (tot10 >= 4.0) { tot4 = 1.0; letter = 'D'; isPass = true; }
+
+                document.getElementById(`tot4-${row}`).textContent = tot4.toFixed(1);
+                document.getElementById(`let-${row}`).innerHTML = `<span class="badge ${letter === 'F' ? 'bg-light text-danger border border-danger-subtle' : 'bg-light text-dark border font-monospace'}">${letter}</span>`;
+                document.getElementById(`res-${row}`).innerHTML = isPass 
+                    ? `<span class="badge bg-light text-success border border-success-subtle">Đạt</span>`
+                    : `<span class="badge bg-light text-danger border border-danger-subtle">Không đạt</span>`;
+            }
         }
-
-        const total10 = Math.round((qtVal * 0.2 + gkVal * 0.2 + ckVal * 0.6) * 10) / 10;
-        let total4 = 0.0;
-        let letter = 'F';
-        let isPassed = false;
-
-        if (total10 >= 8.5) {
-            total4 = 4.0; letter = 'A'; isPassed = true;
-        } else if (total10 >= 7.0) {
-            total4 = 3.0; letter = 'B'; isPassed = true;
-        } else if (total10 >= 5.5) {
-            total4 = 2.0; letter = 'C'; isPassed = true;
-        } else if (total10 >= 4.0) {
-            total4 = 1.0; letter = 'D'; isPassed = true;
-        } else {
-            total4 = 0.0; letter = 'F'; isPassed = false;
-        }
-
-        tot10El.innerText = total10.toFixed(1);
-        tot4El.innerText = total4.toFixed(1);
-
-        if (letter === 'F') {
-            letEl.innerHTML = '<span class="badge bg-light text-danger border border-danger-subtle font-monospace">F</span>';
-            statusEl.innerHTML = '<span class="badge bg-light text-danger border border-danger-subtle small">✗ Rớt</span>';
-        } else {
-            letEl.innerHTML = '<span class="badge bg-light text-dark border font-monospace">' + letter + '</span>';
-            statusEl.innerHTML = '<span class="badge bg-light text-success border border-success-subtle small">✓ Đạt</span>';
-        }
-    }
+    @endif
 });
 </script>
 @endsection

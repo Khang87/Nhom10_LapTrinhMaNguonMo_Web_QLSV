@@ -21,6 +21,34 @@ class StudentProfileController extends Controller
     }
 
     /**
+     * Update personal info (DOB, Gender, Ethnicity, Religion, Nationality, CCCD, Birth place, Permanent residence).
+     */
+    public function updatePersonal(Request $request): RedirectResponse
+    {
+        $student = Auth::user()->student;
+        if (!$student) {
+            return back()->with('error', 'Không tìm thấy hồ sơ sinh viên.');
+        }
+
+        $validated = $request->validate([
+            'dob' => ['nullable', 'date'],
+            'gender' => ['nullable', 'string', 'max:10'],
+            'ethnicity' => ['nullable', 'string', 'max:50'],
+            'religion' => ['nullable', 'string', 'max:50'],
+            'nationality' => ['nullable', 'string', 'max:50'],
+            'cccd_number' => ['nullable', 'string', 'max:20'],
+            'cccd_issue_date' => ['nullable', 'date'],
+            'cccd_issue_place' => ['nullable', 'string', 'max:100'],
+            'birth_place' => ['nullable', 'string', 'max:100'],
+            'permanent_residence' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $student->update($validated);
+
+        return back()->with('success', 'Cập nhật thông tin cá nhân thành công!');
+    }
+
+    /**
      * Update contact info (Phone, Email, Contact Address).
      */
     public function updateContact(Request $request): RedirectResponse

@@ -19,13 +19,13 @@ class GradeController extends Controller
 {
     /**
      * Quản lý điểm sinh viên theo phân cấp chuẩn:
-     * Khoa -> Chuyên ngành -> Khóa tuyển sinh -> Lớp danh nghĩa -> Sinh viên & Bảng điểm
+     * Khoa -> Khóa tuyển sinh -> Chuyên ngành -> Lớp danh nghĩa -> Sinh viên & Bảng điểm
      */
     public function index(Request $request): View
     {
         $selectedFacultyId = $request->query('faculty_id');
-        $selectedSpecId = $request->query('specialization_id');
         $selectedCohort = $request->query('cohort');
+        $selectedSpecId = $request->query('specialization_id');
         $selectedClassCode = $request->query('class_code');
         $selectedStudentId = $request->query('student_id');
         $keyword = trim((string) $request->query('keyword'));
@@ -70,24 +70,71 @@ class GradeController extends Controller
             $classesCount = StudentClass::whereHas('specialization', fn ($q) => $q->where('faculty_id', $f->id))->count();
             $studentsCount = Student::whereHas('specialization', fn ($q) => $q->where('faculty_id', $f->id))->count();
 
+            $cohortsCount = StudentClass::whereHas('specialization', fn ($q) => $q->where('faculty_id', $f->id))
+                ->whereNotNull('cohort_year')
+                ->distinct('cohort_year')
+                ->count('cohort_year');
+
             $facultiesSummary[] = [
                 'id' => $f->id,
                 'code' => $f->code,
                 'name' => $f->name,
+                'cohorts_count' => $cohortsCount > 0 ? $cohortsCount : 4,
                 'specializations_count' => $specCount,
                 'classes_count' => $classesCount,
                 'students_count' => $studentsCount,
             ];
         }
 
-        // Dữ liệu Level 2: Danh sách Chuyên ngành thuộc Khoa đã chọn
-        $facultySpecs = collect();
+        // Danh sách Khóa tuyển sinh
+        $allCohorts = array_values(array_unique(array_merge(
+            Student::whereNotNull('cohort_year')->pluck('cohort_year')->toArray(),
+            StudentClass::whereNotNull('cohort_year')->pluck('cohort_year')->toArray(),
+            ['2024', '2023', '2022', '2021']
+        )));
+        rsort($allCohorts);
+
+        // Dữ liệu Level 2: Khi đã chọn Khoa -> Danh sách các Khóa thuộc Khoa đó
+        $facultyCohortsSummary = [];
         if ($selectedFacultyId) {
+            foreach ($allCohorts as $ch) {
+                $year = (int) $ch;
+                $kNum = $year >= 2010 ? ($year - 2009) : null;
+
+                $clsCount = StudentClass::whereHas('specialization', fn ($q) => $q->where('faculty_id', $selectedFacultyId))
+                    ->where('cohort_year', $ch)
+                    ->count();
+
+                $stuCount = Student::whereHas('specialization', fn ($q) => $q->where('faculty_id', $selectedFacultyId))
+                    ->where('cohort_year', $ch)
+                    ->count();
+
+                $specsCount = Specialization::where('faculty_id', $selectedFacultyId)
+                    ->whereHas('classes', fn ($q) => $q->where('cohort_year', $ch))
+                    ->count();
+
+                if ($specsCount === 0) {
+                    $specsCount = Specialization::where('faculty_id', $selectedFacultyId)->count();
+                }
+
+                $facultyCohortsSummary[] = [
+                    'cohort_year' => $ch,
+                    'k_label' => $kNum ? "Niên khóa K{$kNum}" : "Khóa {$ch}",
+                    'specializations_count' => $specsCount,
+                    'classes_count' => $clsCount,
+                    'students_count' => $stuCount,
+                ];
+            }
+        }
+
+        // Dữ liệu Level 3: Khi đã chọn Khoa và Khóa -> Danh sách các Chuyên ngành thuộc Khoa & Khóa đó
+        $cohortSpecsSummary = collect();
+        if ($selectedFacultyId && $selectedCohort) {
             $specs = Specialization::where('faculty_id', $selectedFacultyId)->orderBy('name')->get();
             foreach ($specs as $s) {
-                $clsCount = StudentClass::where('specialization_id', $s->id)->count();
-                $stuCount = Student::where('specialization_id', $s->id)->count();
-                $facultySpecs->push((object) [
+                $clsCount = StudentClass::where('specialization_id', $s->id)->where('cohort_year', $selectedCohort)->count();
+                $stuCount = Student::where('specialization_id', $s->id)->where('cohort_year', $selectedCohort)->count();
+                $cohortSpecsSummary->push((object) [
                     'id' => $s->id,
                     'code' => $s->code,
                     'name' => $s->name,
@@ -97,46 +144,31 @@ class GradeController extends Controller
             }
         }
 
-        // Dữ liệu Level 3: Danh sách Khóa tuyển sinh của Chuyên ngành đã chọn
-        $allCohorts = array_values(array_unique(array_merge(
-            Student::whereNotNull('cohort_year')->pluck('cohort_year')->toArray(),
-            StudentClass::whereNotNull('cohort_year')->pluck('cohort_year')->toArray(),
-            ['2026', '2023']
-        )));
-        rsort($allCohorts);
-
-        $specCohortsSummary = [];
-        if ($selectedSpecId) {
-            foreach ($allCohorts as $ch) {
-                $year = (int) $ch;
-                $kNum = $year >= 2010 ? ($year - 2009) : null;
-                $clsCount = StudentClass::where('specialization_id', $selectedSpecId)->where('cohort_year', $ch)->count();
-                $stuCount = Student::where('specialization_id', $selectedSpecId)->where('cohort_year', $ch)->count();
-
-                $specCohortsSummary[] = [
-                    'cohort_year' => $ch,
-                    'k_label' => $kNum ? "Niên khóa K{$kNum}" : "Khóa {$ch}",
-                    'classes_count' => $clsCount,
-                    'students_count' => $stuCount,
-                ];
-            }
-        }
+        // Tương thích biến cũ
+        $facultySpecs = $cohortSpecsSummary;
+        $specCohortsSummary = $facultyCohortsSummary;
 
         // Dữ liệu Level 4: Danh sách Lớp danh nghĩa thuộc Chuyên ngành trong Khóa đó
         $classesSummary = collect();
-        if ($selectedCohort) {
-            $classesQuery = StudentClass::with(['lecturer', 'specialization'])
-                ->where('cohort_year', $selectedCohort);
-            if ($selectedSpecId) {
-                $classesQuery->where('specialization_id', $selectedSpecId);
-            }
-            $classesSummary = $classesQuery->orderBy('class_code')->get();
+        if ($selectedCohort && $selectedSpecId) {
+            $classesSummary = StudentClass::with(['lecturer', 'specialization'])
+                ->withCount('students')
+                ->where('cohort_year', $selectedCohort)
+                ->where('specialization_id', $selectedSpecId)
+                ->orderBy('class_code')
+                ->get();
+        } elseif ($selectedCohort) {
+            $classesSummary = StudentClass::with(['lecturer', 'specialization'])
+                ->withCount('students')
+                ->where('cohort_year', $selectedCohort)
+                ->orderBy('class_code')
+                ->get();
         }
 
         // Dữ liệu Level 5: Danh sách sinh viên trong lớp (hoặc tìm kiếm keyword)
         $allStudents = collect();
         if ($selectedClassCode || $keyword !== '') {
-            $studentsQuery = Student::with('specialization');
+            $studentsQuery = Student::with(['specialization.faculty', 'user']);
             if ($selectedCohort) {
                 $studentsQuery->where('cohort_year', $selectedCohort);
             }
@@ -149,6 +181,7 @@ class GradeController extends Controller
                       ->orWhere('full_name', 'like', "%{$keyword}%");
                 });
             }
+            $allStudents = $studentsQuery->orderBy('student_code')->get();
         }
 
         $curriculumBySemester = [];
@@ -290,6 +323,8 @@ class GradeController extends Controller
             'selectedCohort',
             'selectedClassCode',
             'facultiesSummary',
+            'facultyCohortsSummary',
+            'cohortSpecsSummary',
             'facultySpecs',
             'specCohortsSummary',
             'allFaculties',

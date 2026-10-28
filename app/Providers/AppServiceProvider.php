@@ -21,5 +21,10 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Paginator::useBootstrapFive();
+
+        // Tách biệt Session Cookie theo cổng để cho phép mở cùng lúc 3 localhost độc lập:
+        // Port 8000: Admin, Port 8001: Giảng viên, Port 8002: Sinh viên
+        $serverPort = $_SERVER['SERVER_PORT'] ?? '8000';
+        config(['session.cookie' => 'huit_session_' . $serverPort]);
     }
 }

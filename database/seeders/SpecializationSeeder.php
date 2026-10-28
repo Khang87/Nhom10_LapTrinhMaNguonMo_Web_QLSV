@@ -144,7 +144,7 @@ class SpecializationSeeder extends Seeder
             ],
             'ATTT' => [
                 1 => ['DS101' => true, 'MATH101' => true, 'ENG101' => true, 'LAW101' => false],
-                2 => ['NET101' => true, 'DB101' => true, 'LAW101' => false],
+                2 => ['NET101' => true, 'DB101' => true],
                 3 => ['ATTT101' => true, 'SEC101' => true, 'WEB101' => false],
                 4 => ['ATTT102' => true, 'MMT101' => true, 'OPEN101' => false],
                 5 => ['AI101' => true, 'NOSQL101' => false],
@@ -154,7 +154,7 @@ class SpecializationSeeder extends Seeder
             ],
             'MMT' => [
                 1 => ['DS101' => true, 'MATH101' => true, 'ENG101' => true, 'LAW101' => false],
-                2 => ['NET101' => true, 'DB101' => true, 'LAW101' => false],
+                2 => ['NET101' => true, 'DB101' => true],
                 3 => ['MMT101' => true, 'WEB101' => true, 'IOT101' => false],
                 4 => ['MMT102' => true, 'SEC101' => true, 'OPEN101' => false],
                 5 => ['AI101' => true, 'NOSQL101' => false],

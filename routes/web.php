@@ -4,17 +4,25 @@ use App\Http\Controllers\Admin\AttendanceController as AdminAttendanceController
 use App\Http\Controllers\Admin\ClassController;
 use App\Http\Controllers\Admin\CourseSectionManagementController;
 use App\Http\Controllers\Admin\FacultyController;
+use App\Http\Controllers\Admin\GradeApprovalController as AdminGradeApprovalController;
 use App\Http\Controllers\Admin\GradeController as AdminGradeController;
 use App\Http\Controllers\Admin\LecturerController as AdminLecturerController;
+use App\Http\Controllers\Admin\ScheduleRequestApprovalController as AdminScheduleRequestApprovalController;
 use App\Http\Controllers\Admin\SemesterController;
 use App\Http\Controllers\Admin\SpecializationController;
 use App\Http\Controllers\Admin\StudentController as AdminStudentController;
 use App\Http\Controllers\Admin\SubjectController as AdminSubjectController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CurriculumController;
+use App\Http\Controllers\Lecturer\AcademicAdvisorController;
 use App\Http\Controllers\Lecturer\AttendanceController as LecturerAttendanceController;
+use App\Http\Controllers\Lecturer\DashboardController as LecturerDashboardController;
+use App\Http\Controllers\Lecturer\GradeAppealController as LecturerGradeAppealController;
 use App\Http\Controllers\Lecturer\GradeController as LecturerGradeController;
+use App\Http\Controllers\Lecturer\ProfileController as LecturerProfileController;
+use App\Http\Controllers\Lecturer\ScheduleRequestController as LecturerScheduleRequestController;
 use App\Http\Controllers\ScheduleController;
+use App\Http\Controllers\StudentAttendanceController;
 use App\Http\Controllers\StudentDashboardController;
 use App\Http\Controllers\StudentGradeController;
 use App\Http\Controllers\StudentProfileController;
@@ -32,9 +40,6 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/', function () {
         $role = strtolower(auth()->user()->role);
-        if ($role === 'lecturer') {
-            return redirect()->route('lecturer.schedule.index');
-        }
         return redirect()->route($role . '.dashboard');
     });
 
@@ -47,6 +52,7 @@ Route::middleware('auth')->group(function () {
     // PHÂN HỆ QUẢN TRỊ VIÊN (ADMIN)
     // ========================================================
     Route::prefix('admin')->name('admin.')->middleware('checkRole:admin')->group(function () {
+        Route::get('/', fn () => redirect()->route('admin.dashboard'));
         Route::get('/dashboard', fn () => view('admin.dashboard'))->name('dashboard');
 
         // 0. Quản lý Khoa phụ trách (Khoa -> Chuyên ngành -> Môn học)
@@ -87,6 +93,14 @@ Route::middleware('auth')->group(function () {
         Route::get('/grades', [AdminGradeController::class, 'index'])->name('grades.index');
         Route::post('/grades/update-score', [AdminGradeController::class, 'updateScore'])->name('grades.updateScore');
 
+        // 5.1 Phê duyệt bảng điểm & Phúc khảo điểm (PĐT / Khảo thí)
+        Route::get('/grades/approvals', [AdminGradeApprovalController::class, 'index'])->name('grades.approvals');
+        Route::get('/grades/section/{section}', [AdminGradeApprovalController::class, 'show'])->name('grades.section');
+        Route::post('/grades/section/{section}/approve', [AdminGradeApprovalController::class, 'approve'])->name('grades.approve');
+        Route::post('/grades/section/{section}/unlock', [AdminGradeApprovalController::class, 'unlock'])->name('grades.unlock');
+        Route::get('/grades/appeals', [AdminGradeApprovalController::class, 'appealsIndex'])->name('grades.appeals');
+        Route::post('/grades/appeals/{appeal}/approve', [AdminGradeApprovalController::class, 'approveAppeal'])->name('grades.approveAppeal');
+
         // 6. Điểm danh và Báo cáo (Lấy dữ liệu từ giảng viên, lọc theo chuyên ngành, môn học, lớp HP, ngày tháng)
         Route::get('/attendances', [AdminAttendanceController::class, 'index'])->name('attendances.index');
 
@@ -103,14 +117,23 @@ Route::middleware('auth')->group(function () {
         Route::delete('/course-sections/{section}', [CourseSectionManagementController::class, 'destroy'])->name('course-sections.destroy');
         Route::post('/course-sections/open-by-curriculum', [CourseSectionManagementController::class, 'openByCurriculum'])->name('course-sections.open-by-curriculum');
 
-        // Note: Đã bỏ admin.schedule và admin.scholarships theo yêu cầu của user
+        // 9. Duyệt Thay Đổi Lịch Giảng Dạy (Báo nghỉ, Dạy bù, Chuyển Online)
+        Route::get('/schedule-requests', [AdminScheduleRequestApprovalController::class, 'index'])->name('schedule_requests.index');
+        Route::post('/schedule-requests/{scheduleRequest}/approve', [AdminScheduleRequestApprovalController::class, 'approve'])->name('schedule_requests.approve');
+        Route::post('/schedule-requests/{scheduleRequest}/reject', [AdminScheduleRequestApprovalController::class, 'reject'])->name('schedule_requests.reject');
     });
 
     // ========================================================
     // PHÂN HỆ GIẢNG VIÊN (LECTURER)
     // ========================================================
     Route::prefix('lecturer')->name('lecturer.')->middleware('checkRole:lecturer')->group(function () {
-        Route::get('/dashboard', fn () => redirect()->route('lecturer.schedule.index'))->name('dashboard');
+        Route::get('/', fn () => redirect()->route('lecturer.dashboard'));
+        // Trang chủ Dashboard giảng viên
+        Route::get('/dashboard', [LecturerDashboardController::class, 'index'])->name('dashboard');
+
+        // 0. Thông tin cá nhân
+        Route::get('/profile', [LecturerProfileController::class, 'show'])->name('profile');
+        Route::post('/profile', [LecturerProfileController::class, 'update'])->name('profile.update');
 
         // 1. Lịch giảng dạy tuần (TKB)
         Route::get('/schedule', [ScheduleController::class, 'index'])->name('schedule.index');
@@ -120,25 +143,43 @@ Route::middleware('auth')->group(function () {
         Route::get('/attendances/{section}/take', [LecturerAttendanceController::class, 'take'])->name('attendances.take');
         Route::post('/attendances/{section}', [LecturerAttendanceController::class, 'store'])->name('attendances.store');
 
-        // 3. Nhập bảng điểm học phần (dữ liệu đồng bộ sang Quản trị viên)
+        // 3. Nhập bảng điểm học phần & Nộp về PĐT
         Route::get('/grades', [LecturerGradeController::class, 'index'])->name('grades.index');
         Route::get('/grades/{section}', [LecturerGradeController::class, 'edit'])->name('grades.edit');
         Route::put('/grades/{section}', [LecturerGradeController::class, 'update'])->name('grades.update');
+        Route::post('/grades/{section}/submit', [LecturerGradeController::class, 'submit'])->name('grades.submit');
+
+        // 4. Phân hệ Cố vấn học tập (CVHT / Chủ nhiệm lớp sinh hoạt)
+        Route::get('/advisor', [AcademicAdvisorController::class, 'index'])->name('advisor.index');
+        Route::get('/advisor/class/{class}', [AcademicAdvisorController::class, 'showClass'])->name('advisor.class');
+
+        // 5. Tiếp nhận & Giải quyết Phúc khảo điểm
+        Route::get('/appeals', [LecturerGradeAppealController::class, 'index'])->name('appeals.index');
+        Route::post('/appeals/{appeal}/reply', [LecturerGradeAppealController::class, 'reply'])->name('appeals.reply');
+
+        // 6. Báo nghỉ / Báo dạy bù / Chuyển học Online
+        Route::get('/requests', [LecturerScheduleRequestController::class, 'index'])->name('requests.index');
+        Route::get('/requests/create', [LecturerScheduleRequestController::class, 'create'])->name('requests.create');
+        Route::post('/requests', [LecturerScheduleRequestController::class, 'store'])->name('requests.store');
     });
 
     // ========================================================
     // PHÂN HỆ SINH VIÊN (STUDENT)
     // ========================================================
     Route::prefix('student')->name('student.')->middleware('checkRole:student')->group(function () {
+        Route::get('/', fn () => redirect()->route('student.dashboard'));
         Route::get('/dashboard', [StudentDashboardController::class, 'index'])->name('dashboard');
 
         // 1. Thông tin chung
         Route::get('/profile', [StudentProfileController::class, 'show'])->name('profile');
+        Route::post('/profile/personal', [StudentProfileController::class, 'updatePersonal'])->name('profile.updatePersonal');
         Route::post('/profile/contact', [StudentProfileController::class, 'updateContact'])->name('profile.updateContact');
 
-        // 2. Học tập
+        // 2. Học tập & Điểm danh
         Route::get('/schedule', [ScheduleController::class, 'index'])->name('schedule.index');
         Route::get('/grades', [StudentGradeController::class, 'index'])->name('grades.index');
+        Route::post('/grades/appeal', [StudentGradeController::class, 'storeAppeal'])->name('grades.appeal');
+        Route::get('/attendance', [StudentAttendanceController::class, 'index'])->name('attendance.index');
 
         // 3. Đăng ký học phần (Kỳ 1 auto do admin, các kỳ sau sinh viên tự đăng ký)
         Route::get('/curriculum', [CurriculumController::class, 'index'])->name('curriculum.index');
@@ -149,6 +190,7 @@ Route::middleware('auth')->group(function () {
         // 4. Học phí & VietQR
         Route::get('/tuition', [StudentTuitionController::class, 'index'])->name('tuition.index');
         Route::post('/tuition/{invoice}/simulate-payment', [StudentTuitionController::class, 'simulatePayment'])->name('tuition.simulate');
+        Route::post('/tuition/pay-all', [StudentTuitionController::class, 'payAll'])->name('tuition.payAll');
 
         // Note: Đã bỏ student.scholarships theo yêu cầu
     });

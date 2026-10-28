@@ -15,23 +15,16 @@
         $userRole = auth()->user()->role ?? 'student';
         $brandRoute = match ($userRole) {
             'admin' => route('admin.dashboard'),
-            'lecturer' => route('lecturer.schedule.index'),
+            'lecturer' => route('lecturer.dashboard'),
             default => route('student.dashboard'),
         };
         $isHomeActive = match ($userRole) {
             'admin' => request()->routeIs('admin.dashboard'),
-            'lecturer' => request()->routeIs('lecturer.schedule.*'),
+            'lecturer' => request()->routeIs('lecturer.dashboard'),
             default => request()->routeIs('student.dashboard'),
         };
-        $homeLabel = match ($userRole) {
-            'admin' => 'Trang chủ',
-            'lecturer' => 'Lịch giảng dạy',
-            default => 'Trang chủ',
-        };
-        $homeIcon = match ($userRole) {
-            'lecturer' => 'bi-calendar-week',
-            default => 'bi-grid-fill',
-        };
+        $homeLabel = 'Trang chủ';
+        $homeIcon = 'bi-grid-fill';
         $roleLabel = match ($userRole) {
             'admin' => 'quản trị',
             'lecturer' => 'giảng viên',
@@ -128,6 +121,22 @@
                             </a>
                         </li>
                         <li class="sidebar-menu-item">
+                            <a class="sidebar-menu-link {{ request()->routeIs('admin.grades.approvals') || request()->routeIs('admin.grades.appeals') ? 'active' : '' }}"
+                                href="{{ route('admin.grades.approvals') }}"
+                                @if (request()->routeIs('admin.grades.approvals')) aria-current="page" @endif>
+                                <i class="bi bi-patch-check" aria-hidden="true"></i>
+                                <span>Phê duyệt Bảng điểm</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-menu-item">
+                            <a class="sidebar-menu-link {{ request()->routeIs('admin.schedule_requests.*') ? 'active' : '' }}"
+                                href="{{ route('admin.schedule_requests.index') }}"
+                                @if (request()->routeIs('admin.schedule_requests.*')) aria-current="page" @endif>
+                                <i class="bi bi-calendar-event" aria-hidden="true"></i>
+                                <span>Duyệt Đổi lịch dạy</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-menu-item">
                             <a class="sidebar-menu-link {{ request()->routeIs('admin.attendances.*') ? 'active' : '' }}"
                                 href="{{ route('admin.attendances.index') }}"
                                 @if (request()->routeIs('admin.attendances.*')) aria-current="page" @endif>
@@ -173,6 +182,38 @@
                                 <span>Nhập điểm học phần</span>
                             </a>
                         </li>
+                        <li class="sidebar-menu-item">
+                            <a class="sidebar-menu-link {{ request()->routeIs('lecturer.advisor.*') ? 'active' : '' }}"
+                                href="{{ route('lecturer.advisor.index') }}"
+                                @if (request()->routeIs('lecturer.advisor.*')) aria-current="page" @endif>
+                                <i class="bi bi-person-workspace" aria-hidden="true"></i>
+                                <span>Cố vấn học tập (CVHT)</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-menu-item">
+                            <a class="sidebar-menu-link {{ request()->routeIs('lecturer.appeals.*') ? 'active' : '' }}"
+                                href="{{ route('lecturer.appeals.index') }}"
+                                @if (request()->routeIs('lecturer.appeals.*')) aria-current="page" @endif>
+                                <i class="bi bi-chat-left-dots" aria-hidden="true"></i>
+                                <span>Phúc khảo điểm</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-menu-item">
+                            <a class="sidebar-menu-link {{ request()->routeIs('lecturer.requests.*') ? 'active' : '' }}"
+                                href="{{ route('lecturer.requests.index') }}"
+                                @if (request()->routeIs('lecturer.requests.*')) aria-current="page" @endif>
+                                <i class="bi bi-send-exclamation" aria-hidden="true"></i>
+                                <span>Báo nghỉ & Dạy bù</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-menu-item">
+                            <a class="sidebar-menu-link {{ request()->routeIs('lecturer.profile*') ? 'active' : '' }}"
+                                href="{{ route('lecturer.profile') }}"
+                                @if (request()->routeIs('lecturer.profile*')) aria-current="page" @endif>
+                                <i class="bi bi-person-badge" aria-hidden="true"></i>
+                                <span>Thông tin cá nhân</span>
+                            </a>
+                        </li>
                     </ul>
                 </section>
             @else
@@ -207,6 +248,14 @@
                                 @if (request()->routeIs('student.grades.*')) aria-current="page" @endif>
                                 <i class="bi bi-bar-chart-line" aria-hidden="true"></i>
                                 <span>Kết quả học tập</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-menu-item">
+                            <a class="sidebar-menu-link {{ request()->routeIs('student.attendance.*') ? 'active' : '' }}"
+                                href="{{ route('student.attendance.index', [], false) }}"
+                                @if (request()->routeIs('student.attendance.*')) aria-current="page" @endif>
+                                <i class="bi bi-person-check" aria-hidden="true"></i>
+                                <span>Điểm danh học phần</span>
                             </a>
                         </li>
                     </ul>
@@ -300,6 +349,19 @@
                         aria-labelledby="spark-profile-dropdown">
                         <div class="dropdown-header">{{ auth()->user()->email }}</div>
                         <div class="dropdown-divider"></div>
+                        @if(auth()->user()->isLecturer())
+                            <a class="dropdown-item" href="{{ route('lecturer.profile') }}">
+                                <i class="bi bi-person-badge me-2" aria-hidden="true"></i>
+                                Thông tin cá nhân
+                            </a>
+                            <div class="dropdown-divider"></div>
+                        @elseif(auth()->user()->isStudent())
+                            <a class="dropdown-item" href="{{ route('student.profile') }}">
+                                <i class="bi bi-person-badge me-2" aria-hidden="true"></i>
+                                Thông tin cá nhân
+                            </a>
+                            <div class="dropdown-divider"></div>
+                        @endif
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <button class="dropdown-item text-danger" type="submit">

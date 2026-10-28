@@ -116,16 +116,16 @@
                         </span>
                         <select name="faculty_id" id="facultyFilterSelect" class="form-select form-select-sm" onchange="this.form.submit()">
                             <option value="">
-                                -- Tất cả các Khoa ({{ $totalSpecializationsCount }}) --
+                                -- Tất cả các Khoa --
                             </option>
                             @foreach ($faculties as $fac)
                                 <option value="{{ $fac->id }}" {{ (string)$selectedFacultyId === (string)$fac->id ? 'selected' : '' }}>
-                                    [{{ $fac->code }}] {{ $fac->name }} ({{ $fac->specializations_count }})
+                                    [{{ $fac->code }}] {{ $fac->name }}
                                 </option>
                             @endforeach
                             @if($unassignedCount > 0)
                                 <option value="unassigned" {{ $selectedFacultyId === 'unassigned' ? 'selected' : '' }}>
-                                    -- Chưa phân khoa ({{ $unassignedCount }}) --
+                                    -- Chưa phân khoa --
                                 </option>
                             @endif
                         </select>

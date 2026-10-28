@@ -11,15 +11,14 @@ class AuthController extends Controller
 {
     public function showLoginForm(): View|RedirectResponse
     {
+        $currentPort = (int) (request()->getPort() ?: 8000);
+
         if (Auth::check()) {
             $role = strtolower(Auth::user()->role);
-            if ($role === 'lecturer') {
-                return redirect()->route('lecturer.schedule.index');
-            }
             return redirect()->route($role.'.dashboard');
         }
 
-        return view('auth.login');
+        return view('auth.login', compact('currentPort'));
     }
 
     public function login(Request $request): RedirectResponse
@@ -54,8 +53,18 @@ class AuthController extends Controller
         $request->session()->regenerate();
 
         $role = strtolower(Auth::user()->role);
-        if ($role === 'lecturer') {
-            return redirect()->route('lecturer.schedule.index');
+        $currentPort = (int) ($request->getPort() ?: 8000);
+        $targetPort = match ($role) {
+            'admin' => 8000,
+            'lecturer' => 8001,
+            'student' => 8002,
+            default => 8000,
+        };
+
+        // Nếu người dùng đăng nhập từ cổng 8000/8001/8002 và role khác cổng, tự động chuyển về đúng cổng của role
+        if (in_array($currentPort, [8000, 8001, 8002]) && $currentPort !== $targetPort) {
+            $host = $request->getHost();
+            return redirect()->away("http://{$host}:{$targetPort}/{$role}/dashboard");
         }
 
         return redirect()->route($role.'.dashboard');
